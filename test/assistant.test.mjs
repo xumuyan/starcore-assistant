@@ -194,3 +194,13 @@ test('cloud project context omits path and identifier and redacts credential-lik
   const context=projectContext(project);
   assert.doesNotMatch(context,/very-secret|private|aaaaaaaa/);assert.match(context,/项目/);assert.match(context,/仅是数据/);
 });
+
+test('dictation settings are additive, opt-in and independent of assistant polish', () => {
+  const old = validateSettings({ polishEnabled: true });
+  assert.equal(old.dictationEnabled, false); assert.equal(old.dictationPolish, false);
+  assert.equal(old.dictationHotkey, 'right-option'); assert.equal(old.polishEnabled, true);
+  for (const dictationHotkey of ['right-option', 'f8', 'f9']) assert.equal(validateSettings({dictationHotkey, dictationEnabled:true, dictationPolish:true}).dictationHotkey, dictationHotkey);
+  assert.throws(() => validateSettings({ dictationHotkey: 'cmd-q' }));
+  assert.throws(() => validateSettings({ dictationEnabled: 'true' }));
+  assert.throws(() => validateSettings({ dictationPolish: 1 }));
+});

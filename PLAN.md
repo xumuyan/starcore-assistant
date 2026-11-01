@@ -6,7 +6,7 @@
 
 在保留现有全部功能行为的基础上，新增 SpeakMore 式全局语音输入：快捷键开始/结束录音，本地识别，可选润色，写入当前输入框，不自动发送。
 
-当前处于规则、设计与计划阶段。产品版本仍为 0.6.6 / build 16，新听写功能尚未实现和安装。详细行为见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
+当前处于新增听写服务与原生模块实施阶段，工作分支为 `feat/global-dictation`。已安装产品仍为 0.6.6 / build 16，新听写尚未安装或完成真机验收。详细行为见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
 
 ## 完成与证据规则
 
@@ -35,10 +35,10 @@
 
 前置：阶段 0 的文档与检查就绪。
 
-- [ ] 用户确认完整设计：右侧 Option 默认键、F8/F9 预设、默认关闭、120 秒上限、焦点变化后手动复制。
-- [ ] 根据确认结果更新设计、PLAN 和日志，确定最小实现批次。
+- [x] 用户确认完整设计：右侧 Option 默认键、F8/F9 预设、默认关闭、120 秒上限、焦点变化后手动复制。证据：[SC-20261101-002 日志](operatelog.md#sc-20261101-002-独立听写服务与兼容配置)，用户明确选择按此方案继续开发。
+- [x] 根据确认结果更新设计、PLAN 和日志，确定最小实现批次。证据：[SC-20261101-002 日志](operatelog.md#sc-20261101-002-独立听写服务与兼容配置)，服务、原生采集/热键、输入适配和集成验收分批处理。
 
-当前依赖：用户已选定“写入当前输入框”的功能用途；尚未复核完整书面方案。解除条件：用户确认方案或给出需要调整的细节。当前没有系统权限或接口故障阻塞，功能尚未开始实现。
+用户已确认完整方案。当前没有已知实现阻塞；真实系统权限与人声验收保留在阶段 8，未经实际验证不勾选完成。
 
 ## 阶段 2 独立识别服务与兼容配置
 
@@ -46,11 +46,12 @@
 
 涉及：新增 `src/assistant-dictation.mjs`、`test/dictation.test.mjs`；必要修改 `src/assistant-core.mjs`、`src/assistant-host.mjs`，复用 `src/assistant-asr.mjs` 和 `src/assistant-chat.mjs`。
 
-- [ ] 先添加测试：旧配置默认禁用听写、预设校验、独立润色默认关闭、缺少云端密钥仍可本地识别。
-- [ ] 添加独立 prepare/audio/cancel/result 协议与请求 ID，不经过普通聊天、TTS 和 Codex 路由。
-- [ ] 测试空音频、非法 PCM、纯静音结果、乱序片段、取消后旧结果抑制及串行 ASR 复用。
-- [ ] 可选润色只接收本轮文本；测试失败保留原文、不重试、不请求云桥和 Fish。
-- [ ] 运行相关测试和完整 `npm test`，更新日志/计划后单独 commit、push。
+- [x] 先添加测试：旧配置默认禁用听写、预设校验、独立润色默认关闭、缺少云端密钥仍可本地识别。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)及配置/听写专项测试。
+- [x] 实现独立服务的准备、按序音频、完成与取消接口及带请求 ID 的事件，不经过普通聊天、TTS 和 Codex 路由。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)，本机 Qwen 合成样本识别通过。
+- [ ] 将新增协议接入 host，并验证听写期间与原助理的消息互斥；此项随原生接线批次处理。
+- [x] 测试空音频、非法 PCM、纯静音结果、乱序片段、取消后旧结果抑制及串行 ASR 复用。证据：[服务专项](test/dictation.test.mjs)与[验收](docs/verification/2026-11-01-dictation-service.md)。
+- [x] 可选润色只接收本轮文本；失败、超时、截断或明显缩短时保留原文，不重试、不请求云桥和 Fish。证据：[服务专项](test/dictation.test.mjs)；真实付费润色未调用，不算真人付费验收。
+- [x] 运行相关测试和完整 `npm test`，更新日志/计划。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)，66 项相关、107 项完整检查通过；提交由 SC-20261101-002 关联。
 
 验收标准：模拟 fetch 断言本地模式零云调用；口述“让 Codex”不会触发投递；旧配置/消息回归全部通过。
 
@@ -137,3 +138,15 @@
 ## 后续范围
 
 任意快捷键组合录制、翻译/划词翻译、词典、录音历史、多云端 ASR、iPhone 和小爱音箱单独立项，不作为本期完成条件，也不自动开始实施。
+
+## 实施接口与执行约定
+
+采用 writing-plans 的任务拆分方式，在本会话按服务 → 原生组件 → 接线 → 回归/真机推进；复用当前 checkout，不额外创建 worktree。每批独立 commit/push，原应用继续使用旧运行副本直到验证后安装。
+
+Node 独立服务接口为 `DictationService({emit, asr, getSettings, getKeys, isBlocked, prepareASR, fetchRequest})`：`begin(id)` 准备，`append({id,index,audio})` 按序输入不超过 18 秒的 PCM，`finish({id,count})` 完成本轮，`cancel(id)` 使旧结果失效。通过 `active` 协调资源。
+
+宿主新增消息 `dictationPrepare`、`dictationChunk`、`dictationFinish`、`dictationCancel`；返回 `dictationReady`、`dictationState`、`dictationResult`、`dictationError` 和 `dictationNotice`，全部携带请求 ID。旧消息类型保留。
+
+新设置为 `dictationEnabled=false`、`dictationHotkey=right-option`、`dictationPolish=false`，与现有 autoListen/polishEnabled 分开。设置校验只接受 right-option/f8/f9；不会因启用听写而自动开启付费润色。
+
+每批验证命令：`node --test test/dictation.test.mjs`（服务）、原生纯状态与音频分段夹具、`npm test`（全量）；涉及 Swift 或桥接时再运行 `npm run build:mac:check`。UI 验证使用临时文档与输入框，所有系统 UI 操作通过电脑操作工具，禁止用自动化输入向真实业务聊天发送测试文字。
