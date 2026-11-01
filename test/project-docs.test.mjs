@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md'];
+const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -43,4 +43,15 @@ test('project governance links resolve without exposing private paths or credent
       assert.ok(existsSync(resolve(dirname(resolve(root,file)),target.split('#')[0])),`${file}: broken link ${target}`);
     }
   }
+});
+
+
+test('package and native version metadata agree with the current changelog',()=>{
+  const pkg=JSON.parse(read('package.json')),lock=JSON.parse(read('package-lock.json'));
+  assert.equal(lock.version,pkg.version);assert.equal(lock.packages[''].version,pkg.version);
+  const build=read('client/build.py');
+  assert.equal(build.match(/'CFBundleShortVersionString': '([^']+)'/)[1],pkg.version);
+  const buildNumber=build.match(/'CFBundleVersion': '(\d+)'/)[1];
+  assert.ok(read('CHANGELOG.md').includes('## '+pkg.version+' —'));
+  assert.ok(read('CHANGELOG.md').includes('build '+buildNumber));
 });
