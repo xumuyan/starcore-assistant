@@ -46,6 +46,19 @@ import CoreGraphics
         require(limitSignals == 1 && capped.capped && capped.seconds == 120, "one limit callback")
         require(capped.chunks.count <= 8, "eight chunks maximum")
         require(capped.chunks.reduce(0) { $0 + $1.count } == 120 * 16000 * 4, "cap has exactly 120 seconds of PCM")
+        // Uneven quiet boundaries used to leave 20 ms after a full segment,
+        // padding the 120-second recording above the service's hard cap.
+        var uneven = Array(repeating: Float(0.1), count: 120 * 16000)
+        for end in [17.0, 34, 51, 68, 85, 101.98] {
+            let stop = Int((end * 16000).rounded())
+            for index in (stop - 320)..<stop { uneven[index] = 0 }
+        }
+        _ = audio.append(uneven)
+        let unevenCap = audio.finish()
+        require(unevenCap.chunks.count <= 8, "uneven cap chunk count")
+        let unevenDecoded = unevenCap.chunks.flatMap(unpack)
+        require(unevenDecoded.count == uneven.count && unevenDecoded == uneven, "uneven cap must preserve samples without excess padding")
+        require(unevenCap.chunks.allSatisfy { $0.count >= 3200 && $0.count <= 18 * 16000 * 4 }, "uneven cap segment bounds")
         // Worst case quiet boundaries still fit the service's eight-part limit.
         _ = audio.append(Array(repeating: 0, count: 120 * 16000))
         let quietCap = audio.finish()

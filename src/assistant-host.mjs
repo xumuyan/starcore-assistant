@@ -1,11 +1,13 @@
 import { createInterface } from 'node:readline';
 import { AssistantService } from './assistant-service.mjs';
 import { LocalASR } from './assistant-asr.mjs';
+import { AssistantDictationHost } from './assistant-dictation-host.mjs';
 
 process.umask(0o077);
 const emit = event => process.stdout.write(JSON.stringify(event) + '\n');
 const asr = new LocalASR();
 const assistant = new AssistantService({ emit, asr });
+const dictation = new AssistantDictationHost({ assistant, asr, emit });
 // Each operation handles its own concurrency. Abort/listen/stop must be able to
 // arrive during inference or an HTTP request; do not serialize the input stream.
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -13,6 +15,9 @@ input.on('line', line => {
   if (line.length > 3 * 1024 * 1024) return;
   (async () => {
     const event = JSON.parse(line);
+    // Preserve synchronous ownership of original text/audio before the next line.
+    const handled = dictation.handle(event);
+    if (handled === true || (handled && await handled)) return;
     switch (event.type) {
       case 'configure': await assistant.configure(event.settings, event.keys); break;
       case 'listen':
@@ -42,4 +47,4 @@ input.on('line', line => {
   })().catch(error => emit({ type: 'error', message: error.message || '本机助理操作失败，请检查配置后再试' }));
 });
 setInterval(() => assistant.tick(), 1000).unref();
-input.on('close', () => { assistant.cancel(); assistant.memory.close(); process.exit(0); });
+input.on('close', () => { dictation.cancel(); assistant.cancel(); assistant.memory.close(); process.exit(0); });

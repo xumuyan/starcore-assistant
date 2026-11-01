@@ -48,6 +48,9 @@ struct DictationAudioBuffer {
                     if energy <= bestEnergy { bestEnergy = energy; end = candidate + window }
                 }
             }
+            // Move a near-final boundary back so the tail has enough real PCM.
+            // Padding a tiny tail at 120 s would exceed the service's hard cap.
+            if end < samples.count && samples.count - end < 800 { end = samples.count - 800 }
             var segment = Array(samples[start..<end])
             if segment.count < 800 { segment.append(contentsOf: repeatElement(0, count: 800 - segment.count)) }
             chunks.append(segment.withUnsafeBytes { Data($0) })

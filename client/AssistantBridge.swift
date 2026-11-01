@@ -30,6 +30,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     var vaultError: String?
     var pendingConfiguration: [String: Any]?
     var microphone = Microphone()
+    lazy var dictation = DictationController(host: self)
+    var assistantActivity = "idle"
     var meteringTimer: Timer?
     var player: AVAudioPlayer?
     let synthesizer = AVSpeechSynthesizer()
@@ -67,16 +69,18 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
                 emit(["type": "notice", "message": "已迁移可读取的密钥。以后直接使用本地加密库，无需再次读取钥匙串。"])
             } catch { self.error("旧密钥迁移未完成；原钥匙串项已保留。") }
         case "text":
+            dictation.cancel()
             stopAudio(); send(["type": "text", "text": body["text"] as? String ?? "", "mode": body["mode"] as? String ?? "chat"])
-        case "cancel": stopAudio(); send(["type": "cancel"])
-        case "activate": stopAudio(); if wantsListen { send(["type": "activate"]) } else { setListen(true); send(["type": "activate"]) }
+        case "cancel": dictation.cancel(); stopAudio(); send(["type": "cancel"])
+        case "activate": dictation.cancel(); stopAudio(); if wantsListen { send(["type": "activate"]) } else { setListen(true); send(["type": "activate"]) }
         case "clear":
             let alert = NSAlert(); alert.messageText = "清空本机助理对话？"; alert.informativeText = "Codex 聊天与微信提醒会保留。"
             alert.addButton(withTitle: "清空对话"); alert.addButton(withTitle: "取消")
-            if alert.runModal() == .alertFirstButtonReturn { send(["type": "clear"]) }
+            if alert.runModal() == .alertFirstButtonReturn { dictation.cancel(); send(["type": "clear"]) }
         case "fullscreen": owner?.window.toggleFullScreen(nil)
         case "historyPage": send(["type": "historyPage", "before": body["before"] as? Int ?? 9007199254740991, "query": body["query"] as? String ?? ""])
-        case "sleep", "targets", "latest", "previewVoice": send(["type": action])
+        case "sleep", "previewVoice": dictation.cancel(); send(["type": action])
+        case "targets", "latest": send(["type": action])
         case "startServices": owner?.startServices()
         case "stopServices": owner?.stopServices()
         case "bind": owner?.bindWeixin()
@@ -86,6 +90,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
             if panel.runModal() == .OK, let url = panel.url { emit(["type": "modelPath", "path": url.path]) }
         case "micSettings":
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+        case "dictationPermission": dictation.requestPermission(body["kind"] as? String ?? "")
+        case "dictationRefresh": dictation.refreshStatus()
         default: break
         }
     }
@@ -120,7 +126,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         process.terminationHandler = { [weak self] _ in
             stdout.fileHandleForReading.readabilityHandler = nil
             DispatchQueue.main.async { [weak self] in
-                guard let self else { return }; self.microphone.stop(); self.wantsListen = false; self.launchingListen = false
+                guard let self else { return }; self.wantsListen = false; self.dictation.shutdown(); self.microphone.stop(); self.launchingListen = false
                 self.emit(["type": "microphone", "enabled": false]); self.error("助理进程已停止，请重新打开客户端；微信后台不受影响")
             }
         }
@@ -138,14 +144,17 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         guard let data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]), let json = String(data: data, encoding: .utf8) else { return }
         web?.evaluateJavaScript("window.receive(\(json))", completionHandler: nil)
     }
-    func error(_ message: String) { emit(["type": "state", "name": "error", "detail": message]); emit(["type": "error", "message": message]) }
+    func error(_ message: String) { assistantActivity = "error"; emit(["type": "state", "name": "error", "detail": message]); emit(["type": "error", "message": message]) }
     func handle(_ event: [String: Any]) {
+        assistantActivity = DictationAssistantActivity.next(assistantActivity, event: event)
+        if dictation.handle(event) { return }
         switch event["type"] as? String {
         case "configured":
             if let config = event["settings"] as? [String: Any] {
                 configuration = config; persistConfiguration(); pendingConfiguration = nil
                 owner?.window.title = "星核助理 · " + (config["name"] as? String ?? "贾维斯")
                 emit(event)
+                dictation.configure(config)
                 if config["autoListen"] as? Bool == true { setListen(true, persist: false) }
             }
         case "capture":
@@ -189,6 +198,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finishedAudio() }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { if !stoppingAudio && !synthesizer.isSpeaking { microphone.suspend(false) } }
     func setListen(_ enabled: Bool, persist: Bool = true) {
+        dictation.cancel()
         if enabled && (microphone.running || launchingListen) { return }
         if persist {
             configuration["autoListen"] = enabled; persistConfiguration()
@@ -211,6 +221,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         guard let name = config["name"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, name.count <= 30,
               let word = config["wakeWord"] as? String, !word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, word.count <= 20 else { error("请填写有效的名字和唤醒词"); return }
         do {
+            dictation.cancel()
             if let key = body["gatewayKey"] as? String, !key.isEmpty { try AssistantSecrets.save("yunqiao", value: key.trimmingCharacters(in: .whitespacesAndNewlines)) }
             if body["removeGateway"] as? Bool == true { try AssistantSecrets.save("yunqiao", value: "") }
             if let key = body["deepseekKey"] as? String, !key.isEmpty { try AssistantSecrets.save("deepseek", value: key.trimmingCharacters(in: .whitespacesAndNewlines)) }
@@ -226,7 +237,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         do { try LocalAssistantVault.savePreferences(configuration) }
         catch { self.error("本地加密设置保存失败，未替换原数据。") }
     }
-    func shutdown() { wantsListen = false; microphone.stop(); stopAudio(); host?.terminationHandler = nil; input?.fileHandleForWriting.closeFile(); host?.terminate(); if let micObserver { NotificationCenter.default.removeObserver(micObserver) } }
+    func shutdown() { wantsListen = false; dictation.shutdown(); microphone.stop(); stopAudio(); host?.terminationHandler = nil; input?.fileHandleForWriting.closeFile(); host?.terminate(); if let micObserver { NotificationCenter.default.removeObserver(micObserver) } }
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
         let root = Bundle.main.resourceURL!.appendingPathComponent("hud").path + "/"

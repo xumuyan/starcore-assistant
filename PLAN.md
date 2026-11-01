@@ -6,7 +6,7 @@
 
 在保留现有全部功能行为的基础上，新增 SpeakMore 式全局语音输入：快捷键开始/结束录音，本地识别，可选润色，写入当前输入框，不自动发送。
 
-当前处于新增听写服务与原生模块实施阶段，工作分支为 `feat/global-dictation`。已安装产品仍为 0.6.6 / build 16，新听写尚未安装或完成真机验收。详细行为见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
+当前集成代码已就绪并完成 120 项自动检查与 0.7.0 / build 17 构建，工作分支为 `feat/global-dictation`。本次已备份旧版，安装与真实权限/人声验收继续执行，未验证的条目保持未勾选。详细行为见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
 
 ## 完成与证据规则
 
@@ -48,7 +48,7 @@
 
 - [x] 先添加测试：旧配置默认禁用听写、预设校验、独立润色默认关闭、缺少云端密钥仍可本地识别。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)及配置/听写专项测试。
 - [x] 实现独立服务的准备、按序音频、完成与取消接口及带请求 ID 的事件，不经过普通聊天、TTS 和 Codex 路由。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)，本机 Qwen 合成样本识别通过。
-- [ ] 将新增协议接入 host，并验证听写期间与原助理的消息互斥；此项随原生接线批次处理。
+- [x] 将新增协议接入 host，验证路由与原助理互斥及同批消息竞争。证据：[集成验证](docs/verification/2026-11-01-dictation-integration.md)，7 项宿主夹具通过；实际麦克风互斥留在阶段 8。
 - [x] 测试空音频、非法 PCM、纯静音结果、乱序片段、取消后旧结果抑制及串行 ASR 复用。证据：[服务专项](test/dictation.test.mjs)与[验收](docs/verification/2026-11-01-dictation-service.md)。
 - [x] 可选润色只接收本轮文本；失败、超时、截断或明显缩短时保留原文，不重试、不请求云桥和 Fish。证据：[服务专项](test/dictation.test.mjs)；真实付费润色未调用，不算真人付费验收。
 - [x] 运行相关测试和完整 `npm test`，更新日志/计划。证据：[服务验收](docs/verification/2026-11-01-dictation-service.md)，66 项相关、107 项完整检查通过；提交由 SC-20261101-002 关联。
@@ -116,15 +116,17 @@
 - [ ] 失败文本仅在当前会话内保留，取消/清除/退出后释放；不新增录音历史文件。
 - [ ] 检查设置读写、重开、焦点、减少动态与原功能回归，更新记录并提交/推送。
 
+集成代码与夹具现已覆盖阶段 3～6 的主要状态流；测试明细见 [SC-20261101-004 验证](docs/verification/2026-11-01-dictation-integration.md)。以上包含真实权限、全局事件或跨应用输入的整项任务仍待阶段 8，不因模拟成功勾选完成。
+
 ## 阶段 7 完整回归与构建
 
 前置：阶段 2～6。
 
-- [ ] 运行所有新增专项测试和完整 `npm test`，保留结果摘要。
-- [ ] 运行 `npm run build:scene`，确认既有场景可构建。
-- [ ] 运行 `npm run build:mac:check`，检查架构、最低部署目标、版本/build 与严格签名。
+- [x] 运行所有新增专项测试和完整 `npm test`，保留结果摘要。证据：[集成验证](docs/verification/2026-11-01-dictation-integration.md)，120 项通过。
+- [x] 运行 `npm run build:scene`，确认既有场景可构建。证据：[集成验证](docs/verification/2026-11-01-dictation-integration.md)，独立场景实际构建成功。
+- [x] 运行 `npm run build:mac:check`，检查架构、最低部署目标、版本/build 与严格签名。证据：[集成验证](docs/verification/2026-11-01-dictation-integration.md)，arm64 / macOS 13 / 0.7.0 build17，严格签名通过。
 - [ ] 人工核对无真实凭据、原始录音、聊天正文、验收截图泄漏到提交。
-- [ ] 准备旧应用与实际运行文件备份，安装前确认应用空闲；不使用安装器覆盖无关配置。
+- [x] 准备旧应用与实际运行文件备份，安装前确认应用空闲；不使用安装器覆盖无关配置。证据：[集成验证](docs/verification/2026-11-01-dictation-integration.md)，旧 0.6.6 app 与 runtime/src 已备份；客户端实际显示语音监听关闭且空闲。
 - [ ] 更新 README、CHANGELOG、依赖许可、日志和计划，提交并推送；核对对应 CI。
 
 ## 阶段 8 真机验收与交付

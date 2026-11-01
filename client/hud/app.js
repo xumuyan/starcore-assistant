@@ -75,6 +75,9 @@ window.receive = event => {
   document.dispatchEvent(new CustomEvent('assistant-event', { detail: event }));
   switch (event.type) {
     case 'configured': configure(event.settings, event.hasGateway, event.hasDeepSeek, event.hasFish); break;
+    case 'dictationStatus':
+      $('dictation-status').textContent = `${event.enabled ? (event.monitoring ? '全局按键已就绪' : '全局按键尚未就绪') : '语音输入未启用'} · 输入监控${event.inputMonitoring ? '已允许' : '待授权'} · 辅助功能${event.accessibility ? '已允许' : '待授权'} · 麦克风${event.microphone ? '已允许' : '待授权'}${event.suspended ? ' · 已暂停' : ''}${event.detail ? ' · ' + event.detail : ''}`;
+      break;
     case 'state': state(event.name, event.detail); break;
     case 'usage': if (Number.isFinite(event.input) && Number.isFinite(event.output)) $('usage-label').textContent = `最近一次：输入 ${event.input} / 输出 ${event.output} tokens（非费用）`; break;
     case 'notice': toast(event.message); break;
@@ -124,7 +127,7 @@ $('clear').onclick = () => bridge('clear');
 $('refresh-targets').onclick = () => bridge('targets');
 $('target').onchange = () => { settings.target = $('target').value; targetOptions(); bridge('save', { settings }); };
 targetOptions();
-function openSettings() { oldFocus = document.activeElement; $('settings-overlay').hidden = false; $('set-name').focus(); }
+function openSettings() { oldFocus = document.activeElement; $('settings-overlay').hidden = false; $('set-name').focus(); bridge('dictationRefresh'); }
 function closeSettings() { $('settings-overlay').hidden = true; oldFocus?.focus(); }
 document.querySelectorAll('.settings-open').forEach(button => button.onclick = openSettings);
 $('settings-close').onclick = closeSettings;
@@ -144,6 +147,8 @@ $('choose-model').onclick = () => bridge('chooseModel');
 $('preview-voice').onclick = () => bridge('previewVoice');
 $('migrate-keys').onclick = () => bridge('migrateKeys');
 $('mic-settings').onclick = () => bridge('micSettings');
+for (const kind of ['input', 'accessibility', 'microphone']) $('dictation-' + kind).onclick = () => bridge('dictationPermission', { kind });
+$('dictation-refresh').onclick = () => bridge('dictationRefresh');
 $('services-start').onclick = () => bridge('startServices'); $('services-stop').onclick = () => bridge('stopServices'); $('bind').onclick = () => bridge('bind');
 $('settings-form').onsubmit = e => {
   e.preventDefault(); const next = { ...settings };

@@ -15,3 +15,5 @@
 
 .top-right{gap:20px}.wake-hint .core-view{font-size:9px;line-height:1.1;padding:2px 7px;border-color:#39647b55;background:transparent;margin-left:8px}#focus-content{font-family:"Songti SC","STSong",serif;font-weight:400}.settings-header #fullscreen{font-size:20px;margin-right:10px}.settings-header #settings-close{margin-left:auto}.clock strong{font-size:22px}
 .three-active .scene-art{background-image:url('environment-v5.png')}
+
+.dictation-permissions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.dictation-permissions button{font-size:10px}#dictation-status{color:#a0d5e9;overflow-wrap:anywhere}
