@@ -1,0 +1,42 @@
+node_modules/
+*.tgz
+.DS_Store
+__pycache__/
+dist/
+
+# Generated frontend bundles and copied reference artwork
+/client/hud/scene-3d.js
+/client/hud/reference-target.png
+
+# Local QA captures may include private desktop content
+/docs/qa/
+
+# Credentials, transcripts, runtime state, and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.bin
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.log
+/runtime/
+/assistant/
+/accounts/
+/events/
+/remote-requests/
+/.codex-weixin-notifier/
+/runtime-settings.json
+/client-settings.json
+
+# Local build products
+*.app/
+*.dmg
+*.zip
+*.pyc
+.venv/

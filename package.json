@@ -1,0 +1,34 @@
+{
+  "name": "starcore-assistant",
+  "version": "0.6.6",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "login": "node src/cli.mjs login",
+    "start": "node src/cli.mjs start",
+    "status": "node src/cli.mjs status",
+    "test": "node --test",
+    "build:mac": "python3 client/build.py",
+    "build:mac:check": "python3 client/build.py --ui-only --no-install",
+    "build:scene": "python3 client/scene/prototype/build.py"
+  },
+  "dependencies": {
+    "@phosphor-icons/core": "2.1.1",
+    "qrcode": "1.5.4",
+    "qrcode-terminal": "0.12.0",
+    "three": "0.186.1",
+    "transcribe-cpp": "^0.4.0",
+    "weixin-agent-sdk": "0.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "description": "A personal AI assistant for macOS with local speech recognition, Codex integration, and WeChat notifications.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xumuyan/starcore-assistant.git"
+  }
+}
