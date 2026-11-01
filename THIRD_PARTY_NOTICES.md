@@ -11,6 +11,7 @@ Dependencies remain subject to their own licenses. Exact npm versions and packag
 | transcribe-cpp | Local ASR bindings | MIT; native optional packages and model files may have additional notices |
 | qrcode and qrcode-terminal | Login QR rendering | MIT and Apache-2.0 respectively; see the installed packages |
 | esbuild | Frontend bundling | MIT; build dependency |
+| SpeakMore | Native hotkey and clipboard reference for the opt-in dictation module | MIT; retained in `licenses/SpeakMore-MIT.txt` and copied into the app bundle |
 
 Scene and icon artwork was created through image generation during development. Model weights are not included in this repository. Users must obtain compatible model files separately and comply with the applicable model license and service terms.
 

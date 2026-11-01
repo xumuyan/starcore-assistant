@@ -59,16 +59,18 @@
 
 前置：阶段 2 的消息协议稳定。
 
-涉及：新增 `client/DictationController.swift`；必要修改 `client/Microphone.swift` 与 `client/AssistantBridge.swift`；新增原生状态/分段测试。
+涉及：新增 `client/DictationAudio.swift`、`client/DictationRecorder.swift`、`client/DictationController.swift`；必要修改 `client/AssistantBridge.swift`。保留 `Microphone.swift` 原实现，通过独立采集器减少对旧功能的影响；新增原生状态/分段测试。
 
 - [ ] 保留旧自动分句 API，为听写新增显式开始、结束、取消和尾段刷新。
-- [ ] 按静音边界切分不超过 18 秒的片段；测试长于 24 秒的口述不会触发现有单段限制。
+- [x] 按静音边界切分不超过 18 秒的片段；测试长于 24 秒的口述不会触发现有单段限制。证据：[原生缓冲夹具](test/fixtures/dictation-native.swift)和[本批验收](docs/verification/2026-11-01-dictation-native.md)，合成 37 秒/120 秒及短尾段通过。
 - [ ] 单轮 120 秒封顶，达到上限提示并处理已有音频；不落盘原始录音。
 - [ ] 原唤醒采集与听写互斥，结束/取消恢复原先监听状态；原先关闭时保持关闭。
 - [ ] 原助理忙碌或播报时不启动听写；覆盖准备中取消、睡眠、锁屏、设备切换和退出清理。
-- [ ] 原生合成音频测试、Node 回归及 `npm run build:mac:check` 通过，更新记录并提交/推送。
+- [x] 原生合成音频测试、Node 回归及 `npm run build:mac:check` 通过，更新记录。证据：[本批验收](docs/verification/2026-11-01-dictation-native.md)，109 项检查和 Mac 构建通过；真实录音互斥仍待接线验收。
 
 验收标准：长音频按顺序交付、末尾不丢失、取消不出结果；旧唤醒与播报资源状态保持原行为。
+
+已实现独立采集器 API 与原生纯状态基础；实际捕获、资源协调与设备变化验收保持未完成。
 
 ## 阶段 4 全局热键与权限
 
@@ -99,6 +101,8 @@
 - [ ] 核对上游采用范围与许可，完成测试/隔离输入验收后记录并提交/推送。
 
 验收标准：文本不进入错误窗口，不因输入模式调用 Codex/微信发送；剪贴板并发测试通过，无原始正文或录音日志。
+
+基础证据：[输入策略/剪贴板夹具](test/fixtures/dictation-paste.swift)和[本批验收](docs/verification/2026-11-01-dictation-native.md)已通过；上列跨应用实际输入项目仍待控制器接线与真机验证。
 
 ## 阶段 6 悬浮条与设置接线
 

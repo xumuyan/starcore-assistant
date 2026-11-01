@@ -36,6 +36,7 @@ settings = {'node': shutil.which('node'), 'runtime': str(Path.home() / '.codex-w
 shutil.copy2(root / 'client/assets/SceneReference-v3.png', root / 'client/hud/reference-target.png')
 shutil.copytree(root / 'client/hud', contents / 'Resources/hud', dirs_exist_ok=True)
 shutil.copy2(root / 'node_modules/three/LICENSE', contents / 'Resources/THREE-LICENSE.txt')
+shutil.copy2(root / 'licenses/SpeakMore-MIT.txt', contents / 'Resources/SPEAKMORE-LICENSE.txt')
 iconset = root / 'dist/AppIcon.iconset'
 iconset.mkdir(parents=True, exist_ok=True)
 for points in (16, 32, 128, 256, 512):

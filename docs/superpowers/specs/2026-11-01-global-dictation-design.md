@@ -35,7 +35,7 @@
 - `client/DictationController.swift`：一轮输入的状态机、请求 ID、权限、原生采集与结果路由。
 - `client/DictationPanel.swift`：不激活前台应用的原生悬浮条；明确的取消和复制结果入口。
 - `client/DictationPaste.swift`：记录目标、检查输入焦点、临时剪贴板与粘贴，不提交输入内容。
-- `client/Microphone.swift`：保持原有自动分句入口，新增显式开始/结束的采集方式，不改变旧调用语义。
+- `client/DictationRecorder.swift` 与 `client/DictationAudio.swift`：独立的显式开始/结束采集与分段缓冲，复用原有采集参数；`Microphone.swift` 保持原实现，资源互斥在控制器中接线。
 - `src/assistant-dictation.mjs`：独立识别与可选润色服务，复用 `LocalASR` 和校对函数，不调用 `AssistantService.text()`、TTS 或 Codex。
 - `src/assistant-host.mjs`：只新增带请求 ID 的 dictation 准备、音频、取消、结果消息；原消息类型保留。
 - `client/AssistantBridge.swift`：必要桥接与音频资源协调；助理和听写不同时占用麦克风。
