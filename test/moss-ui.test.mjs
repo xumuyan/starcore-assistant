@@ -30,7 +30,8 @@ function settingsPage(){
 
 test('MOSS navigation keeps full chat and composer visible and validates page names',()=>{
  const p=settingsPage(),get=id=>p.elements.get(id);
- assert.equal(get('page-tasks').hidden,false);assert.equal(get('page-chat').hidden,true);
+ assert.equal(get('page-tasks').hidden,true);assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,false);
+ p.navigate('tasks');assert.equal(get('page-tasks').hidden,false);
  p.navigate('chat');assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,false);
  p.navigate('settings');assert.equal(get('settings-overlay').hidden,false);assert.equal(get('page-chat').hidden,true);
  p.receive({type:'navigate',page:'chat'});assert.equal(get('page-chat').hidden,false);
@@ -41,13 +42,15 @@ test('tasks render plaintext and pin explicit target across later snapshots',()=
  const p=settingsPage(),get=id=>p.elements.get(id);
  const tasks=[{id:'a',project:'<img src=x>',title:'<script>bad()</script>',status:'running',updatedAt:'2026-11-02T00:00:00Z'},{id:'b',project:'Other',title:'Done',status:'completed',updatedAt:''}];
  p.receive({type:'tasks',available:true,tasks,checkedAt:'2026-11-02T00:00:00Z'});
- assert.equal(get('tasks-list').children.length,2);assert.equal(get('tasks-running').textContent,'1');
+ assert.equal(get('tasks-list').children.length,2);assert.equal(get('tasks-running').textContent,'1');assert.match(get('chat-task-status').textContent,/1.*运行/);
+ get('chat-task-status').onclick();assert.equal(get('page-tasks').hidden,false);
  const card=get('tasks-list').children[0];assert.equal(card.children[1].textContent,tasks[0].title);assert.equal(card.children[1].innerHTML,undefined);
  card.children[2].children[1].onclick();
  assert.equal(p.sent.at(-1).action,'save');assert.equal(p.sent.at(-1).settings.target,'a');assert.equal(get('target-project').textContent,tasks[0].project);
  p.receive({type:'snapshot',snapshot:{remoteThreadId:'b'}});assert.equal(get('target-project').textContent,tasks[0].project);
  p.receive({type:'tasks',available:false,tasks,checkedAt:''});assert.equal(get('tasks-running').textContent,'0');assert.match(get('tasks-status').textContent,/不可用/);
- assert.equal(get('tasks-list').children[0].children[0].children[1].textContent,'未知');
+ assert.equal(get('tasks-list').children[0].children[0].children[1].textContent,'未知');assert.match(get('chat-task-status').textContent,/未确认/);
+ p.receive({type:'tasks',available:true,tasks:[{id:'unknown',status:'unknown'}],checkedAt:''});assert.match(get('chat-task-status').textContent,/未确认/);
 });
 test('no target remains explicit when latest reminder changes',()=>{
  const p=settingsPage();p.receive({type:'targets',targets:[{id:'latest',project:'Latest',title:'Changed'}],latestId:'latest'});

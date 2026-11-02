@@ -82,7 +82,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.title = "MOSS"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.backgroundColor = NSColor(srgbRed: 0.93, green: 0.95, blue: 0.97, alpha: 1)
+        window.backgroundColor = .clear
+        window.isOpaque = false
         window.appearance = NSAppearance(named: .aqua)
         window.minSize = NSSize(width: 900, height: 650)
         window.center(); window.delegate = self; window.isReleasedWhenClosed = false
@@ -92,9 +93,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let web = WKWebView(frame: .zero, configuration: configuration)
         web.setValue(false, forKey: "drawsBackground")
         web.navigationDelegate = assistant; assistant.web = web
-        let container = NSView(frame: window.contentView?.bounds ?? .zero)
-        container.wantsLayer = true
-        container.layer?.backgroundColor = window.backgroundColor.cgColor
+        let container = NSVisualEffectView(frame: window.contentView?.bounds ?? .zero)
+        container.material = .underWindowBackground
+        container.blendingMode = .behindWindow
+        container.state = .active
         window.contentView = container
         web.translatesAutoresizingMaskIntoConstraints = false; container.addSubview(web)
         NSLayoutConstraint.activate([

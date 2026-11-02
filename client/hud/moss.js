@@ -19,6 +19,7 @@
   function renderTasks(event) {
     const tasks = Array.isArray(event.tasks) ? event.tasks : [];
     const running = event.available ? tasks.filter(task => task.status === 'running').length : 0;
+    node('chat-task-status').textContent = !event.available ? 'Codex 状态未确认 ↗' : running ? `${running} 个任务运行中 ↗` : tasks.some(task => task.status === 'unknown') ? '任务状态未确认 ↗' : '暂无运行任务 ↗';
     node('running-count').textContent = node('tasks-running').textContent = String(running);
     node('tasks-total').textContent = `${tasks.length} 个聊天`;
     const checked = new Date(event.checkedAt);
@@ -48,5 +49,6 @@
   });
   node('tasks-refresh').onclick = () => bridge('tasks');
   node('graphics-status').textContent = '轻量玻璃界面 · 无全屏场景动画';
-  window.mossNavigate('tasks'); bridge('tasks'); setInterval(() => bridge('tasks'), 3000);
+  node('chat-task-status').onclick = () => window.mossNavigate('tasks');
+  window.mossNavigate('chat'); bridge('tasks'); setInterval(() => bridge('tasks'), 3000);
 })();
