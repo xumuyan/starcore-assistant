@@ -86,9 +86,10 @@ final class DictationHotkey {
         if Self.retainsTap(enabled: enabled, preset: preset, currentPreset: self.preset, running: running, permitted: true) { return true }
         stop()
         self.preset = preset
-        let mask = (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
+        var mask = (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
                    (CGEventMask(1) << CGEventType.keyDown.rawValue) |
                    (CGEventMask(1) << CGEventType.keyUp.rawValue)
+        for kind in [CGEventType.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel] { mask |= CGEventMask(1) << kind.rawValue }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
             options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, context in
                 guard let context else { return Unmanaged.passUnretained(event) }
