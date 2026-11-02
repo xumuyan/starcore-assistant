@@ -4,7 +4,7 @@ A personal AI assistant for macOS with local speech recognition, Codex integrati
 
 在 Mac 上与 MOSS 说话、聊天，以居中的助理形象和字幕陪伴对话。任务、听写、微信和 Codex 放在旁边作为辅助；需要开发时，再把明确要求交给选定的原 Codex 聊天。
 
-当前为 **0.9.4 源码预览版**。已在 Apple Silicon Mac 上使用和验证，不提供通用安装包。iPhone 独立客户端、小爱音箱与跨设备同步尚未实现。
+当前为 **0.9.5 源码预览版**。已在 Apple Silicon Mac 上使用和验证，不提供通用安装包。iPhone 独立客户端、小爱音箱与跨设备同步尚未实现。
 
 ![全屏场景的视觉设计参考](client/assets/SceneReference-v3.png)
 
