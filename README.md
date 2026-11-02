@@ -4,7 +4,7 @@ A personal AI assistant for macOS with local speech recognition, Codex integrati
 
 在 Mac 上叫醒助理、讨论问题，再把明确的开发要求交给原 Codex 聊天。本轮工作结束后，通过微信接收摘要；手机上的文字也可以继续投递到原聊天。
 
-当前为 **0.8.1 源码预览版**。已在 Apple Silicon Mac 上使用和验证，不提供通用安装包。iPhone 独立客户端、小爱音箱与跨设备同步尚未实现。
+当前为 **0.8.2 源码预览版**。已在 Apple Silicon Mac 上使用和验证，不提供通用安装包。iPhone 独立客户端、小爱音箱与跨设备同步尚未实现。
 
 ![全屏场景的视觉设计参考](client/assets/SceneReference-v3.png)
 

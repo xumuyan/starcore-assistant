@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const bridge = (action, payload = {}) => window.webkit?.messageHandlers?.assistant?.postMessage({ action, ...payload });
-let settings = {}, mode = 'chat', mic = false, targets = [], latestId = '', toastTimer, oldFocus;
+let settings = {}, mode = 'chat', mic = false, targets = [], latestId = '', toastTimer, oldFocus, pendingSend = null;
 const names = { idle: ['准备就绪', '随时，听你吩咐。', 'STANDBY'], armed: ['等待唤醒', '我在，叫我就好。', 'ARMED'], loading: ['载入语音模型', '正在准备聆听。', 'LOADING'], listening: ['连续对话', '我在听，请继续。', 'LISTENING'], transcribing: ['本机识别中', '听见了，正在识别。', 'DECODING'], thinking: ['思考中', '让我想一想。', 'THINKING'], executing: ['正在交给 Codex', '想法，进入行动。', 'DISPATCH'], polishing: ['可选口述校对', '只校对口述，不回答。', 'POLISH'], synthesizing: ['生成语音中', '马上说给你听。', 'SYNTHESIS'], speaking: ['正在回复', '这就是我的想法。', 'SPEAKING'], error: ['需要处理', '有一处需要留意。', 'ATTENTION'] };
 function state(name, detail) {
   document.body.classList.toggle('busy', ['thinking','speaking','synthesizing','transcribing','executing','polishing'].includes(name));
@@ -13,11 +13,13 @@ function state(name, detail) {
 }
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 11000); }
 function addMessage(role, content) {
+  const log = $('messages');
+  const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
   $('empty')?.remove(); const box = document.createElement('div'); box.className = `message ${role}`;
-  const label = document.createElement('div'); label.className = 'message-label'; label.textContent = role === 'user' ? 'YOU' : (settings.name || 'MOSS').toUpperCase();
+  const label = document.createElement('div'); label.className = 'message-label'; label.textContent = role === 'user' ? '你' : (settings.name || 'MOSS').toUpperCase();
   const text = document.createElement('div'); text.className = 'message-content'; text.textContent = content; box.append(label, text); $('messages').append(box);
   while ($('messages').children.length > 120) $('messages').firstElementChild.remove();
-  $('messages').scrollTop = $('messages').scrollHeight;
+  if (nearBottom || role === 'user') log.scrollTop = log.scrollHeight;
 }
 const targetLabel = text => String(text || '未命名聊天').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/https?:\/\//g, '').replace(/\s+/g, ' ').trim();
 function closeTargetMenu(restore=false) { $('target-popover').hidden=true; $('target-toggle').setAttribute('aria-expanded','false'); if(restore)$('target-toggle').focus(); }
@@ -83,9 +85,14 @@ window.receive = event => {
     case 'notice': toast(event.message); break;
     case 'historyPage': renderHistoryPage(event); break;
     case 'polished': $('core-detail').textContent = '口述校对：' + event.text; break;
-    case 'error': toast(event.message); $('save-status').textContent = event.message; break;
-    case 'message': addMessage(event.role, event.content); break;
-    case 'history': $('messages').replaceChildren(); for (const x of event.messages) addMessage(x.role, x.content); if (!event.messages.length) showEmpty(); break;
+    case 'error': pendingSend = null; updateSendButton(); toast(event.message); $('save-status').textContent = event.message; break;
+    case 'message':
+      if (event.role === 'user' && pendingSend && (event.content === pendingSend.text || (String(event.content).startsWith('→ Codex · ') && String(event.content).endsWith('\n' + pendingSend.text)))) {
+        if ($('input').value.trim() === pendingSend.text) $('input').value = '';
+        pendingSend = null; updateSendButton();
+      }
+      addMessage(event.role, event.content); break;
+    case 'history': historyBefore = undefined; historyQuery = ''; $('history-context').textContent = '最近对话'; $('history-search').value = ''; $('messages').replaceChildren(); for (const x of event.messages) addMessage(x.role, x.content); if (!event.messages.length) showEmpty(); break;
     case 'targets': targets = event.targets; latestId = event.latestId; targetOptions(); break;
     case 'modelPath': $('set-modelPath').value = event.path; break;
     case 'preference': settings[event.key] = event.value; if ($(`set-${event.key}`)) $(`set-${event.key}`).checked = event.value; break;
@@ -113,12 +120,24 @@ function renderSnapshot(s) {
 }
 const emptyTemplate = $('empty').cloneNode(true);
 function showEmpty() { const node = emptyTemplate.cloneNode(true); $('messages').append(node); wirePrompts(node); }
-function wirePrompts(root) { root.querySelectorAll('[data-prompt]').forEach(b => b.onclick = () => { $('input').value = b.dataset.prompt; $('composer-panel').hidden = false; $('input').focus(); }); root.querySelector('#latest-prompt')?.addEventListener('click', () => bridge('latest')); }
+function wirePrompts(root) { root.querySelectorAll('[data-prompt]').forEach(b => b.onclick = () => { $('input').value = b.dataset.prompt; $('composer-panel').hidden = false; $('input').focus(); updateSendButton(); }); root.querySelector('#latest-prompt')?.addEventListener('click', () => bridge('latest')); }
 wirePrompts(document);
-function send() { const text = $('input').value.trim(); if (!text) return; bridge('text', { text, mode }); $('input').value = ''; }
+function updateSendButton() {
+  $('send').disabled = !!pendingSend || !$('input').value.trim();
+  $('send').textContent = pendingSend ? '等待接收…' : mode === 'codex' ? '交给 Codex' : '发送';
+}
+function send() {
+  const text = $('input').value.trim(); if (!text || pendingSend) return;
+  if (mode === 'codex' && !settings.target) { toast('请先在聊天顶部选择一个 Codex 目标，草稿已保留'); $('target-toggle').focus(); return; }
+  const request = {text}; pendingSend = request; updateSendButton();
+  bridge('text', { text, mode });
+  setTimeout(() => { if (pendingSend === request) { pendingSend = null; updateSendButton(); toast('暂未确认接收，草稿已保留；请检查后再试，未自动重发'); } }, 15000);
+}
+$('input').oninput = updateSendButton;
+updateSendButton();
 $('send').onclick = send;
 $('input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } };
-for (const choice of ['chat', 'codex']) $(`mode-${choice}`).onclick = () => { mode = choice; $('mode-chat').classList.toggle('selected', mode === 'chat'); $('mode-codex').classList.toggle('selected', mode === 'codex'); $('input').placeholder = mode === 'codex' ? '开发要求将发送到上方选中的原 Codex 聊天…' : '说点什么，或输入你的要求…'; $('input').focus(); };
+for (const choice of ['chat', 'codex']) $(`mode-${choice}`).onclick = () => { mode = choice; $('mode-chat').classList.toggle('selected', mode === 'chat'); $('mode-codex').classList.toggle('selected', mode === 'codex'); $('input').placeholder = mode === 'codex' ? '开发要求将发送到上方选中的原 Codex 聊天…' : '说点什么，或输入你的要求…'; $('input').focus(); updateSendButton(); };
 $('listen').onclick = () => { bridge('listen', { enabled: !mic }); if (!mic) state('loading', '正在请求麦克风权限并加载模型'); };
 $('interrupt').onclick = () => bridge('cancel');
 $('home').onclick = () => bridge('activate');
@@ -161,6 +180,7 @@ $('settings-form').onsubmit = e => {
 function clock() { const now = new Date(); $('clock').textContent = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }); $('date').textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }); }
 let historyBefore, historyQuery = '';
 function renderHistoryPage(event) {
+  $('history-context').textContent = event.query ? `搜索结果 · ${event.messages.length} 条` : '最近对话';
   $('messages').replaceChildren(); historyBefore = event.messages[0]?.id; historyQuery = event.query || '';
   for (const message of event.messages) addMessage(message.role, message.content);
   if (!event.messages.length) $('messages').textContent = '没有更多匹配的记录。';
@@ -171,7 +191,14 @@ $('history-open').onclick = $('history-all').onclick = openHistory;
 $('history-close').onclick = () => { if (!window.mossNavigate) $('history-panel').hidden = true; };
 $('history-search-go').onclick = () => bridge('historyPage', { query: $('history-search').value.trim() });
 $('history-search').onkeydown = e => { if (e.key === 'Enter') $('history-search-go').click(); };
-$('history-recent').onclick = () => { $('history-search').value = ''; bridge('historyPage'); };
+function recentHistory() { $('history-search').value = ''; historyQuery = ''; $('history-context').textContent = '最近对话'; bridge('historyPage'); }
+$('history-recent').onclick = $('history-back-latest').onclick = recentHistory;
+$('history-search-toggle').onclick = () => {
+  const row = $('history-search-row'); row.hidden = !row.hidden;
+  $('history-search-toggle').setAttribute('aria-expanded', String(!row.hidden));
+  if (!row.hidden) $('history-search').focus();
+  else if ($('history-search').value || historyQuery) recentHistory();
+};
 $('history-older').onclick = () => bridge('historyPage', { before: historyBefore, query: historyQuery });
 $('fullscreen').onclick = () => bridge('fullscreen');
 $('keyboard-toggle').onclick = () => { $('composer-panel').hidden = !$('composer-panel').hidden; if (!$('composer-panel').hidden) $('input').focus(); };

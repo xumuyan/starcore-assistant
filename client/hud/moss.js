@@ -16,7 +16,9 @@
   };
   for (const page of Object.keys(titles)) node('nav-' + page).onclick = () => { window.mossNavigate(page); if (page === 'settings') bridge('dictationRefresh'); };
   const labels = { running: '运行中', completed: '本轮结束', failed: '异常', cancelled: '已取消', unknown: '未知' };
+  let lastTasks = null, renderedTasks = '';
   function renderTasks(event) {
+    lastTasks = event;
     const tasks = Array.isArray(event.tasks) ? event.tasks : [];
     const running = event.available ? tasks.filter(task => task.status === 'running').length : 0;
     node('chat-task-status').textContent = !event.available ? 'Codex 状态未确认 ↗' : running ? `${running} 个任务运行中 ↗` : tasks.some(task => task.status === 'unknown') ? '任务状态未确认 ↗' : '暂无运行任务 ↗';
@@ -25,14 +27,25 @@
     const checked = new Date(event.checkedAt);
     node('tasks-freshness').textContent = Number.isNaN(checked.getTime()) ? '同步时间未知' : '更新于 ' + checked.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     node('tasks-status').textContent = !event.available ? '任务来源暂不可用 · 无法确认当前运行状态' : tasks.length ? '选择聊天，固定下一次交接的目标。' : '暂无可展示的 Codex 聊天。';
+    const query = node('task-search').value.trim().toLocaleLowerCase();
+    const filter = node('task-filter').value || 'all';
+    const visible = tasks.filter(task => {
+      const status = event.available && Object.hasOwn(labels, task.status) ? task.status : 'unknown';
+      return (filter === 'all' || filter === status) && `${task.project || ''} ${task.title || ''}`.toLocaleLowerCase().includes(query);
+    });
+    node('tasks-total').textContent = query || filter !== 'all' ? `${visible.length} / ${tasks.length} 个聊天` : `${tasks.length} 个聊天`;
+    const signature = JSON.stringify([event.available, visible]);
+    node('tasks-empty').hidden = visible.length > 0;
+    if (signature === renderedTasks) return;
+    renderedTasks = signature;
     const list = node('tasks-list'); list.replaceChildren();
-    for (const task of tasks) {
+    for (const task of visible) {
       const card = document.createElement('article'); card.className = 'task-card';
       const top = document.createElement('div'); top.className = 'task-card-top';
       const project = document.createElement('span'); project.className = 'task-project'; project.textContent = task.project || '未命名项目';
       const status = event.available && Object.hasOwn(labels, task.status) ? task.status : 'unknown';
       const badge = document.createElement('span'); badge.className = 'status-badge ' + status; badge.textContent = labels[status]; top.append(project, badge);
-      const title = document.createElement('h3'); title.textContent = task.title || '未命名聊天';
+      const title = document.createElement('h3'); title.textContent = targetLabel(task.title || '未命名聊天'); title.title = title.textContent;
       const bottom = document.createElement('div'); bottom.className = 'task-card-bottom';
       const time = document.createElement('span'); const updated = new Date(task.updatedAt || NaN); time.textContent = Number.isNaN(updated.getTime()) ? '暂无可靠更新时间' : updated.toLocaleString('zh-CN');
       const choose = document.createElement('button'); choose.type = 'button'; choose.className = 'task-choose'; choose.textContent = '选择并聊天 ↗'; choose.disabled = !task.id;
@@ -47,6 +60,7 @@
     if (detail.type === 'tasks') renderTasks(detail);
     if (detail.type === 'navigate') window.mossNavigate(detail.page);
   });
+  node('task-search').oninput = node('task-filter').onchange = () => { if (lastTasks) renderTasks(lastTasks); };
   node('tasks-refresh').onclick = () => bridge('tasks');
   node('graphics-status').textContent = '轻量玻璃界面 · 无全屏场景动画';
   node('chat-task-status').onclick = () => window.mossNavigate('tasks');
