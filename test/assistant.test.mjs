@@ -26,7 +26,7 @@ test('wake word is configurable, prefix only, and session expires', () => {
   now = 90000; assert.equal(wake.accept('继续讨论', '小助手'), null);
 });
 test('settings separate name and wake phrase; reject invalid providers and targets', () => {
-  assert.equal(validateSettings({ name: '星期五' }).wakeWord, '贾维斯');
+  assert.equal(validateSettings({ name: '星期五' }).wakeWord, 'MOSS');
   assert.throws(() => validateSettings({ wakeWord: '' }));
   assert.throws(() => validateSettings({ wakeWord: '！！！' }));
   assert.throws(() => validateSettings({ target: 'wrong' }));
@@ -42,7 +42,7 @@ test('unawakened audio never enters chat or network', async t => {
   assert.equal(emitted.some(x => x.type === 'message'), false);
 });
 test('wake-only audio gives a cue without a cloud call', async t => {
-  const { service, emitted } = harness(t, { asr: { transcribe: async () => '贾维斯。' }, fetchRequest: () => assert.fail('network called') });
+  const { service, emitted } = harness(t, { asr: { transcribe: async () => 'MOSS。' }, fetchRequest: () => assert.fail('network called') });
   service.asrReady = true; service.listening = true;
   await service.audio('fixture'); assert.equal(emitted.some(x => x.type === 'earcon'), true);
 });
@@ -81,6 +81,7 @@ test('Codex target freezes at receipt and uncertain submission never auto-retrie
     }
   });
   writeFileSync(join(dir, 'runtime-settings.json'), JSON.stringify({ codex: '/test/codex' }));
+  service.config={...service.config,target};
   await service.text('让 Codex 保留这个原聊天');
   assert.equal(count, 1); assert.equal(requests(dir)[0].status, 'uncertain');
   assert.equal(requests(dir)[0].threadId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
@@ -130,14 +131,10 @@ test('current-project query answers locally from the pinned selector, not the ne
   assert.match(reply,/电视项目/);assert.match(reply,/电视桌面开发/);assert.match(reply,/固定聊天/);assert.doesNotMatch(reply,/网站项目/);
   service.memory.close();
 });
-test('automatic project follows delivered reminders and can answer a requested path locally',async t=>{
-  let latest=projectA;
-  const {service,emitted}=harness(t,{getLatest:()=>({threadId:latest}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:()=>assert.fail('unexpected network')});
+test('unselected project stays explicit even when newer reminders arrive',async t=>{
+  const {service,emitted}=harness(t,{getLatest:()=>assert.fail('MOSS must not follow reminders'),getProjectThread:()=>assert.fail('no selected project'),fetchRequest:()=>assert.fail('unexpected network')});
   service.config={...service.config,speak:false};await service.text('我当前选中的项目是什么？');
-  assert.match(emitted.findLast(e=>e.role==='assistant').content,/电视项目/);
-  latest=projectB;await service.text('当前项目路径');
-  const reply=emitted.findLast(e=>e.role==='assistant').content;assert.match(reply,/网站项目/);assert.match(reply,/\/private\/work\/网站项目/);assert.match(reply,/跟随最近/);
-  service.memory.close();
+  assert.match(emitted.findLast(e=>e.role==='assistant').content,/尚未选择/);service.memory.close();
 });
 test('missing pinned project never silently switches to another project',async t=>{
   const {service,emitted}=harness(t,{getLatest:()=>assert.fail('must not fall back'),getProjectThread:()=>null,fetchRequest:()=>assert.fail('unexpected network')});
@@ -156,16 +153,16 @@ test('ordinary chat receives fresh selector metadata on each turn, without full 
 test('project snapshot is frozen before optional speech polishing awaits a response',async t=>{
   let latest=projectA,relayContext;
   const {service}=harness(t,{getLatest:()=>({threadId:latest}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:async(url,request)=>{
-    if(url.includes('deepseek')){latest=projectB;return{ok:true,json:async()=>({choices:[{message:{content:'帮我分析当前项目的风险'}}]})};}
+    if(url.includes('deepseek')){latest=projectB;service.config={...service.config,target:projectB};return{ok:true,json:async()=>({choices:[{message:{content:'帮我分析当前项目的风险'}}]})};}
     relayContext=JSON.parse(request.body).input;return{ok:true,json:async()=>({output_text:'讨论回复'})};
   }});
-  service.keys={yunqiao:'test',deepseek:'test'};service.config={...service.config,speak:false,polishEnabled:true};
+  service.keys={yunqiao:'test',deepseek:'test'};service.config={...service.config,speak:false,polishEnabled:true,target:projectA};
   await service.text('帮我分析当前项目的风险','chat',{voice:true});
   const system=relayContext.filter(x=>x.role==='system').map(x=>x.content).join('\n');assert.match(system,/电视项目/);assert.doesNotMatch(system,/网站项目/);service.memory.close();
 });
 test('spoken current-project query works locally after wake and uses existing system playback',async t=>{
-  const {service,emitted}=harness(t,{asr:{transcribe:async()=> '贾维斯，当前项目'},getLatest:()=>({threadId:projectA}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:()=>assert.fail('must not call cloud')});
-  service.asrReady=true;service.listening=true;await service.audio('fixture');
+  const {service,emitted}=harness(t,{asr:{transcribe:async()=> 'MOSS，当前项目'},getLatest:()=>({threadId:projectA}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:()=>assert.fail('must not call cloud')});
+  service.config={...service.config,target:projectA};service.asrReady=true;service.listening=true;await service.audio('fixture');
   assert.ok(emitted.some(e=>e.type==='speak'&&e.text.includes('电视项目')));service.memory.close();
 });
 
@@ -184,7 +181,7 @@ test('project metadata lookup is read-only and rejects archived or subagent chat
 test('empty follow state is answered locally and project queries do not swallow development requests',async t=>{
   const {service,emitted}=harness(t,{getLatest:()=>null,fetchRequest:()=>assert.fail('unexpected network')});
   service.config={...service.config,speak:false};await service.text('当前项目');
-  assert.match(emitted.findLast(e=>e.role==='assistant').content,/还没有可用/);
+  assert.match(emitted.findLast(e=>e.role==='assistant').content,/尚未选择/);
   for(const query of ['当前项目','当前项目路径','我当前选中的项目是什么？','你能看到我现在选择的项目吗'])assert.ok(isProjectQuestion(query),query);
   for(const query of ['帮我分析当前项目','当前项目怎么部署','让 Codex 修改当前项目'])assert.equal(isProjectQuestion(query),false,query);
   service.memory.close();

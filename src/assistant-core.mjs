@@ -1,10 +1,10 @@
 import { homedir } from 'node:os';
 
 export const assistantDefaults = Object.freeze({
-  name: '贾维斯', wakeWord: '贾维斯', autoListen: false, speak: true,
+  name: 'MOSS', wakeWord: 'MOSS', autoListen: false, speak: true,
   modelPath: homedir() + '/.speakmore/models/qwen3-asr-0.6b-q8/Qwen3-ASR-0.6B-Q8_0.gguf',
-  schemaVersion: 2, chatModel: 'gpt-6-astra', chatBaseUrl: 'https://api.yunqiao.me/v1',
-  dictationEnabled: false, dictationHotkey: 'right-option', dictationPolish: false,
+  schemaVersion: 3, chatModel: 'gpt-6-astra', chatBaseUrl: 'https://api.yunqiao.me/v1',
+  petEnabled: false, dictationEnabled: false, dictationHotkey: 'right-option', dictationPolish: false,
   polishModel: 'deepseek-flash', polishEnabled: false, reducedMotion: false,
   voice: 'system', fishModel: 's2.1-pro-free', voiceId: '', target: ''
 });
@@ -16,6 +16,8 @@ export function validateSettings(input = {}) {
   if (!input.schemaVersion && /^deepseek/.test(value.chatModel)) {
     value.polishModel = value.chatModel; value.chatModel = assistantDefaults.chatModel;
   }
+  if (value.name === '贾维斯') value.name = 'MOSS';
+  if (value.wakeWord === '贾维斯') value.wakeWord = 'MOSS';
   value.chatBaseUrl = value.chatBaseUrl.replace(/\/+$/, '');
   if (value.chatBaseUrl !== 'https://api.yunqiao.me/v1') throw new Error('当前版本仅向所指定的云桥网关发送聊天密钥');
   if (!value.name || value.name.length > 30) throw new Error('名字请填写 1–30 个字');
@@ -28,7 +30,7 @@ export function validateSettings(input = {}) {
   if (value.voiceId && !/^[a-zA-Z0-9_-]{1,100}$/.test(value.voiceId)) throw new Error('音色 ID 无效');
   if (value.target && !/^[0-9a-f-]{36}$/i.test(value.target)) throw new Error('目标聊天无效');
   for (const field of ['autoListen', 'speak', 'polishEnabled', 'reducedMotion']) if (typeof input[field] === 'boolean') value[field] = input[field];
-  for (const field of ['dictationEnabled', 'dictationPolish']) {
+  for (const field of ['dictationEnabled', 'dictationPolish', 'petEnabled']) {
     if (input[field] !== undefined && typeof input[field] !== 'boolean') throw new Error('听写开关必须为布尔值');
     if (typeof input[field] === 'boolean') value[field] = input[field];
   }
@@ -55,8 +57,12 @@ export function extractWake(text, word) {
   return null;
 }
 export function explicitCodex(text) {
+  if (/会不会|是不是|能不能|要不要|该不该|是否|能否/.test(text)) return null;
+  if (/(?:[吗么]|是否|能否|要不要|好不好|行不行|可以不|合适不|怎么样)[。！!\s]*$|[？?][。\s]*$/.test(text.trim())) return null;
   const match = text.match(/^(?:请\s*)?(?:让|叫|交给|发给|发送给)\s*(?:codex|扣得克斯|代码助手)[，,:：\s]*(.*)$/is);
-  return match ? match[1].trim() : null;
+  if (match) return match[1].trim();
+  const plan = text.match(/^(?:请\s*)?把(.+?)(?:交给|发给|发送给)\s*codex[，,:：\s]*(.*)$/is);
+  return plan ? plan[1].trim() + (plan[2].trim() ? '，' + plan[2].trim() : '') : null;
 }
 export function speechText(text) {
   return text.replace(/```[\s\S]*?```/g, '代码已显示在屏幕上。').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*#_`]/g, '').slice(0, 1000);

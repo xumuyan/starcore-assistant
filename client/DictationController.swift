@@ -176,10 +176,10 @@ final class DictationController: NSObject {
         }
         let access = permissions()
         guard access.input && access.accessibility else {
-            show("需要系统权限", "请在星核设置中检查输入监控与辅助功能权限"); return
+            show("需要系统权限", "请在MOSS 设置中检查输入监控与辅助功能权限"); return
         }
         guard access.microphone == .authorized || access.microphone == .notDetermined else {
-            show("需要麦克风权限", "请在系统设置中允许星核助理访问麦克风"); return
+            show("需要麦克风权限", "请在系统设置中允许MOSS访问麦克风"); return
         }
         uiGeneration += 1; copyText = nil; notice = nil
         target = writer.capture()

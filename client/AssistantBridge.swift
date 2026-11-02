@@ -80,7 +80,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         case "fullscreen": owner?.window.toggleFullScreen(nil)
         case "historyPage": send(["type": "historyPage", "before": body["before"] as? Int ?? 9007199254740991, "query": body["query"] as? String ?? ""])
         case "sleep", "previewVoice": dictation.cancel(); send(["type": action])
-        case "targets", "latest": send(["type": action])
+        case "targets", "latest", "tasks": send(["type": action])
         case "startServices": owner?.startServices()
         case "stopServices": owner?.stopServices()
         case "bind": owner?.bindWeixin()
@@ -148,12 +148,20 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     func handle(_ event: [String: Any]) {
         assistantActivity = DictationAssistantActivity.next(assistantActivity, event: event)
         if dictation.handle(event) { return }
+        owner?.pet.receive(event)
+        if event["type"] as? String == "tasks" { owner?.pet.updateTasks(event) }
+        if event["type"] as? String == "targets", let rows = event["targets"] as? [[String: Any]] {
+            let selected = rows.first { $0["id"] as? String == configuration["target"] as? String }
+            owner?.pet.updateTarget(selected.map { ($0["project"] as? String ?? "") + " · " + ($0["title"] as? String ?? "") } ?? "未选择目标 · 执行前请在任务页选择聊天")
+        }
         switch event["type"] as? String {
         case "configured":
             if let config = event["settings"] as? [String: Any] {
                 configuration = config; persistConfiguration(); pendingConfiguration = nil
-                owner?.window.title = "星核助理 · " + (config["name"] as? String ?? "贾维斯")
+                owner?.window.title = "MOSS · " + (config["name"] as? String ?? "MOSS")
                 emit(event)
+                owner?.pet.configure(enabled: config["petEnabled"] as? Bool ?? false)
+                send(["type": "tasks"])
                 dictation.configure(config)
                 if config["autoListen"] as? Bool == true { setListen(true, persist: false) }
             }

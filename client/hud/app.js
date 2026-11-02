@@ -8,13 +8,13 @@ function state(name, detail) {
   document.dispatchEvent(new CustomEvent('assistant-state', { detail: name }));
   const copy = names[name] || names.idle;
   $('core-stage').dataset.state = name; $('state-caption').textContent = copy[0]; $('core-title').textContent = copy[1]; $('core-label').textContent = copy[2];
-  $('core-detail').textContent = detail || (mic ? `说「${settings.wakeWord || '贾维斯'}」开始对话。` : '开启语音，然后叫醒我。');
+  $('core-detail').textContent = detail || (mic ? `说「${settings.wakeWord || 'MOSS'}」开始对话。` : '开启语音，然后叫醒我。');
   $('composer-status').textContent = ['thinking', 'executing', 'synthesizing'].includes(name) ? copy[0] : '';
 }
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 11000); }
 function addMessage(role, content) {
   $('empty')?.remove(); const box = document.createElement('div'); box.className = `message ${role}`;
-  const label = document.createElement('div'); label.className = 'message-label'; label.textContent = role === 'user' ? 'YOU' : (settings.name || '贾维斯').toUpperCase();
+  const label = document.createElement('div'); label.className = 'message-label'; label.textContent = role === 'user' ? 'YOU' : (settings.name || 'MOSS').toUpperCase();
   const text = document.createElement('div'); text.className = 'message-content'; text.textContent = content; box.append(label, text); $('messages').append(box);
   while ($('messages').children.length > 120) $('messages').firstElementChild.remove();
   $('messages').scrollTop = $('messages').scrollHeight;
@@ -24,8 +24,8 @@ function closeTargetMenu(restore=false) { $('target-popover').hidden=true; $('ta
 function targetOptions() {
   const select=$('target'), latest=targets.find(x=>x.id===latestId), selected=targets.find(x=>x.id===settings.target);
   const open=!$('target-popover').hidden, focusedId=document.activeElement?.dataset?.targetId;
-  select.replaceChildren(); const rows=[{id:'',project:'跟随最近一条提醒',title:latest?`${latest.project} · ${targetLabel(latest.title)}`:'收到提醒后自动确定目标'} ,...targets];
-  if(settings.target&&!selected)rows.push({id:settings.target,project:'已选聊天不可用',title:'请选择其他聊天，或改为自动跟随',unavailable:true});
+  select.replaceChildren(); const rows=[{id:'',project:'未选择目标聊天',title:'请明确选择一个 Codex 聊天'} ,...targets];
+  if(settings.target&&!selected)rows.push({id:settings.target,project:'已选聊天不可用',title:'请选择其他聊天',unavailable:true});
   const menu=$('target-menu');menu.replaceChildren();
   for(const row of rows){
     const option=document.createElement('option');option.value=row.id;option.textContent=row.project+' / '+targetLabel(row.title);select.append(option);
@@ -35,10 +35,10 @@ function targetOptions() {
     button.onclick=()=>{select.value=row.id;select.dispatchEvent(new Event('change'));closeTargetMenu(true);};menu.append(button);
   }
   select.value=settings.target||'';
-  const current=settings.target?selected:latest;
-  $('target-mode').textContent=settings.target?'固定聊天':'自动跟随';
-  $('target-project').textContent=current?.project||(settings.target?'聊天暂不可用':'等待最近提醒');
-  $('target-title').textContent=current?targetLabel(current.title):(settings.target?'点击重新选择目标聊天':'收到提醒后自动连接到对应聊天');
+  const current=selected;
+  $('target-mode').textContent=settings.target?'固定聊天':'未选择目标';
+  $('target-project').textContent=current?.project||(settings.target?'聊天暂不可用':'请选择目标聊天');
+  $('target-title').textContent=current?targetLabel(current.title):(settings.target?'点击重新选择目标聊天':'投递开发要求前，请先选择目标');
   $('target-toggle').title=[$('target-mode').textContent,$('target-project').textContent,$('target-title').textContent].join(' · ');
   if(open&&focusedId!==undefined){const items=[...menu.children].filter(x=>!x.disabled);(items.find(x=>x.dataset.targetId===focusedId)||items.find(x=>x.getAttribute('aria-selected')==='true')||items[0])?.focus();}
 }
@@ -127,15 +127,16 @@ $('clear').onclick = () => bridge('clear');
 $('refresh-targets').onclick = () => bridge('targets');
 $('target').onchange = () => { settings.target = $('target').value; targetOptions(); bridge('save', { settings }); };
 targetOptions();
-function openSettings() { oldFocus = document.activeElement; $('settings-overlay').hidden = false; $('set-name').focus(); bridge('dictationRefresh'); }
-function closeSettings() { $('settings-overlay').hidden = true; oldFocus?.focus(); }
+function openSettings() { if (window.mossNavigate) { window.mossNavigate('settings'); bridge('dictationRefresh'); return; } oldFocus = document.activeElement; $('settings-overlay').hidden = false; $('set-name').focus(); bridge('dictationRefresh'); }
+function closeSettings() { if (window.mossNavigate) { window.mossNavigate('chat'); return; } $('settings-overlay').hidden = true; oldFocus?.focus(); }
 document.querySelectorAll('.settings-open').forEach(button => button.onclick = openSettings);
 $('settings-close').onclick = closeSettings;
 $('settings-overlay').onclick = e => { if (e.target === $('settings-overlay')) closeSettings(); };
 document.addEventListener('keydown', e => {
   if (e.metaKey && e.key === '.') { e.preventDefault(); bridge('cancel'); }
-  if (e.key === 'Escape') { if (!$('settings-overlay').hidden) closeSettings(); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else if (!$('composer-panel').hidden) $('composer-panel').hidden = true; else bridge('cancel'); }
-  if (e.key === 'Tab' && !$('settings-overlay').hidden) {
+  if (e.key === 'Escape' && window.mossNavigate) { if (document.body.dataset.page === 'settings') window.mossNavigate('chat'); else bridge('cancel'); }
+  if (e.key === 'Escape' && !window.mossNavigate) { if (!$('settings-overlay').hidden) closeSettings(); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else if (!$('composer-panel').hidden) $('composer-panel').hidden = true; else bridge('cancel'); }
+  if (e.key === 'Tab' && !window.mossNavigate && !$('settings-overlay').hidden) {
     const items = [...$('settings-overlay').querySelectorAll('button,input,select')].filter(x => x.offsetParent !== null && !x.disabled);
     const first = items[0], last = items.at(-1);
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -151,7 +152,7 @@ for (const kind of ['input', 'accessibility', 'microphone']) $('dictation-' + ki
 $('dictation-refresh').onclick = () => bridge('dictationRefresh');
 $('services-start').onclick = () => bridge('startServices'); $('services-stop').onclick = () => bridge('stopServices'); $('bind').onclick = () => bridge('bind');
 $('settings-form').onsubmit = e => {
-  e.preventDefault(); const next = { ...settings };
+  e.preventDefault(); const next = { ...settings, petEnabled: !!$('set-petEnabled')?.checked };
   for (const key of Object.keys(settings)) { const input = $(`set-${key}`); if (input) next[key] = input.type === 'checkbox' ? input.checked : input.value.trim(); }
   $('save-status').textContent = '正在保存…';
   bridge('save', { settings: next, gatewayKey: $('gateway-key').value, removeGateway: $('remove-gateway').checked, deepseekKey: $('deepseek-key').value, fishKey: $('fish-key').value, removeDeepSeek: $('remove-deepseek').checked, removeFish: $('remove-fish').checked });
@@ -165,14 +166,14 @@ function renderHistoryPage(event) {
   if (!event.messages.length) $('messages').textContent = '没有更多匹配的记录。';
   $('history-older').disabled = !event.messages.length;
 }
-function openHistory() { $('history-panel').hidden = false; bridge('historyPage', {}); }
+function openHistory() { window.mossNavigate?.('chat'); $('history-panel').hidden = false; bridge('historyPage', {}); }
 $('history-open').onclick = $('history-all').onclick = openHistory;
-$('history-close').onclick = () => $('history-panel').hidden = true;
+$('history-close').onclick = () => { if (!window.mossNavigate) $('history-panel').hidden = true; };
 $('history-search-go').onclick = () => bridge('historyPage', { query: $('history-search').value.trim() });
 $('history-search').onkeydown = e => { if (e.key === 'Enter') $('history-search-go').click(); };
 $('history-recent').onclick = () => { $('history-search').value = ''; bridge('historyPage'); };
 $('history-older').onclick = () => bridge('historyPage', { before: historyBefore, query: historyQuery });
 $('fullscreen').onclick = () => bridge('fullscreen');
 $('keyboard-toggle').onclick = () => { $('composer-panel').hidden = !$('composer-panel').hidden; if (!$('composer-panel').hidden) $('input').focus(); };
-$('keyboard-close').onclick = () => $('composer-panel').hidden = true;
+$('keyboard-close').onclick = () => { if (!window.mossNavigate) $('composer-panel').hidden = true; };
 clock(); setInterval(clock, 1000); bridge('ready');

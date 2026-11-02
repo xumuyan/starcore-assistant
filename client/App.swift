@@ -24,6 +24,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
     var statusItem: NSStatusItem!
     var assistant: AssistantBridge!
+    lazy var pet: MossPet = {
+        let value = MossPet()
+        value.onSend = { [weak self] text in
+            self?.assistant.dictation.cancel(); self?.assistant.stopAudio()
+            self?.assistant.send(["type": "text", "text": text, "mode": "chat"])
+        }
+        value.onTaskNotice = { [weak self] text in
+            self?.assistant.emit(["type": "notice", "message": text])
+            NSApp.requestUserAttention(.informationalRequest)
+        }
+        value.onListen = { [weak self] in
+            guard let self else { return }
+            self.assistant.setListen(!self.assistant.wantsListen)
+        }
+        value.onExpand = { [weak self] in self?.showWindow(); self?.assistant.emit(["type": "navigate", "page": "chat"]) }
+        return value
+    }()
     var timer: Timer?
     var refreshing = false
     var busy = false
@@ -49,9 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         buildWindow()
         buildMenu()
         showWindow()
-        window.toggleFullScreen(nil)
         startServices()
-        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in self?.refresh() }
+        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in self?.refresh(); if self?.assistant.configuration["petEnabled"] as? Bool == true || self?.window.isVisible == false { self?.assistant.send(["type": "tasks"]) } }
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke), name: NSWorkspace.didWakeNotification, object: nil)
     }
 
@@ -62,13 +78,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func buildWindow() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        window.title = "星核助理 · 贾维斯"
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.title = "MOSS"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.backgroundColor = NSColor(srgbRed: 0.025, green: 0.047, blue: 0.059, alpha: 1)
-        window.appearance = NSAppearance(named: .darkAqua)
-        window.minSize = NSSize(width: 980, height: 720)
+        window.backgroundColor = NSColor(srgbRed: 0.93, green: 0.95, blue: 0.97, alpha: 1)
+        window.appearance = NSAppearance(named: .aqua)
+        window.minSize = NSSize(width: 900, height: 650)
         window.center(); window.delegate = self; window.isReleasedWhenClosed = false
         assistant = AssistantBridge(owner: self)
         let configuration = WKWebViewConfiguration()
@@ -94,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func buildMenu() {
         let main = NSMenu()
         let appItem = NSMenuItem()
-        let applicationMenu = NSMenu(title: "星核助理")
+        let applicationMenu = NSMenu(title: "MOSS")
         let reopen = NSMenuItem(title: "显示客户端", action: #selector(showWindow), keyEquivalent: "0")
         reopen.target = self
         applicationMenu.addItem(reopen)
@@ -112,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         editItem.submenu = edit; main.addItem(editItem)
         NSApp.mainMenu = main
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "星核助理")
+        statusItem.button?.image = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "MOSS")
         let menu = NSMenu()
         for (title, selector) in [("显示客户端", #selector(showWindow)), ("开始监听", #selector(startServices)), ("停止监听", #selector(stopServices)), ("绑定微信", #selector(bindWeixin))] {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
@@ -134,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     @objc func woke() { refresh(); if assistant?.configuration["autoListen"] as? Bool == true { assistant?.setListen(true, persist: false) } }
     @objc func quitClient() { NSApp.terminate(nil) }
-    func applicationWillTerminate(_ notification: Notification) { loginProcess?.terminate(); assistant?.shutdown() }
+    func applicationWillTerminate(_ notification: Notification) { pet.shutdown(); loginProcess?.terminate(); assistant?.shutdown() }
 
     func runControl(_ command: String, completion: @escaping (Snapshot?, String?) -> Void) {
         let configuration = settings!
@@ -292,7 +308,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func showError(_ message: String) {
         let alert = NSAlert()
-        alert.messageText = "星核助理"
+        alert.messageText = "MOSS"
         alert.informativeText = message
         alert.runModal()
     }

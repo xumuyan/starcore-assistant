@@ -1,3 +1,6 @@
+import {homedir} from 'node:os';
+import {join} from 'node:path';
+import {CodexTaskStatus} from './codex-task-status.mjs';
 import { createInterface } from 'node:readline';
 import { AssistantService } from './assistant-service.mjs';
 import { LocalASR } from './assistant-asr.mjs';
@@ -5,6 +8,7 @@ import { AssistantDictationHost } from './assistant-dictation-host.mjs';
 
 process.umask(0o077);
 const emit = event => process.stdout.write(JSON.stringify(event) + '\n');
+const taskStatus = new CodexTaskStatus(join(homedir(), '.codex/state_5.sqlite'));
 const asr = new LocalASR();
 const assistant = new AssistantService({ emit, asr });
 const dictation = new AssistantDictationHost({ assistant, asr, emit });
@@ -19,6 +23,7 @@ input.on('line', line => {
     const handled = dictation.handle(event);
     if (handled === true || (handled && await handled)) return;
     switch (event.type) {
+      case 'tasks': emit(taskStatus.snapshot()); break;
       case 'configure': await assistant.configure(event.settings, event.keys); break;
       case 'listen':
         assistant.listening = !!event.enabled;
@@ -47,4 +52,4 @@ input.on('line', line => {
   })().catch(error => emit({ type: 'error', message: error.message || '本机助理操作失败，请检查配置后再试' }));
 });
 setInterval(() => assistant.tick(), 1000).unref();
-input.on('close', () => { dictation.cancel(); assistant.cancel(); assistant.memory.close(); process.exit(0); });
+input.on('close', () => { dictation.cancel(); taskStatus.close(); assistant.cancel(); assistant.memory.close(); process.exit(0); });

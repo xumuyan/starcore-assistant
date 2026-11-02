@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,writeFileSync,appendFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {CodexTaskStatus,desktopSession} from '../src/codex-task-status.mjs';
+function fixture(t){const dir=mkdtempSync(join(tmpdir(),'moss-tasks-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));const path=join(dir,'state.sqlite'),db=new DatabaseSync(path);db.exec('CREATE TABLE threads(id TEXT,title TEXT,cwd TEXT,source TEXT,archived INTEGER,rollout_path TEXT,updated_at INTEGER)');const log=join(dir,'chat.jsonl');writeFileSync(log,'');db.prepare('INSERT INTO threads VALUES(?,?,?,?,?,?,?)').run('a','任务 A','/project/a','vscode',0,log,1);db.close();return {path,log,dir};}
+const event=(type,error)=>JSON.stringify({timestamp:new Date().toISOString(),type:'event_msg',payload:{type,turn_id:'turn-a',...(error?{error}:{}),private:'not exported'}})+'\n';
+test('read-only task state tracks start, completion, failure, cancellation and partial records',t=>{const f=fixture(t),reader=new CodexTaskStatus(f.path,{desktopAlive:()=>true});appendFileSync(f.log,event('task_started'));assert.equal(reader.snapshot().tasks[0].status,'running');const end=event('task_complete');appendFileSync(f.log,end.slice(0,30));assert.equal(reader.snapshot().tasks[0].status,'running');appendFileSync(f.log,end.slice(30));assert.equal(reader.snapshot().tasks[0].status,'completed');appendFileSync(f.log,event('task_started')+event('task_complete','failed'));assert.equal(reader.snapshot().tasks[0].status,'failed');appendFileSync(f.log,event('turn_aborted'));assert.equal(reader.snapshot().tasks[0].status,'cancelled');assert.equal(JSON.stringify(reader.snapshot()).includes('not exported'),false);reader.close();});
+test('filters child/archived chats and keeps same-project chats distinct',t=>{const f=fixture(t),db=new DatabaseSync(f.path);for(const [id,source,archived] of [['b','vscode',0],['child','{"subagent":{}}',0],['old','vscode',1]])db.prepare('INSERT INTO threads VALUES(?,?,?,?,?,?,?)').run(id,id,'/project/a',source,archived,f.log,2);db.close();const r=new CodexTaskStatus(f.path,{desktopAlive:()=>true});assert.deepEqual(new Set(r.snapshot().tasks.map(t=>t.id)),new Set(['a','b']));assert.ok(r.snapshot().tasks.every(t=>t.status==='unknown'));r.close();});
+test('offline, missing database and unreadable logs never invent running or completed',t=>{const f=fixture(t);appendFileSync(f.log,event('task_started'));const r=new CodexTaskStatus(f.path,{desktopAlive:()=>false});assert.equal(r.snapshot().tasks[0].status,'unknown');assert.equal(r.snapshot().available,false);r.close();const absent=new CodexTaskStatus(join(f.dir,'missing'),{desktopAlive:()=>true});assert.equal(absent.snapshot().available,false);absent.close();});
+
+test('a disconnected or earlier desktop session cannot revive a historical running start',t=>{const f=fixture(t);appendFileSync(f.log,JSON.stringify({timestamp:new Date(Date.now()-60000).toISOString(),type:'event_msg',payload:{type:'task_started'}})+'\n');let alive=true;const r=new CodexTaskStatus(f.path,{desktopAlive:()=>alive});assert.equal(r.snapshot().tasks[0].status,'running');alive=false;assert.equal(r.snapshot().tasks[0].status,'unknown');alive=true;assert.equal(r.snapshot().tasks[0].status,'unknown');appendFileSync(f.log,event('task_started'));assert.equal(r.snapshot().tasks[0].status,'running');r.close();const fresh=new CodexTaskStatus(f.path,{desktopAlive:()=>({alive:true,startedAt:Date.now()+1000})});assert.equal(fresh.snapshot().tasks[0].status,'unknown');fresh.close();});
+
+test('desktop detection supports both standalone Codex and current embedded ChatGPT runtime without trusting helper names',()=>{
+ const stamp='Mon Nov  2 12:00:00 2026';
+ assert.equal(desktopSession(stamp+' /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex').alive,true);
+ assert.equal(desktopSession(stamp+' /Applications/Codex.app/Contents/MacOS/Codex').alive,true);
+ assert.equal(desktopSession(stamp+' /tmp/Codex (Renderer)').alive,false);
+});
+
+test('initial bounded scan finds a long-running start beyond the incremental read window',t=>{const f=fixture(t);appendFileSync(f.log,event('task_started')+JSON.stringify({type:'response_item',payload:{text:'x'.repeat(700000)}})+'\n');const r=new CodexTaskStatus(f.path,{desktopAlive:()=>true});assert.equal(r.snapshot().tasks[0].status,'running');appendFileSync(f.log,event('task_complete'));assert.equal(r.snapshot().tasks[0].status,'completed');r.close();});

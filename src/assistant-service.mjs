@@ -15,9 +15,18 @@ export function listTargets(database = join(homedir(), '.codex/state_5.sqlite'))
   if (!existsSync(database)) return [];
   const db = new DatabaseSync(database, { readOnly: true });
   try {
-    return db.prepare('SELECT id,title,cwd,source FROM threads WHERE archived=0 ORDER BY updated_at DESC LIMIT 100').all()
+    return db.prepare('SELECT id,title,cwd,source FROM threads WHERE archived=0 ORDER BY updated_at DESC').all()
       .filter(r => !r.source.includes('subagent')).map(r => ({ id: r.id, title: r.title, project: basename(r.cwd) }));
   } finally { db.close(); }
+}
+
+function hasDiscussedPlan(context) {
+  const user=context.filter(item=>item.role==='user').at(-1)?.content;
+  const answer=context.filter(item=>item.role==='assistant').at(-1)?.content;
+  // A project lookup or handoff acknowledgement is not a development plan.
+  return !!(user && answer && !isProjectQuestion(user) &&
+    !/^(?:已交给|你当前|当前使用|本地语音已能)/.test(answer) &&
+    /方案|步骤|实现|修复|增加|保留|校验|修改/.test(answer));
 }
 
 export class AssistantService {
@@ -173,7 +182,7 @@ export class AssistantService {
   async codex(text) {
     if (!text) { this.error('请在「让 Codex」后面说出开发要求'); return; }
     // Resolve and freeze at receipt; a new reminder must not redirect this job.
-    const threadId = this.config.target || this.getLatest(this.dir)?.threadId;
+    const threadId = this.config.target;
     if (!threadId) { this.error('请先选择一个原 Codex 聊天'); return; }
     let thread;
     try { thread = this.getThread(join(homedir(), '.codex/state_5.sqlite'), threadId); } catch {}
@@ -182,6 +191,7 @@ export class AssistantService {
     try { runtime = JSON.parse(readFileSync(join(this.dir, 'runtime-settings.json'), 'utf8')); } catch {}
     if (!runtime?.codex) { this.error('没有找到 Codex 本机接口配置'); return; }
     const context = this.memory.context(12, 10000);
+    if (/^(?:刚才|上面|之前|这个|那个)/.test(text) && !hasDiscussedPlan(context)) { this.error('没有可引用的讨论，请先说明具体要求'); return; }
     const submittedText = handoffText(text, context);
     const jobId = randomUUID(); const id = createHash('sha256').update(jobId).digest('hex');
     const request = { id, clientUserMessageId: jobId, threadId, text: submittedText, userText: text, project: basename(thread.cwd), receivedAt: new Date().toISOString(), status: 'submitting', source: 'mac-assistant' };

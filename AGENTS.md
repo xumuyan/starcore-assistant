@@ -1,4 +1,4 @@
-# Starcore Assistant 仓库规则
+# MOSS 仓库规则
 
 适用范围：本仓库及其子目录。
 

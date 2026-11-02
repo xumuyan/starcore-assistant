@@ -10,18 +10,18 @@ root = Path(__file__).resolve().parent.parent
 if '--ui-only' not in sys.argv:
     subprocess.run([sys.executable, str(root / 'install.py')], check=True)
 subprocess.run([str(root / 'node_modules/.bin/esbuild'), str(root / 'client/scene/renderer.mjs'), '--bundle', '--format=iife', '--target=safari16', '--minify', '--loader:.png=dataurl', '--outfile=' + str(root / 'client/hud/scene-3d.js')], check=True)
-app = root / 'dist' / '星核助理.app'
+app = root / 'dist' / 'MOSS.app'
 contents = app / 'Contents'
 (contents / 'MacOS').mkdir(parents=True, exist_ok=True)
 (contents / 'Resources').mkdir(exist_ok=True)
 info = {
     'CFBundleExecutable': 'CodexWeixin',
     'CFBundleIdentifier': 'local.codex-weixin.client',
-    'CFBundleName': '星核助理',
-    'CFBundleDisplayName': '星核助理',
+    'CFBundleName': 'MOSS',
+    'CFBundleDisplayName': 'MOSS',
     'CFBundlePackageType': 'APPL',
-    'CFBundleShortVersionString': '0.7.0',
-    'CFBundleVersion': '17',
+    'CFBundleShortVersionString': '0.8.0',
+    'CFBundleVersion': '18',
     'CFBundleIconFile': 'StarCoreIcon-v3',
     'LSMinimumSystemVersion': '13.0',
     'NSHighResolutionCapable': True,
