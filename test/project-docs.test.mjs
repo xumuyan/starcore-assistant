@@ -20,7 +20,7 @@ test('every completed plan checkbox names evidence and unresolved scope stays ex
   assert.match(plan,/未勾选项均未验收完成/);
   const tasks=plan.split('\n').filter(line=>/^- \[[ x]\]/.test(line));
   assert.ok(tasks.length>=30,'keep implementation and acceptance steps actionable');
-  for(const line of tasks.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：/,'completed steps require evidence');
+  for(const line of tasks.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed steps require nonempty evidence, not a placeholder label');
 });
 
 test('each operation entry records time, changes, difficulties, resolution, verification and commit',()=>{
