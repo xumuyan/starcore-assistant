@@ -114,6 +114,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let reopen = NSMenuItem(title: "显示客户端", action: #selector(showWindow), keyEquivalent: "0")
         reopen.target = self
         applicationMenu.addItem(reopen)
+        let quickChat = NSMenuItem(title: "轻量聊天", action: #selector(openQuickChat), keyEquivalent: "k")
+        quickChat.keyEquivalentModifierMask = [.command, .shift]; quickChat.target = self
+        applicationMenu.addItem(quickChat)
         applicationMenu.addItem(.separator())
         let appQuit = NSMenuItem(title: "退出客户端（后台继续运行）", action: #selector(quitClient), keyEquivalent: "q")
         appQuit.target = self
@@ -142,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem.menu = menu
     }
 
+    @objc func openQuickChat() { pet.openChat() }
     @objc func showWindow() {
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

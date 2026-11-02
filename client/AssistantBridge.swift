@@ -158,7 +158,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         case "configured":
             if let config = event["settings"] as? [String: Any] {
                 configuration = config; persistConfiguration(); pendingConfiguration = nil
-                owner?.window.title = "MOSS · " + (config["name"] as? String ?? "MOSS")
+                owner?.window.title = (config["name"] as? String ?? "MOSS") == "MOSS" ? "MOSS" : "MOSS · " + (config["name"] as? String ?? "MOSS")
                 emit(event)
                 owner?.pet.configure(enabled: config["petEnabled"] as? Bool ?? false)
                 send(["type": "tasks"])

@@ -21,6 +21,9 @@ import AppKit
         pet.receive(["type": "history", "messages": [["role": "user", "content": "<script>plain text</script>"]]])
         pet.receive(["type": "message", "role": "assistant", "content": "hello"])
         pet.receive(["type": "state", "name": "thinking", "detail": "正在处理"])
+        var expanded = 0
+        pet.onExpand = { expanded += 1 }
+        pet.openChat(); precondition(expanded == 1 && pet.chatPanel == nil)
         pet.configure(enabled: false); pet.hide(); pet.shutdown()
         precondition(!pet.enabled && pet.petPanel == nil && pet.chatPanel == nil)
         print("MOSS_PET_PASS")

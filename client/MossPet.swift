@@ -90,8 +90,13 @@ final class MossPet: NSObject {
         // A bounded, ephemeral projection, never a second history store.
         messages = Array(messages.suffix(200)); renderConversation()
     }
+    func openChat() {
+        guard enabled else { onExpand?(); return }
+        createChatIfNeeded(); chatPanel?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true); chatPanel?.makeFirstResponder(input)
+    }
     func hide() { petPanel?.orderOut(nil); chatPanel?.orderOut(nil) }
-    func shutdown() { hide(); petPanel?.close(); chatPanel?.close(); petPanel = nil; chatPanel = nil; transcript = nil; input = nil; statusLabel = nil; targetLabel = nil; activityLabel = nil; messages.removeAll() }
+    func shutdown() { enabled = false; hide(); petPanel?.close(); chatPanel?.close(); petPanel = nil; chatPanel = nil; transcript = nil; input = nil; statusLabel = nil; targetLabel = nil; activityLabel = nil; messages.removeAll() }
 
     private func glass(_ size: NSSize) -> NSVisualEffectView {
         let view = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
@@ -105,6 +110,7 @@ final class MossPet: NSObject {
     private func createPetIfNeeded() {
         guard petPanel == nil else { return }
         let panel = MossPetPanel(contentRect: NSRect(x: 0, y: 0, width: 136, height: 112), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.title = "MOSS 桌面宠物"; panel.setAccessibilityLabel("MOSS 桌面宠物")
         panel.isReleasedWhenClosed = false; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
         panel.level = .floating; panel.hidesOnDeactivate = false; panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -118,7 +124,7 @@ final class MossPet: NSObject {
     @objc private func toggleChat() {
         guard enabled else { return }
         if chatPanel?.isVisible == true { chatPanel?.orderOut(nil); return }
-        createChatIfNeeded(); chatPanel?.makeKeyAndOrderFront(nil); chatPanel?.makeFirstResponder(input)
+        openChat()
     }
     private func createChatIfNeeded() {
         guard chatPanel == nil else { return }
