@@ -158,3 +158,20 @@ Node 独立服务接口为 `DictationService({emit, asr, getSettings, getKeys, i
 新设置为 `dictationEnabled=false`、`dictationHotkey=right-option`、`dictationPolish=false`，与现有 autoListen/polishEnabled 分开。设置校验只接受 right-option/f8/f9；不会因启用听写而自动开启付费润色。
 
 每批验证命令：`node --test test/dictation.test.mjs`（服务）、原生纯状态与音频分段夹具、`npm test`（全量）；涉及 Swift 或桥接时再运行 `npm run build:mac:check`。UI 验证使用临时文档与输入框，所有系统 UI 操作通过电脑操作工具，禁止用自动化输入向真实业务聊天发送测试文字。
+
+## MOSS 改版 · 2026-11-02
+
+用户已批准实施，详见 [MOSS 设计](docs/superpowers/specs/2026-11-02-moss-design.md)。本节取代旧默认全屏入口的界面要求；旧听写未完成的真实权限/人声验收仍有效。
+
+执行方式：按已有 subagent-driven-development 工作流逐模块实现，复用当前功能分支，根协调者提交推送；不重新请求已批准方案。顺序：计划 → 状态与执行路由 → 玻璃工作台 → 桌面宠物与名称 → 构建/安装。
+
+- [x] M1 归档确认设计、边界与测试计划；同步规则对新界面范围的口径。证据：SC-20261102-001 日志、设计链接/隐私检查及 121 项回归通过。
+- [ ] M2 新增 src/codex-task-status.mjs，只读 SQLite/JSONL 汇总主聊天状态；test/codex-task-status.test.mjs 覆盖运行/结束/异常/未知/子代理排除、部分行与读取失败；host 新增 tasks 协议，禁止写 Codex 数据。
+- [ ] M3 固定当前目标与明确语音执行表达式，复用上下文投递；测试普通聊天不执行、缺少目标不自动跟随、明确执行只投递一次、听写不投递。
+- [ ] M4 改造 client/hud 的任务/聊天/设置布局及玻璃 CSS；保留原桥接 ID 和设置，新增任务纯文本渲染，覆盖导航/聊天/权限设置及无脚本注入测试。
+- [ ] M5 AppKit 桌面宠物及轻量聊天入口，默认关闭可启用，不抢焦点、状态共源；原生夹具覆盖关闭、更新、轻量聊天/展开行为。
+- [ ] M6 当前产品名/默认名迁移 MOSS，保留自定义值、bundle ID、数据路径；测试旧默认迁移、自定义保持、版本一致。
+- [ ] M7 全量 npm test、scene/native build、签名与架构核对；更新文档日志，各批 commit/push 并核对远端 CI。
+- [ ] M8 备份安装、真实任务状态与玻璃界面/宠物检查；真实语音/权限/微信送达单独登记，缺少证据不勾选完成。
+
+每个模块先补相关失败测试，再实现并复核；实际验收证据写入 operatelog 与专用 verification 文档，不仅凭代码完成勾选。
