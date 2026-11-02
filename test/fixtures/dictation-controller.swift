@@ -44,12 +44,15 @@ final class Writer: DictationWriting {
 final class Panel: DictationPanelViewing {
     var onCancel: (() -> Void)?
     var onCopy: (() -> Void)?
+    var onFinish: (() -> Void)?
     var visible = false
     var title = ""
     var canCopy = false
     var detail = ""
+    var level: Float = 0
+    var elapsed: Double = 0
     func show(title: String, detail: String, elapsed: Double?, level: Float, canCopy: Bool) { visible = true; self.title = title; self.detail = detail; self.canCopy = canCopy }
-    func updateLevel(_ level: Float, elapsed: Double) {}
+    func updateLevel(_ level: Float, elapsed: Double) { self.level = level; self.elapsed = elapsed }
     func hide() { visible = false }
 }
 
@@ -67,13 +70,19 @@ enum ControllerChecks {
             permissions: { DictationPermissionState(microphone: .authorized, input: true, accessibility: true) },
             requestMicrophone: { $0(true) }, observeSystem: false)
         controller.configure([:]); precondition(!keys.running && capture.starts == 0)
+        controller.presentPanel()
+        precondition(panel.visible && panel.title.contains("未开启") && panel.title.contains("未录音"))
+        precondition(capture.starts == 0 && host.sent.isEmpty && host.pauses == 0)
+        controller.cancel()
         controller.configure(["dictationEnabled": true, "dictationHotkey": "right-option"])
         precondition(keys.running)
         controller.toggle(); let first = controller.requestID!
         precondition(host.pauses == 1 && capture.starts == 0 && host.sent.last?["type"] as? String == "dictationPrepare")
         controller.handle(["type": "dictationReady", "id": first])
-        precondition(capture.running && capture.starts == 1)
-        controller.toggle()
+        precondition(capture.running && capture.starts == 1 && panel.visible && panel.title == "正在语音输入")
+        capture.onLevel?(0.65, 2.5)
+        precondition(panel.level == 0.65 && panel.elapsed == 2.5)
+        panel.onFinish?()
         precondition(!capture.running && host.sent.last?["type"] as? String == "dictationFinish")
         controller.handle(["type": "dictationResult", "id": first, "text": "让 Codex 只是输入草稿"])
         precondition(writer.inputs == ["让 Codex 只是输入草稿"])
@@ -108,6 +117,18 @@ enum ControllerChecks {
         precondition(panel.detail.contains("输入焦点已变化") && panel.detail.contains("需要手动复制的识别预览"))
         controller.cancel(); precondition(!keys.isActive())
         controller.shutdown(); precondition(!keys.running && !panel.visible)
+        var access = DictationPermissionState(microphone: .denied, input: false, accessibility: false)
+        let blocked = DictationController(host: host, recorder: capture, hotkey: keys, writer: writer, panel: panel,
+            permissions: { access }, requestMicrophone: { _ in fatalError("preview must not request microphone") }, observeSystem: false)
+        blocked.configure(["dictationEnabled": true])
+        let before = capture.starts
+        blocked.presentPanel()
+        precondition(panel.visible && panel.title.contains("等待授权") && panel.title.contains("未录音") && !keys.running)
+        precondition(blocked.requestID == nil && capture.starts == before)
+        access = DictationPermissionState(microphone: .authorized, input: true, accessibility: true)
+        blocked.presentPanel()
+        precondition(panel.title.contains("已就绪") && panel.title.contains("未录音") && blocked.requestID == nil)
+        blocked.shutdown()
         print("DICTATION_CONTROLLER_PASS")
     }
 }

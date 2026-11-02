@@ -49,6 +49,7 @@ protocol DictationWriting: AnyObject {
 protocol DictationPanelViewing: AnyObject {
     var onCancel: (() -> Void)? { get set }
     var onCopy: (() -> Void)? { get set }
+    var onFinish: (() -> Void)? { get set }
     var visible: Bool { get }
     func show(title: String, detail: String, elapsed: Double?, level: Float, canCopy: Bool)
     func updateLevel(_ level: Float, elapsed: Double)
@@ -112,6 +113,7 @@ final class DictationController: NSObject {
         self.hotkey.onFailure = { [weak self] message in self?.keyFailure = message }
         self.panel.onCancel = { [weak self] in self?.cancel() }
         self.panel.onCopy = { [weak self] in self?.copyResult() }
+        self.panel.onFinish = { [weak self] in self?.finishRecording() }
         self.recorder.onLevel = { [weak self] level, elapsed in
             guard let self, self.phase == .recording else { return }
             self.panel.updateLevel(level, elapsed: elapsed)
@@ -166,8 +168,25 @@ final class DictationController: NSObject {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + pane) { NSWorkspace.shared.open(url) }
     }
 
+    // Safe to open from settings: does not capture that settings field as a paste target,
+    // enable listening, request permissions, or invent a recording preview.
+    func presentPanel() {
+        refreshStatus()
+        guard requestID == nil, copyText == nil else { return }
+        uiGeneration += 1
+        guard enabled else {
+            show("听写未开启 · 未录音", "在设置勾选全局语音输入并保存，再切到输入框按所选快捷键。"); return
+        }
+        let access = permissions()
+        guard access.input && access.accessibility && access.microphone == .authorized else {
+            show("等待授权 · 未录音", "请完成设置中的三项权限。输入监控没有 MOSS 时，点＋添加当前应用。"); return
+        }
+        show("听写已就绪 · 未录音", "切到需要输入的文本框，单独按所选快捷键开始；再按结束，Esc 取消。")
+    }
+
     func toggle() {
-        guard enabled, !suspended, !locked else { return }
+        guard enabled else { presentPanel(); return }
+        guard !suspended, !locked else { return }
         if phase == .recording { finishRecording(); return }
         if phase == .preparing { cancel(); return }
         guard requestID == nil else { return }
@@ -326,6 +345,9 @@ final class DictationController: NSObject {
             }))
         }
         let center = NotificationCenter.default
+        observers.append((center, center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.refreshStatus()
+        }))
         observers.append((center, center.addObserver(forName: .AVAudioEngineConfigurationChange, object: nil, queue: .main) { [weak self] event in
             guard let self, self.requestID != nil, self.recorder.owns(event.object) else { return }
             self.fail("声音输入设备发生变化，已取消本轮口述")

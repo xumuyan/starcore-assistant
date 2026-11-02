@@ -92,6 +92,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
         case "dictationPermission": dictation.requestPermission(body["kind"] as? String ?? "")
         case "dictationRefresh": dictation.refreshStatus()
+        case "dictationShowPanel": dictation.presentPanel()
+        case "dictationRevealApp": NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
         default: break
         }
     }

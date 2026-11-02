@@ -30,11 +30,38 @@ private final class DictationPanelButton: NSButton {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
+/// A short history of real microphone levels. No timer or simulated waveform.
+final class DictationWaveform: NSView {
+    private(set) var samples = Array(repeating: Float(0), count: 40)
+    var doubleValue: Double = 0 {
+        didSet {
+            samples.removeFirst()
+            samples.append(DictationPanelMetrics.normalizedLevel(Float(doubleValue)))
+            setAccessibilityValue(NSNumber(value: samples.last ?? 0))
+            needsDisplay = true
+        }
+    }
+    func reset() {
+        samples = Array(repeating: 0, count: 40)
+        doubleValue = 0
+    }
+    override func draw(_ dirtyRect: NSRect) {
+        let stride = bounds.width / CGFloat(samples.count)
+        for (index, sample) in samples.enumerated() {
+            let height = max(2, CGFloat(sample) * bounds.height)
+            NSColor(srgbRed: 0.38, green: 0.84, blue: 1, alpha: sample > 0.01 ? 0.95 : 0.25).setFill()
+            NSBezierPath(roundedRect: NSRect(x: CGFloat(index) * stride, y: bounds.midY - height / 2,
+                width: max(1, stride - 3), height: height), xRadius: 1.5, yRadius: 1.5).fill()
+        }
+    }
+}
+
 /// Presentation only. The controller owns recording, status text, and copy/cancel behavior.
 /// All methods, including construction, must be called on the main queue.
 final class DictationPanel: NSObject {
     var onCancel: (() -> Void)?
     var onCopy: (() -> Void)?
+    var onFinish: (() -> Void)?
     var visible: Bool { window.isVisible }
 
     private let window: DictationNonactivatingPanel
@@ -61,6 +88,8 @@ final class DictationPanel: NSObject {
         content.cancelButton.action = #selector(cancel)
         content.copyButton.target = self
         content.copyButton.action = #selector(copyResult)
+        content.finishButton.target = self
+        content.finishButton.action = #selector(finishRecording)
     }
 
     func show(title: String, detail: String, elapsed: Double? = nil, level: Float = 0, canCopy: Bool = false) {
@@ -80,6 +109,10 @@ final class DictationPanel: NSObject {
     }
 
     @objc private func cancel() { onCancel?() }
+    @objc private func finishRecording() {
+        guard !content.finishButton.isHidden else { return }
+        onFinish?()
+    }
     @objc private func copyResult() {
         guard !content.copyButton.isHidden else { return }
         onCopy?()
@@ -91,9 +124,10 @@ final class DictationPanelContent: NSView {
     let titleLabel = NSTextField(labelWithString: "")
     let detailLabel = NSTextField(wrappingLabelWithString: "")
     let timeLabel = NSTextField(labelWithString: "")
-    let meter = NSLevelIndicator()
+    let meter = DictationWaveform()
     let cancelButton: NSButton = DictationPanelButton(title: "取消", target: nil, action: nil)
     let copyButton: NSButton = DictationPanelButton(title: "复制结果", target: nil, action: nil)
+    let finishButton: NSButton = DictationPanelButton(title: "结束听写", target: nil, action: nil)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -144,18 +178,14 @@ final class DictationPanelContent: NSView {
             label.isSelectable = false
             label.isEditable = false
         }
-        meter.levelIndicatorStyle = .continuousCapacity
-        meter.minValue = 0
-        meter.maxValue = 1
-        meter.warningValue = 1
-        meter.criticalValue = 1
-        meter.isEditable = false
-        meter.fillColor = cyan
+        meter.setAccessibilityElement(true)
+        meter.setAccessibilityRole(.levelIndicator)
         meter.setAccessibilityLabel("麦克风音量")
 
         cancelButton.setAccessibilityLabel("取消本次语音输入")
         copyButton.setAccessibilityLabel("复制识别结果")
-        for button in [cancelButton, copyButton] {
+        finishButton.setAccessibilityLabel("结束听写并识别")
+        for button in [cancelButton, copyButton, finishButton] {
             button.bezelStyle = .rounded
             button.controlSize = .small
             button.font = .systemFont(ofSize: 12, weight: .medium)
@@ -167,7 +197,7 @@ final class DictationPanelContent: NSView {
         header.orientation = .horizontal
         header.alignment = .centerY
         header.spacing = 9
-        let actions = NSStackView(views: [NSView(), copyButton, cancelButton])
+        let actions = NSStackView(views: [NSView(), finishButton, copyButton, cancelButton])
         actions.orientation = .horizontal
         actions.spacing = 8
         for view in [header, detailLabel, meter, actions] {
@@ -187,7 +217,7 @@ final class DictationPanelContent: NSView {
             meter.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             meter.trailingAnchor.constraint(equalTo: header.trailingAnchor),
             meter.topAnchor.constraint(equalTo: detailLabel.bottomAnchor, constant: 10),
-            meter.heightAnchor.constraint(equalToConstant: 6),
+            meter.heightAnchor.constraint(equalToConstant: 22),
             actions.leadingAnchor.constraint(equalTo: header.leadingAnchor),
             actions.trailingAnchor.constraint(equalTo: header.trailingAnchor),
             actions.topAnchor.constraint(equalTo: meter.bottomAnchor, constant: 12),
@@ -202,9 +232,12 @@ final class DictationPanelContent: NSView {
         titleLabel.stringValue = title
         detailLabel.stringValue = detail
         timeLabel.stringValue = DictationPanelMetrics.elapsedText(elapsed)
+        meter.reset()
         meter.doubleValue = Double(DictationPanelMetrics.normalizedLevel(level))
         copyButton.isHidden = !canCopy
         copyButton.isEnabled = canCopy
+        finishButton.isHidden = elapsed == nil
+        finishButton.isEnabled = elapsed != nil
     }
 
     func updateLevel(_ level: Float, elapsed: Double) {

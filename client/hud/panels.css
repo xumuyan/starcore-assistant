@@ -14,3 +14,15 @@
 #page-tasks .page-intro h2{font-size:20px}#page-tasks .task-overview{margin:18px 0}#page-tasks .task-overview strong{font-size:29px}#page-tasks .task-overview .source-label{font-size:17px}.target-popover{border-radius:18px;box-shadow:0 15px 38px #284f6b2e,inset 0 1px 0 white;border-color:#fff}
 @media(max-height:700px){#page-tasks,#settings-overlay,#history-panel{height:calc(100vh - 44px);max-height:calc(100vh - 44px)}#page-tasks .overlay-heading,#settings-overlay .settings-header,#history-panel .drawer-heading{min-height:65px;padding-block:12px}}
 @media(prefers-reduced-transparency:reduce){#panel-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none;background:#28465766}#page-tasks,#settings-overlay,#history-panel{background:#f0f5f7}}
+
+/* Permission rows keep text and symbols alongside colour. */
+#dictation-settings .dictation-permissions{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin:16px 0}
+.dictation-permission{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid rgba(179,202,225,.22);border-radius:14px;padding:14px 16px;background:rgba(255,255,255,.35)}
+.dictation-permission>div{display:grid;grid-template-columns:auto auto;align-items:center;gap:5px 12px}
+.dictation-permission strong{font-size:13px;font-weight:600}.dictation-permission small{grid-column:1/-1;color:#536d7c;font-size:11px}
+.dictation-permission span{font-size:12px;font-weight:600;color:#b32e40}
+.dictation-permission[data-state="granted"] span{color:#147345}
+.dictation-permission[data-state="granted"]{border-color:rgba(90,211,146,.3)}
+.dictation-permission[data-state="missing"]{border-color:rgba(255,125,134,.3)}
+.dictation-permission button{flex-shrink:0}.dictation-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+@media(max-width:560px){.dictation-permission{padding:12px;gap:8px}.dictation-permission>div{grid-template-columns:1fr}}

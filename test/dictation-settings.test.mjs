@@ -50,3 +50,23 @@ test('permission buttons request only their explicit scope and render status as 
   assert.match(status.textContent,/尚未就绪/);assert.match(status.textContent,/输入监控待授权/);
   assert.match(status.textContent,/<b>tap failed<\/b>/);assert.equal(status.innerHTML,undefined);
 });
+
+
+test('permissions have vertical individual red/green states and recover when access changes',()=>{
+  const p=settingsPage(), get=id=>p.elements.get(id);
+  for(const granted of [false,true,false]){
+    p.receive({type:'dictationStatus',enabled:false,inputMonitoring:granted,accessibility:granted,microphone:granted});
+    for(const kind of ['input','accessibility','microphone']){
+      assert.equal(get('permission-'+kind+'-row').dataset.state,granted?'granted':'missing');
+      assert.equal(get('permission-'+kind+'-status').textContent,granted?'✓ 已允许':'！未允许');
+    }
+    assert.equal(get('dictation-input-help').hidden,granted);
+  }
+  get('dictation-preview').onclick();assert.equal(p.sent.at(-1).action,'dictationShowPanel');
+  get('dictation-reveal').onclick();assert.equal(p.sent.at(-1).action,'dictationRevealApp');
+  assert.equal(p.sent.filter(e=>e.action==='save').length,0,'preview never enables input');
+  const css=readFileSync(new URL('../client/hud/panels.css',import.meta.url),'utf8');
+  assert.match(css,/#dictation-settings \.dictation-permissions\{[^}]*flex-direction:column/);
+  assert.match(css,/data-state="granted"[^}]*color:#147345/);
+  assert.match(css,/\.dictation-permission span\{[^}]*color:#b32e40/);
+});

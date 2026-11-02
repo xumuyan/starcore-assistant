@@ -15,6 +15,12 @@
 <label class="check"><input id="set-dictationPolish" type="checkbox">使用 DeepSeek 校对本轮口述（可选，产生 API 用量）</label>
 <p class="field-note">按一下开始，再按结束；Esc 取消，最长 120 秒。本地识别后只写入原输入框，不自动发送。切换目标、密码框或终端会保留文字供手动复制。与原唤醒对话分别控制。</p>
 <p id="dictation-status" class="field-note" role="status">正在检查语音输入状态</p>
-<div class="dictation-permissions"><button type="button" id="dictation-input" class="secondary">输入监控权限</button><button type="button" id="dictation-accessibility" class="secondary">辅助功能权限</button><button type="button" id="dictation-microphone" class="secondary">麦克风权限</button><button type="button" id="dictation-refresh" class="link">重新检查</button></div>
-<p class="field-note">权限需在 macOS 正常授权；更改后点击重新检查。F8/F9 如被系统媒体功能占用，请同时按 Fn 或调整系统功能键设置。</p></fieldset>
+<div class="dictation-permissions" aria-label="听写所需权限">
+<div class="dictation-permission" id="permission-input-row" data-state="missing"><div><strong>输入监控</strong><span id="permission-input-status" role="status">待检查</span><small>用于识别全局听写按键</small></div><button type="button" id="dictation-input" class="secondary">申请权限</button></div>
+<div class="dictation-permission" id="permission-accessibility-row" data-state="missing"><div><strong>辅助功能</strong><span id="permission-accessibility-status" role="status">待检查</span><small>用于检查输入框并粘贴文字</small></div><button type="button" id="dictation-accessibility" class="secondary">申请权限</button></div>
+<div class="dictation-permission" id="permission-microphone-row" data-state="missing"><div><strong>麦克风</strong><span id="permission-microphone-status" role="status">待检查</span><small>用于录制本轮口述</small></div><button type="button" id="dictation-microphone" class="secondary">申请权限</button></div>
+</div>
+<p id="dictation-input-help" class="field-note">输入监控找不到 MOSS？先点「申请权限」；列表仍没有时，点系统列表下方「＋」，选择当前 MOSS.app 并开启。可先点下方按钮在 Finder 中定位，再将它拖入系统列表。若系统提示退出并重新打开，请按提示操作。</p>
+<div class="dictation-tools"><button type="button" id="dictation-reveal" class="secondary">在 Finder 中显示当前 MOSS</button><button type="button" id="dictation-refresh" class="link">重新检查</button><button type="button" id="dictation-preview" class="secondary">显示听写浮条</button></div>
+<p class="field-note">浮条预览不会录音。勾选启用并保存、三项权限允许后，切到输入框按所选快捷键开始，浮条显示真实音量与计时。F8/F9 被媒体键占用时请按 Fn。</p></fieldset>
 <fieldset id="reminder-settings"><legend>原有提醒服务</legend><p class="field-note" id="service-detail">正在读取状态</p><div class="service-buttons"><button type="button" id="services-start" class="secondary">开始监听</button><button type="button" id="services-stop" class="secondary">停止监听</button><button type="button" id="bind" class="secondary">绑定微信</button></div><p class="field-note">退出应用会停止语音，微信提醒仍在后台运行。服务重启后，在微信发送「开启提醒」恢复会话。</p><button type="button" id="mic-settings" class="link">打开 macOS 麦克风权限 ↗</button></fieldset><div class="settings-save"><span id="save-status">更改后点击保存</span><button class="primary" type="submit">保存设置</button></div></form></section></div><script src="app.js"></script><script src="moss.js"></script></body></html>

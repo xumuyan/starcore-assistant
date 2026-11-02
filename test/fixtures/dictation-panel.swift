@@ -35,18 +35,23 @@ import CoreGraphics
         require(window.level == .floating && !window.hidesOnDeactivate, "floating across app switches")
         require(window.collectionBehavior.contains([.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]), "space behavior")
         let content = window.contentView as! DictationPanelContent
-        require(content.copyButton.isHidden, "copy initially unavailable")
+        require(content.copyButton.isHidden && content.finishButton.isHidden, "actions initially unavailable")
+        require(content.meter.samples.allSatisfy { $0 == 0 }, "no simulated wave")
         require(content.cancelButton.accessibilityLabel() == "取消本次语音输入", "cancel accessibility")
         require(content.copyButton.accessibilityLabel() == "复制识别结果", "copy accessibility")
+        require(content.finishButton.accessibilityLabel() == "结束听写并识别", "finish accessibility")
         // Populate only the hidden content view; never call show/orderFront or send UI input.
         content.apply(title: "识别完成", detail: "fixture text", elapsed: 4, level: 0.5, canCopy: true)
         require(!content.copyButton.isHidden && content.detailLabel.stringValue == "fixture text", "caller controls content and copy")
+        require(!content.finishButton.isHidden, "recording has finish control")
         panel.updateLevel(0.3, elapsed: 8)
+        require(content.meter.samples.suffix(2) == [Float(0.5), Float(0.3)], "wave history uses actual supplied levels")
         require(content.timeLabel.stringValue == "00:08" && content.meter.doubleValue == Double(Float(0.3)), "live values")
         panel.hide()
         require(!panel.visible && !window.isVisible, "hide stays hidden")
         require(content.titleLabel.stringValue.isEmpty && content.detailLabel.stringValue.isEmpty && content.timeLabel.stringValue.isEmpty, "hide clears every label")
         require(content.meter.doubleValue == 0 && content.copyButton.isHidden, "hide clears level and copy")
+        require(content.finishButton.isHidden && content.meter.samples.allSatisfy { $0 == 0 }, "hide resets wave and finish")
         print("DICTATION_PANEL_INERT_OK")
     }
 }

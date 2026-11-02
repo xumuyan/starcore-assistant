@@ -78,6 +78,12 @@ window.receive = event => {
   switch (event.type) {
     case 'configured': configure(event.settings, event.hasGateway, event.hasDeepSeek, event.hasFish); break;
     case 'dictationStatus':
+      for (const [kind, granted] of [['input', event.inputMonitoring], ['accessibility', event.accessibility], ['microphone', event.microphone]]) {
+        $('permission-' + kind + '-row').dataset.state = granted ? 'granted' : 'missing';
+        $('permission-' + kind + '-status').textContent = granted ? '✓ 已允许' : '！未允许';
+        $('dictation-' + kind).textContent = granted ? '查看权限' : '申请权限';
+      }
+      $('dictation-input-help').hidden = !!event.inputMonitoring;
       $('dictation-status').textContent = `${event.enabled ? (event.monitoring ? '全局按键已就绪' : '全局按键尚未就绪') : '语音输入未启用'} · 输入监控${event.inputMonitoring ? '已允许' : '待授权'} · 辅助功能${event.accessibility ? '已允许' : '待授权'} · 麦克风${event.microphone ? '已允许' : '待授权'}${event.suspended ? ' · 已暂停' : ''}${event.detail ? ' · ' + event.detail : ''}`;
       break;
     case 'state': state(event.name, event.detail); break;
@@ -173,6 +179,8 @@ $('migrate-keys').onclick = () => bridge('migrateKeys');
 $('mic-settings').onclick = () => bridge('micSettings');
 for (const kind of ['input', 'accessibility', 'microphone']) $('dictation-' + kind).onclick = () => bridge('dictationPermission', { kind });
 $('dictation-refresh').onclick = () => bridge('dictationRefresh');
+$('dictation-preview').onclick = () => bridge('dictationShowPanel');
+$('dictation-reveal').onclick = () => bridge('dictationRevealApp');
 $('services-start').onclick = () => bridge('startServices'); $('services-stop').onclick = () => bridge('stopServices'); $('bind').onclick = () => bridge('bind');
 $('settings-form').onsubmit = e => {
   e.preventDefault(); const next = { ...settings, petEnabled: !!$('set-petEnabled')?.checked };
