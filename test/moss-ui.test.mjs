@@ -28,12 +28,12 @@ function settingsPage(){
   return {elements,sent,receive:window.receive,navigate:window.mossNavigate,intervals,timeouts};
 }
 
-test('MOSS navigation keeps full chat and composer visible and validates page names',()=>{
+test('MOSS auxiliary sheets preserve the companion stage and validate page names',()=>{
  const p=settingsPage(),get=id=>p.elements.get(id);
- assert.equal(get('page-tasks').hidden,true);assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,false);
+ assert.equal(get('page-tasks').hidden,true);assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,true);
  p.navigate('tasks');assert.equal(get('page-tasks').hidden,false);
- p.navigate('chat');assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,false);
- p.navigate('settings');assert.equal(get('settings-overlay').hidden,false);assert.equal(get('page-chat').hidden,true);
+ p.navigate('chat');assert.equal(get('page-chat').hidden,false);assert.equal(get('composer-panel').hidden,false);assert.equal(get('history-panel').hidden,true);
+ p.navigate('settings');assert.equal(get('settings-overlay').hidden,false);assert.equal(get('page-chat').hidden,false);
  p.receive({type:'navigate',page:'chat'});assert.equal(get('page-chat').hidden,false);
  p.navigate('__proto__');assert.equal(get('page-chat').hidden,false);
  assert.ok(p.intervals.some(i=>i.ms===3000));
@@ -91,4 +91,14 @@ test('incoming assistant messages do not pull the reader away from older convers
 test('missing input acknowledgement keeps draft and never auto retries',()=>{
  const p=settingsPage(),get=id=>p.elements.get(id);get('input').value='待确认的草稿';get('send').onclick();
  p.timeouts.find(t=>t.ms===15000).fn();assert.equal(get('input').value,'待确认的草稿');assert.equal(get('send').disabled,false);assert.equal(p.sent.filter(e=>e.action==='text').length,1);assert.match(get('toast').textContent,/未自动重发/);
+});
+
+test('companion home shows live subtitles and secondary status without a workbench',()=>{
+ const p=settingsPage(),get=id=>p.elements.get(id);
+ p.receive({type:'message',role:'assistant',content:'<b>我在听你说</b>'});assert.equal(get('focus-content').textContent,'<b>我在听你说</b>');assert.equal(get('focus-content').innerHTML,undefined);
+ p.receive({type:'tasks',available:true,tasks:[{id:'a',project:'小项目',status:'running'}],checkedAt:''});assert.equal(get('mini-tasks').children.length,1);
+ p.receive({type:'snapshot',snapshot:{bound:true,ready:false,paused:false}});assert.equal(get('weixin-glance').textContent,'等待会话');
+ get('open-dictation').onclick();assert.equal(get('settings-overlay').hidden,false);get('settings-close').onclick();assert.equal(get('settings-overlay').hidden,true);
+ get('history-open').onclick();assert.equal(get('history-panel').hidden,false);get('history-close').onclick();assert.equal(get('history-panel').hidden,true);
+ const html=readFileSync(new URL('../client/hud/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/<nav/);assert.match(html,/aria-label="MOSS 助理形象"/);
 });

@@ -153,7 +153,7 @@ $('settings-close').onclick = closeSettings;
 $('settings-overlay').onclick = e => { if (e.target === $('settings-overlay')) closeSettings(); };
 document.addEventListener('keydown', e => {
   if (e.metaKey && e.key === '.') { e.preventDefault(); bridge('cancel'); }
-  if (e.key === 'Escape' && window.mossNavigate) { if (document.body.dataset.page === 'settings') window.mossNavigate('chat'); else bridge('cancel'); }
+  if (e.key === 'Escape' && window.mossNavigate) { if (document.body.dataset.page !== 'chat') window.mossNavigate('chat'); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else bridge('cancel'); }
   if (e.key === 'Escape' && !window.mossNavigate) { if (!$('settings-overlay').hidden) closeSettings(); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else if (!$('composer-panel').hidden) $('composer-panel').hidden = true; else bridge('cancel'); }
   if (e.key === 'Tab' && !window.mossNavigate && !$('settings-overlay').hidden) {
     const items = [...$('settings-overlay').querySelectorAll('button,input,select')].filter(x => x.offsetParent !== null && !x.disabled);
@@ -188,7 +188,7 @@ function renderHistoryPage(event) {
 }
 function openHistory() { window.mossNavigate?.('chat'); $('history-panel').hidden = false; bridge('historyPage', {}); }
 $('history-open').onclick = $('history-all').onclick = openHistory;
-$('history-close').onclick = () => { if (!window.mossNavigate) $('history-panel').hidden = true; };
+$('history-close').onclick = () => { $('history-panel').hidden = true; };
 $('history-search-go').onclick = () => bridge('historyPage', { query: $('history-search').value.trim() });
 $('history-search').onkeydown = e => { if (e.key === 'Enter') $('history-search-go').click(); };
 function recentHistory() { $('history-search').value = ''; historyQuery = ''; $('history-context').textContent = '最近对话'; bridge('historyPage'); }

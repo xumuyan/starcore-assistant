@@ -5,16 +5,21 @@
   window.mossNavigate = page => {
     if (!Object.hasOwn(titles, page)) return;
     document.body.dataset.page = page;
-    for (const name of ['tasks', 'chat']) node('page-' + name).hidden = page !== name;
+    node('page-chat').hidden = false;
+    if (page !== 'chat') node('history-panel').hidden = true;
+    node('page-tasks').hidden = page !== 'tasks';
     node('settings-overlay').hidden = page !== 'settings';
     for (const name of Object.keys(titles)) {
       node('nav-' + name).classList.toggle('active', name === page);
       node('nav-' + name).setAttribute('aria-current', name === page ? 'page' : 'false');
     }
     node('page-title').textContent = titles[page];
-    if (page === 'chat') { node('history-panel').hidden = false; node('composer-panel').hidden = false; }
+    if (page === 'chat') node('composer-panel').hidden = false;
   };
   for (const page of Object.keys(titles)) node('nav-' + page).onclick = () => { window.mossNavigate(page); if (page === 'settings') bridge('dictationRefresh'); };
+  node('close-tasks').onclick = () => window.mossNavigate('chat');
+  node('side-codex').onclick = () => { node('mode-codex').onclick(); node('input').focus(); };
+  for (const kind of ['dictation','weixin','pet']) node('open-' + kind).onclick = () => { window.mossNavigate('settings'); bridge('dictationRefresh'); node(kind === 'dictation' ? 'dictation-settings' : kind === 'weixin' ? 'reminder-settings' : 'pet-settings').scrollIntoView?.({block:'start'}); };
   const labels = { running: '运行中', completed: '本轮结束', failed: '异常', cancelled: '已取消', unknown: '未知' };
   let lastTasks = null, renderedTasks = '';
   function renderTasks(event) {
@@ -27,6 +32,9 @@
     const checked = new Date(event.checkedAt);
     node('tasks-freshness').textContent = Number.isNaN(checked.getTime()) ? '同步时间未知' : '更新于 ' + checked.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     node('tasks-status').textContent = !event.available ? '任务来源暂不可用 · 无法确认当前运行状态' : tasks.length ? '选择聊天，固定下一次交接的目标。' : '暂无可展示的 Codex 聊天。';
+    const mini = node('mini-tasks'); mini.replaceChildren();
+    const active = event.available ? tasks.filter(task => task.status === 'running').slice(0,3) : [];
+    for (const task of active) { const row=document.createElement('div'); row.className='mini-task'; const name=document.createElement('span'); name.textContent=task.project; const status=document.createElement('small'); status.textContent='运行中'; row.append(name,status); mini.append(row); }
     const query = node('task-search').value.trim().toLocaleLowerCase();
     const filter = node('task-filter').value || 'all';
     const visible = tasks.filter(task => {
@@ -59,6 +67,12 @@
   document.addEventListener('assistant-event', ({ detail }) => {
     if (detail.type === 'tasks') renderTasks(detail);
     if (detail.type === 'navigate') window.mossNavigate(detail.page);
+    if (detail.type === 'message') { node('focus-speaker').textContent = detail.role === 'user' ? '你' : (settings.name || 'MOSS'); node('focus-content').textContent = detail.content; }
+    if (detail.type === 'configured') { node('pet-glance').textContent = detail.settings.petEnabled ? '已开启' : '未开启'; node('focus-speaker').textContent = detail.settings.name || 'MOSS'; }
+    if (detail.type === 'dictationStatus') node('dictation-glance').textContent = detail.enabled ? detail.monitoring ? '快捷键已就绪' : '等待权限' : '未开启 · 按键听写';
+    if (detail.type === 'snapshot') { const s=detail.snapshot; node('weixin-glance').textContent = !s.bound ? '未绑定' : s.ready ? '可接收提醒' : s.paused ? '已暂停' : '等待会话'; }
+    if (detail.type === 'level') node('core-stage').style.setProperty?.('--voice-level', Math.max(0,Math.min(1,detail.value)));
+    if (detail.type === 'outputLevel') node('core-stage').style.setProperty?.('--voice-level', Math.max(0,Math.min(1,detail.value)));
   });
   node('task-search').oninput = node('task-filter').onchange = () => { if (lastTasks) renderTasks(lastTasks); };
   node('tasks-refresh').onclick = () => bridge('tasks');
