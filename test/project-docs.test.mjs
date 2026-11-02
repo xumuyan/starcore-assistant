@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md'];
+const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
