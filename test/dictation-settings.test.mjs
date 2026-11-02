@@ -30,11 +30,11 @@ test('dictation settings retain old values and save independent opt-in fields',(
   assert.equal(get('set-dictationEnabled').checked,false);
   assert.equal(get('set-dictationPolish').checked,false);
   assert.equal(get('set-dictationHotkey').value,'right-option');
-  get('set-dictationEnabled').checked=true;get('set-dictationHotkey').value='f9';
+  get('set-dictationEnabled').checked=true;get('set-dictationHotkey').value='right-control';
   get('settings-form').onsubmit({preventDefault(){}});
   const saved=p.sent.at(-1);
   assert.equal(saved.action,'save');assert.equal(saved.settings.dictationEnabled,true);
-  assert.equal(saved.settings.dictationHotkey,'f9');assert.equal(saved.settings.dictationPolish,false);
+  assert.equal(saved.settings.dictationHotkey,'right-control');assert.equal(saved.settings.dictationPolish,false);
   for(const key of ['name','wakeWord','autoListen','polishEnabled','target','voice']) assert.equal(saved.settings[key],assistantDefaults[key]);
 });
 

@@ -35,7 +35,7 @@ export function validateSettings(input = {}) {
     if (typeof input[field] === 'boolean') value[field] = input[field];
   }
   if (input.dictationHotkey !== undefined) {
-    if (!['right-option', 'f8', 'f9'].includes(input.dictationHotkey)) throw new Error('听写快捷键无效');
+    if (!['right-option', 'right-control', 'f8', 'f9'].includes(input.dictationHotkey)) throw new Error('听写快捷键无效');
     value.dictationHotkey = input.dictationHotkey;
   }
   return value;

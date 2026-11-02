@@ -133,7 +133,7 @@ final class MossPet: NSObject {
         let content = glass(NSSize(width: 400, height: 420)); panel.contentView = content
         let targetField = label("目标：\(target)", frame: NSRect(x: 16, y: 380, width: 278, height: 22)); targetField.toolTip = target; content.addSubview(targetField); targetLabel = targetField
         let expand = NSButton(title: "展开 ↗", target: self, action: #selector(expandChat)); expand.frame = NSRect(x: 305, y: 377, width: 80, height: 28); content.addSubview(expand)
-        let scroll = NSScrollView(frame: NSRect(x: 16, y: 90, width: 368, height: 279)); scroll.hasVerticalScroller = true; scroll.drawsBackground = false
+        let scroll = NSScrollView(frame: NSRect(x: 16, y: 90, width: 368, height: 279)); scroll.hasVerticalScroller = true; scroll.scrollerStyle = .overlay; scroll.autohidesScrollers = true; scroll.drawsBackground = false
         let text = NSTextView(frame: scroll.bounds); text.isEditable = false; text.isSelectable = true; text.drawsBackground = false; text.font = .systemFont(ofSize: 13); text.textContainerInset = NSSize(width: 8, height: 8); text.isVerticallyResizable = true; text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         scroll.documentView = text; content.addSubview(scroll); transcript = text
         let activityField = label(activity, frame: NSRect(x: 16, y: 62, width: 368, height: 21)); content.addSubview(activityField); activityLabel = activityField

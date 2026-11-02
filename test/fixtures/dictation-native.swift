@@ -91,6 +91,19 @@ import CoreGraphics
         let escape = event(.keyDown, 53, [], true); require(escape.cancel && escape.swallow, "active escape")
         require(event(.keyUp, 53).swallow, "escape up paired after cancel")
         require(!event(.keyDown, 53, [], true, false, DictationHotkey.syntheticEventTag).cancel, "synthetic ignored")
+        keys.reset()
+        func control(_ type: CGEventType, _ code: Int64, _ flags: CGEventFlags = []) -> DictationKeyResult {
+            keys.handle(type: type, keyCode: code, flags: flags, autorepeat: false, tag: 0, preset: "right-control", active: false)
+        }
+        require(!control(.flagsChanged, 62, .maskControl).toggle, "right Ctrl waits for release")
+        require(control(.flagsChanged, 62).toggle, "right Ctrl alone toggles")
+        _ = control(.flagsChanged, 62, .maskControl); _ = control(.keyDown, 0, .maskControl)
+        require(!control(.flagsChanged, 62).toggle, "Ctrl combinations do not toggle")
+        require(!control(.flagsChanged, 59, .maskControl).toggle && !control(.flagsChanged, 59).toggle, "left Ctrl ignored")
+        _ = control(.flagsChanged, 62, CGEventFlags(rawValue: CGEventFlags.maskControl.rawValue | 0x2000))
+        _ = control(.flagsChanged, 59, CGEventFlags(rawValue: CGEventFlags.maskControl.rawValue | 0x2001))
+        require(!control(.flagsChanged, 62, CGEventFlags(rawValue: CGEventFlags.maskControl.rawValue | 1)).toggle, "left Ctrl held prevents right release")
+        keys.reset(); _ = control(.flagsChanged, 62, [.maskControl, .maskShift]); require(!control(.flagsChanged, 62).toggle, "modified Ctrl ignored")
         for (preset, code) in [("f8", Int64(100)), ("f9", Int64(101))] {
             keys.reset()
             let down = keys.handle(type: .keyDown, keyCode: code, flags: .maskSecondaryFn, autorepeat: false, tag: 0, preset: preset, active: false)

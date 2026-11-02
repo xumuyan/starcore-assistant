@@ -201,3 +201,9 @@ test('dictation settings are additive, opt-in and independent of assistant polis
   assert.throws(() => validateSettings({ dictationEnabled: 'true' }));
   assert.throws(() => validateSettings({ dictationPolish: 1 }));
 });
+
+test('right Ctrl is a dictation preset without changing the wake phrase or listening preference',()=>{
+ const value=validateSettings({...assistantDefaults,dictationHotkey:'right-control'});
+ assert.equal(value.dictationHotkey,'right-control');assert.equal(value.wakeWord,assistantDefaults.wakeWord);assert.equal(value.autoListen,assistantDefaults.autoListen);
+ assert.throws(()=>validateSettings({dictationHotkey:'left-control'}));
+});

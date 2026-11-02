@@ -10,34 +10,40 @@ struct DictationKeyResult {
 
 /// Pure event matching, independent of permission checks and event tap creation.
 struct DictationKeyMatcher {
-    private var optionDown = false
-    private var optionAlone = false
+    private var modifierDown = false
+    private var modifierAlone = false
     private var swallowed: Set<Int64> = []
-    mutating func reset() { optionDown = false; optionAlone = false; swallowed.removeAll() }
+    mutating func reset() { modifierDown = false; modifierAlone = false; swallowed.removeAll() }
 
     mutating func handle(type: CGEventType, keyCode: Int64, flags: CGEventFlags,
                          autorepeat: Bool, tag: Int64, preset: String, active: Bool) -> DictationKeyResult {
         guard tag != DictationHotkey.syntheticEventTag else { return DictationKeyResult() }
         if type == .keyUp, swallowed.remove(keyCode) != nil { return DictationKeyResult(swallow: true) }
         if type == .keyDown, swallowed.contains(keyCode) { return DictationKeyResult(swallow: true) }
-        if optionDown, !(type == .flagsChanged && keyCode == 61) { optionAlone = false }
+        let control = preset == "right-control"
+        let modifierCode: Int64 = control ? 62 : 61
+        let modifier: CGEventFlags = control ? .maskControl : .maskAlternate
+        let rightBit: UInt64 = control ? 0x2000 : 0x40
+        let leftBit: UInt64 = control ? 0x1 : 0x20
+        let otherModifiers: CGEventFlags = control ? [.maskCommand, .maskAlternate, .maskShift, .maskSecondaryFn] : [.maskCommand, .maskControl, .maskShift, .maskSecondaryFn]
+        if modifierDown, !(type == .flagsChanged && keyCode == modifierCode) { modifierAlone = false }
         if type == .keyDown, keyCode == 53, active {
             swallowed.insert(keyCode)
             return DictationKeyResult(cancel: !autorepeat, swallow: true)
         }
-        if preset == "right-option", type == .flagsChanged, keyCode == 61 {
-            // Device-dependent bits distinguish releasing right Option with left Option held.
-            let sideBits = flags.rawValue & 0x60
-            let down = sideBits != 0 ? (sideBits & 0x40 != 0) : (!optionDown && flags.contains(.maskAlternate))
+        if ["right-option", "right-control"].contains(preset), type == .flagsChanged, keyCode == modifierCode {
+            // NX_DEVICERCTLKEYMASK / NX_DEVICELCTLKEYMASK distinguish physical sides.
+            let sideBits = flags.rawValue & (rightBit | leftBit)
+            let down = sideBits != 0 ? (sideBits & rightBit != 0) : (!modifierDown && flags.contains(modifier))
             if down {
-                if !optionDown {
-                    optionDown = true
-                    optionAlone = flags.intersection([.maskCommand, .maskControl, .maskShift, .maskSecondaryFn]).isEmpty && sideBits & 0x20 == 0
+                if !modifierDown {
+                    modifierDown = true
+                    modifierAlone = flags.intersection(otherModifiers).isEmpty && sideBits & leftBit == 0
                 }
                 return DictationKeyResult()
             }
-            let toggle = optionDown && optionAlone && !flags.contains(.maskAlternate) && flags.intersection([.maskCommand, .maskControl, .maskShift, .maskSecondaryFn]).isEmpty
-            optionDown = false; optionAlone = false
+            let toggle = modifierDown && modifierAlone && !flags.contains(modifier) && flags.intersection(otherModifiers).isEmpty
+            modifierDown = false; modifierAlone = false
             return DictationKeyResult(toggle: toggle)
         }
         let target: Int64? = preset == "f8" ? 100 : preset == "f9" ? 101 : nil
@@ -71,7 +77,7 @@ final class DictationHotkey {
 
     @discardableResult func configure(enabled: Bool, preset: String) -> Bool {
         guard enabled else { stop(); return true }
-        guard ["right-option", "f8", "f9"].contains(preset) else {
+        guard ["right-option", "right-control", "f8", "f9"].contains(preset) else {
             stop(); onFailure?("不支持的听写快捷键"); return false
         }
         guard CGPreflightListenEventAccess(), AXIsProcessTrusted() else {

@@ -153,8 +153,12 @@ $('settings-close').onclick = closeSettings;
 $('settings-overlay').onclick = e => { if (e.target === $('settings-overlay')) closeSettings(); };
 document.addEventListener('keydown', e => {
   if (e.metaKey && e.key === '.') { e.preventDefault(); bridge('cancel'); }
-  if (e.key === 'Escape' && window.mossNavigate) { if (document.body.dataset.page !== 'chat') window.mossNavigate('chat'); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else bridge('cancel'); }
+  if (e.key === 'Escape' && window.mossNavigate) { if (document.body.dataset.page !== 'chat') window.mossNavigate('chat'); else if (!$('history-panel').hidden) window.mossClosePanels(); else bridge('cancel'); }
   if (e.key === 'Escape' && !window.mossNavigate) { if (!$('settings-overlay').hidden) closeSettings(); else if (!$('history-panel').hidden) $('history-panel').hidden = true; else if (!$('composer-panel').hidden) $('composer-panel').hidden = true; else bridge('cancel'); }
+  if (e.key === 'Tab' && window.mossActivePanel?.()) {
+    const items = [...window.mossActivePanel().querySelectorAll('button,input,select,textarea')].filter(x => x.offsetParent !== null && !x.disabled);
+    if (items.length) { const first = items[0], last = items.at(-1); if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } }
+  }
   if (e.key === 'Tab' && !window.mossNavigate && !$('settings-overlay').hidden) {
     const items = [...$('settings-overlay').querySelectorAll('button,input,select')].filter(x => x.offsetParent !== null && !x.disabled);
     const first = items[0], last = items.at(-1);
@@ -186,9 +190,9 @@ function renderHistoryPage(event) {
   if (!event.messages.length) $('messages').textContent = '没有更多匹配的记录。';
   $('history-older').disabled = !event.messages.length;
 }
-function openHistory() { window.mossNavigate?.('chat'); $('history-panel').hidden = false; bridge('historyPage', {}); }
+function openHistory() { if (window.mossShowHistory) window.mossShowHistory(); else $('history-panel').hidden = false; bridge('historyPage', {}); }
 $('history-open').onclick = $('history-all').onclick = openHistory;
-$('history-close').onclick = () => { $('history-panel').hidden = true; };
+$('history-close').onclick = () => { if (window.mossClosePanels) window.mossClosePanels(); else $('history-panel').hidden = true; };
 $('history-search-go').onclick = () => bridge('historyPage', { query: $('history-search').value.trim() });
 $('history-search').onkeydown = e => { if (e.key === 'Enter') $('history-search-go').click(); };
 function recentHistory() { $('history-search').value = ''; historyQuery = ''; $('history-context').textContent = '最近对话'; bridge('historyPage'); }

@@ -1,10 +1,14 @@
 'use strict';
 (() => {
   const node = id => document.getElementById(id);
+  let panelOrigin = null;
   const titles = { tasks: '任务', chat: '聊天', settings: '设置' };
   window.mossNavigate = page => {
     if (!Object.hasOwn(titles, page)) return;
+    if (page !== 'chat' && node('panel-backdrop').hidden) panelOrigin = document.activeElement;
     document.body.dataset.page = page;
+    node('panel-backdrop').hidden = page === 'chat';
+    node('page-chat').inert = page !== 'chat';
     node('page-chat').hidden = false;
     if (page !== 'chat') node('history-panel').hidden = true;
     node('page-tasks').hidden = page !== 'tasks';
@@ -14,8 +18,18 @@
       node('nav-' + name).setAttribute('aria-current', name === page ? 'page' : 'false');
     }
     node('page-title').textContent = titles[page];
-    if (page === 'chat') node('composer-panel').hidden = false;
+    if (page === 'chat') { node('composer-panel').hidden = false; panelOrigin?.focus(); }
+    else node(page === 'tasks' ? 'close-tasks' : 'settings-close').focus();
   };
+  window.mossClosePanels = () => { node('history-panel').hidden = true; window.mossNavigate('chat'); };
+  window.mossShowHistory = () => {
+    const origin = document.activeElement;
+    window.mossNavigate('chat'); panelOrigin = origin;
+    node('history-panel').hidden = false; node('panel-backdrop').hidden = false; node('page-chat').inert = true;
+    node('history-close').focus();
+  };
+  window.mossActivePanel = () => !node('history-panel').hidden ? node('history-panel') : document.body.dataset.page === 'tasks' ? node('page-tasks') : document.body.dataset.page === 'settings' ? node('settings-overlay') : null;
+  node('panel-backdrop').onclick = window.mossClosePanels;
   for (const page of Object.keys(titles)) node('nav-' + page).onclick = () => { window.mossNavigate(page); if (page === 'settings') bridge('dictationRefresh'); };
   node('close-tasks').onclick = () => window.mossNavigate('chat');
   node('side-codex').onclick = () => { node('mode-codex').onclick(); node('input').focus(); };
