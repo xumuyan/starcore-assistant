@@ -34,8 +34,9 @@ final class Keys: DictationKeyListening {
 }
 final class Writer: DictationWriting {
     var inputs: [String] = []
+    var onCapture: (() -> Void)?
     var pending: ((Bool, String) -> Void)?
-    func capture() -> DictationPasteTarget { DictationPasteTarget(pid: 1, element: nil, selection: nil, reason: nil) }
+    func capture() -> DictationPasteTarget { onCapture?(); return DictationPasteTarget(pid: 1, element: nil, selection: nil, reason: nil) }
     func insert(_ text: String, target: DictationPasteTarget, isCurrent: @escaping () -> Bool, completion: @escaping (Bool, String) -> Void) {
         if isCurrent() { inputs.append(text); pending = completion }
     }
@@ -76,10 +77,13 @@ enum ControllerChecks {
         controller.cancel()
         controller.configure(["dictationEnabled": true, "dictationHotkey": "right-option"])
         precondition(keys.running)
-        controller.toggle(); let first = controller.requestID!
+        writer.onCapture = { precondition(panel.visible && panel.title == "准备语音输入", "show before potentially slow AX capture") }
+        keys.onToggle?(); let first = controller.requestID!
+        precondition(panel.visible && panel.title == "准备语音输入", "hotkey immediately shows panel before model is ready")
         precondition(host.pauses == 1 && capture.starts == 0 && host.sent.last?["type"] as? String == "dictationPrepare")
         controller.handle(["type": "dictationReady", "id": first])
         precondition(capture.running && capture.starts == 1 && panel.visible && panel.title == "正在语音输入")
+        precondition(panel.detail.contains("右 Option") && panel.detail.contains("esc取消"))
         capture.onLevel?(0.65, 2.5)
         precondition(panel.level == 0.65 && panel.elapsed == 2.5)
         panel.onFinish?()

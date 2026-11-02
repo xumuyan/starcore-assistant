@@ -201,11 +201,12 @@ final class DictationController: NSObject {
             show("需要麦克风权限", "请在系统设置中允许MOSS访问麦克风"); return
         }
         uiGeneration += 1; copyText = nil; notice = nil
-        target = writer.capture()
-        restoreWake = host.pauseAssistantForDictation()
         let id = UUID().uuidString
         requestID = id; phase = .preparing
-        show("准备语音输入", "正在准备本地模型 · 再按快捷键或 Esc 取消")
+        // Present before synchronous AX target queries or model preparation.
+        show("准备语音输入", "本地模型准备中 · esc取消")
+        target = writer.capture()
+        restoreWake = host.pauseAssistantForDictation()
         armDeadline(90)
         let prepare: (Bool) -> Void = { [weak self] allowed in
             guard let self, self.requestID == id else { return }
@@ -225,7 +226,8 @@ final class DictationController: NSObject {
             guard phase == .preparing else { return true }
             do {
                 try recorder.begin(); phase = .recording
-                show("正在语音输入", "再按快捷键结束 · Esc 取消", elapsed: 0)
+                let key = ["right-control": "右 Ctrl", "right-option": "右 Option", "f8": "F8", "f9": "F9"][preset] ?? "快捷键"
+                show("正在语音输入", "再按" + key + "完成 · esc取消", elapsed: 0)
                 armDeadline(130)
             } catch { fail("麦克风启动失败，请检查输入设备") }
         case "dictationState":
