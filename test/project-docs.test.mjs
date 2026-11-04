@@ -23,6 +23,14 @@ test('every completed plan checkbox names evidence and unresolved scope stays ex
   for(const line of tasks.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed steps require nonempty evidence, not a placeholder label');
 });
 
+test('Codex completion voice reminder remains a deferred plan until separately authorized',()=>{
+  const plan=read('PLAN.md');
+  const section=plan.split('### 下一步：Codex 完成后语音提醒 · SC-20261104-001')[1]?.split('\n## ')[0];
+  assert.ok(section,'record the requested next step');
+  for(const requirement of [/仅记录计划，暂不实施/,/等待用户后续明确开始/,/复用现有 Codex 完成监听/,/避免重复事件/,/独立启用开关、默认关闭/,/真实 Codex 任务结束后的自动播报验收/,/未构建或替换应用/])assert.match(section,requirement);
+  assert.doesNotMatch(section,/- \[x\]/,'planned functionality has no implementation acceptance yet');
+});
+
 test('each operation entry records time, changes, difficulties, resolution, verification and commit',()=>{
   const entries=read('operatelog.md').split(/^## /m).slice(1).filter(entry=>/^SC-\d{8}-(?:H)?\d{3}\b/.test(entry));
   assert.ok(entries.length>=3);
