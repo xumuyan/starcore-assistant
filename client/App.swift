@@ -92,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         configuration.userContentController.add(assistant, name: "assistant")
         let web = WKWebView(frame: .zero, configuration: configuration)
         web.setValue(false, forKey: "drawsBackground")
-        web.navigationDelegate = assistant; assistant.web = web
+        web.navigationDelegate = assistant; assistant.web = web; assistant.startWatchdog()
         let container = NSVisualEffectView(frame: window.contentView?.bounds ?? .zero)
         container.material = .underWindowBackground
         container.blendingMode = .behindWindow

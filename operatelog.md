@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-011 页面自愈看门狗与 build 30
+
+- 北京时间：2026-11-09 20:45:06 +08:00。
+- 修改或新增：用户确认卡死发生在新版实例上（非仅热替换旧实例），且症状为页面死亡后语音监听无法停止。实现页面自愈：新增 client/AssistantWatchdog.swift（纯逻辑：陈旧阈值 15s、冷却 30s、最多 5 次恢复、arm/beat/recoveryDue/exhausted）；AssistantBridge 新增心跳定时器（每 5s evaluateJavaScript("1+1"））、`webViewWebContentProcessDidTerminate` 钩子与 `recoverPage`（停麦克风/停播放/复位监听状态/通知宿主与页面/顶部横幅告知/刷新页面）；App.swift 启动看门狗；构建号 29→30。
+- 遇到的难题：Swift 顶层表达式仅限 main.swift（夹具改用 @main 结构）；`guard let lastBeat` 遮蔽属性导致赋值报错（改绑定名）；BSD grep 不支持 `\|` 导致误判二进制缺代码（改用 `grep -a` 实证 `startWatchdog` 与横幅文案已入包）；project-docs 版本一致性测试拦截了 CHANGELOG 未同步构建号的问题（已同步 build 30）。
+- 处理方式：复用设备变化处理的停监听模板作为恢复路径；恢复上限防止无法自愈的页面陷入刷新死循环。
+- 验证结果：watchdog 原生夹具实编译运行通过；`npm test` 178 项全部通过；`npm run build:mac` 重装 0.9.7/build 30，签名严格校验通过，二进制 grep 实证新代码在包内。
+- 遗留问题：页面自愈的真机验收（听写启停、刷新后状态一致、横幅告知）待用户重启验证，标注未验收；WebContent 挂起时 evaluateJavaScript 恢复路径依赖主线程存活，主线程自身挂起的场景本轮不覆盖（如实标注）。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-011] self-heal unresponsive HUD page via watchdog`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-010 排查全局点击卡死：听写快捷键 tap 加固与 build 29
 
 - 北京时间：2026-11-09 20:29:29 +08:00。

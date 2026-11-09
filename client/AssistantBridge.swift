@@ -44,6 +44,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     var launchingListen = false
     var stoppingAudio = false
     var micObserver: NSObjectProtocol?
+    var watchdog = AssistantWatchdog()
+    var watchdogTimer: Timer?
     let directory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex-weixin-notifier/assistant")
 
     init(owner: AppDelegate) {
@@ -143,6 +145,44 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
             send(["type": "configure", "settings": configuration, "keys": try LocalAssistantVault.keys()])
         } catch { self.error("本机助理启动失败，请重新构建客户端") }
     }
+    /// Page self-healing: heartbeat the page every few seconds; if JS stops
+    /// answering (hung page) or the web process exits, stop wake listening,
+    /// reload, and surface a banner. On 2026-11-09 a dead page left the
+    /// microphone recording with no way to stop it from the frozen UI.
+    func startWatchdog() {
+        guard watchdogTimer == nil else { return }
+        watchdog.arm(now: Date())
+        watchdogTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.web?.evaluateJavaScript("1+1", completionHandler: { [weak self] _, _ in
+                self?.watchdog.beat(now: Date())
+            })
+            let now = Date()
+            if self.watchdog.recoveryDue(now: now) {
+                self.recoverPage("页面长时间无响应，已自动恢复，语音监听已重置")
+            } else if self.watchdog.exhausted(now: now) {
+                self.error("页面多次自动恢复失败，请退出并重新打开 MOSS")
+            }
+        }
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        recoverPage("页面进程已退出，正在自动恢复")
+    }
+
+    /// Stop listening, halt playback, tell host and page, then reload the HUD.
+    func recoverPage(_ reason: String) {
+        guard let web else { return }
+        microphone.stop()
+        stopAudio()
+        wantsListen = false
+        launchingListen = false
+        send(["type": "listen", "enabled": false])
+        emit(["type": "microphone", "enabled": false])
+        reminderBanner.showNotice(reason)
+        web.reload()
+    }
+
     func send(_ event: [String: Any]) {
         guard let input, let data = try? JSONSerialization.data(withJSONObject: event), host?.isRunning == true else { return }
         writeQueue.async { try? input.fileHandleForWriting.write(contentsOf: data + Data([10])) }
