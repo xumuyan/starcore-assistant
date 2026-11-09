@@ -31,6 +31,9 @@ test('settings separate name and wake phrase; reject invalid providers and targe
   assert.throws(() => validateSettings({ wakeWord: '！！！' }));
   assert.throws(() => validateSettings({ target: 'wrong' }));
   assert.throws(() => validateSettings({ voice: 'unknown' }));
+  assert.equal(validateSettings({}).codexVoiceReminder, false);
+  assert.equal(validateSettings({ codexVoiceReminder: true }).codexVoiceReminder, true);
+  assert.throws(() => validateSettings({ codexVoiceReminder: 'yes' }));
   assert.equal('deepseekKey' in validateSettings({ deepseekKey: 'secret' }), false);
   assert.equal(explicitCodex('让 Codex 帮我修复登录'), '帮我修复登录');
   assert.equal(explicitCodex('你认为 Codex 怎么样'), null);

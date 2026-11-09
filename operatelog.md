@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-001 Codex 完成语音提醒 服务与顶部横幅实现
+
+- 北京时间：2026-11-09 12:44:24 +08:00（实施开始后本批记录；计划登记于 2026-11-04 提交 `e70650c`，用户批准时间以会话口述为准，未单独存档）。
+- 修改或新增：实施 SC-20261104-001。新增 `src/assistant-reminder.mjs` 只读轮询完成事件目录：事件 ID 去重、构造时建立基线不补播历史、开关关闭到达的事件永不补播、忙碌时等待空闲（上限 120 秒）后放弃并提示、同间隔只播最新一轮；`assistant-service` 新增 `codexVoiceReminder` 独立开关（默认关闭）与 `codexReminder`/播报通道（`ignoreSpeakSwitch` 绕过朗读回复开关、不进聊天记录、Fish 失败回退系统声音不重试）；host 每秒同 tick；`AssistantBridge` 新增顶部悬浮横幅 `ReminderBanner`（非激活面板、`.floating` 置顶、不抢焦点、自动隐藏、点击回主窗）；设置页新增「Codex 完成后语音提醒（默认关闭）」复选框；版本升至 0.9.6/build 27；更新 README、CHANGELOG、PLAN 与验收记录。
+- 遇到的难题：基线扫描最初放在首次 tick，事件目录尚不存在时历史会误判为新事件；提醒播报若走原 speak 开关会被「朗读助理回复」关闭拦截；屏幕顶部横幅在 MOSS 非前台时无法点击且会抢焦点；本机执行沙箱拦截 Xcode 工具链（`libxcrun.dylib` 无法加载），Swift 夹具与 `build:mac:check` 无法在本会话编译，提权编译也被拒绝。
+- 处理方式：基线移到构造时（应用打开瞬间的历史不补播，语义更准）；播报携带 `ignoreSpeakSwitch` 专属放行而不改变原 speak 语义；横幅沿用 `DictationNonactivatingPanel` 模式并加覆盖全幅隐形按钮，`orderFrontRegardless` + `canJoinAllSpaces`，`hidesOnDeactivate=false`；提醒的语音走既有 `speak`/`play` 通道复用 `playbackEnded` 恢复拾音协议；原生验证改为推送后以 GitHub Mac CI 编译结果为准，未验证项如实留空。
+- 验证结果：截至 2026-11-09 12:44 +08:00，本机实际执行 `node --test test/reminder.test.mjs` 14 项通过、moss-ui/assistant/project-docs 新增断言通过；`npm test` 全量 167 项：161 通过、6 失败，失败全部为 Swift 编译类夹具且原因相同（沙箱拦截 swiftc/libxcrun），其中 5 项为本批之前就存在的 dictation/pet 旧测试，与本批代码无关；`git diff --check` 干净。原生夹具、`npm run build:mac:check`、安装与真机播报均未执行，PLAN 相应项保持未勾选，详见 docs/verification/2026-11-09-reminder.md。
+- 遗留问题：横幅原生夹具与签名构建待 CI/本机构建核对；真机自动播报、旧唤醒/听写/微信回归待批次 B；小爱音箱不纳入本步。解除条件：CI 编译通过后勾选横幅与构建项，备份安装 0.9.6/build 27 并真机验证后才能勾选整项完成。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-001] announce Codex turn completion with voice and banner`；最终哈希按 Change-ID 查询。
+
 ## SC-20261101-005 安装读回与权限验收交接
 
 - 北京时间：2026-11-01 20:25:29 +08:00（本批核对与记录时间，不代替每个 UI 操作的精确时刻）。

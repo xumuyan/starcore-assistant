@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md'];
+const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -23,12 +23,15 @@ test('every completed plan checkbox names evidence and unresolved scope stays ex
   for(const line of tasks.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed steps require nonempty evidence, not a placeholder label');
 });
 
-test('Codex completion voice reminder remains a deferred plan until separately authorized',()=>{
+test('Codex completion voice reminder keeps real-device announcement acceptance explicit',()=>{
   const plan=read('PLAN.md');
-  const section=plan.split('### 下一步：Codex 完成后语音提醒 · SC-20261104-001')[1]?.split('\n## ')[0];
-  assert.ok(section,'record the requested next step');
-  for(const requirement of [/仅记录计划，暂不实施/,/等待用户后续明确开始/,/复用现有 Codex 完成监听/,/避免重复事件/,/独立启用开关、默认关闭/,/真实 Codex 任务结束后的自动播报验收/,/未构建或替换应用/])assert.match(section,requirement);
-  assert.doesNotMatch(section,/- \[x\]/,'planned functionality has no implementation acceptance yet');
+  const section=plan.split('## Codex 完成语音提醒 · SC-20261104-001')[1]?.split('\n## ')[0];
+  assert.ok(section,'record the approved reminder implementation');
+  for(const requirement of [/用户已批准实施.*2026-11-04 登记/,/复用现有 Codex 完成监听/,/避免重复/,/独立开关[^\n]*默认关闭/,/不进入聊天记录/,/屏幕顶部/,/小爱音箱不纳入/,/本轮结束不等于代码或测试已通过/])assert.match(section,requirement);
+  const lines=section.split('\n').filter(line=>/^- \[[ x]\]/.test(line));
+  for(const line of lines.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed reminder steps require evidence');
+  assert.ok(lines.some(line=>line.startsWith('- [ ]')&&/自动播报/.test(line)),'real-device announcement acceptance stays open');
+  assert.ok(lines.some(line=>line.startsWith('- [ ]')),'unverified reminder steps stay unchecked');
 });
 
 test('each operation entry records time, changes, difficulties, resolution, verification and commit',()=>{

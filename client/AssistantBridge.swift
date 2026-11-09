@@ -31,6 +31,11 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     var pendingConfiguration: [String: Any]?
     var microphone = Microphone()
     lazy var dictation = DictationController(host: self)
+    lazy var reminderBanner: ReminderBanner = {
+        let banner = ReminderBanner()
+        banner.onOpen = { [weak self] in self?.owner?.showWindow() }
+        return banner
+    }()
     var assistantActivity = "idle"
     var meteringTimer: Timer?
     var player: AVAudioPlayer?
@@ -194,6 +199,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
                 emit(["type": "state", "name": "speaking", "detail": "正在用 Fish Audio 回复 · 点击打断可继续说"])
             } catch { self.error("语音播放失败"); microphone.suspend(false); send(["type": "playbackEnded"]) }
         case "stopAudio": stopAudio()
+        case "codexReminder":
+            reminderBanner.show(project: event["project"] as? String ?? "", summary: event["summary"] as? String ?? "")
         case "earcon": NSSound(named: "Pop")?.play(); emit(event)
         default: emit(event)
         }
@@ -247,7 +254,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         do { try LocalAssistantVault.savePreferences(configuration) }
         catch { self.error("本地加密设置保存失败，未替换原数据。") }
     }
-    func shutdown() { wantsListen = false; dictation.shutdown(); microphone.stop(); stopAudio(); host?.terminationHandler = nil; input?.fileHandleForWriting.closeFile(); host?.terminate(); if let micObserver { NotificationCenter.default.removeObserver(micObserver) } }
+    func shutdown() { wantsListen = false; dictation.shutdown(); reminderBanner.hide(); microphone.stop(); stopAudio(); host?.terminationHandler = nil; input?.fileHandleForWriting.closeFile(); host?.terminate(); if let micObserver { NotificationCenter.default.removeObserver(micObserver) } }
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
         let root = Bundle.main.resourceURL!.appendingPathComponent("hud").path + "/"

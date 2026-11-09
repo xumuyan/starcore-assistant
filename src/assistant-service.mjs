@@ -7,6 +7,7 @@ import { assistantDefaults, validateSettings, explicitCodex, speechText, WakeSes
 import { ConversationMemory, handoffText } from './assistant-memory.mjs';
 import { relayChat, polishSpeech } from './assistant-chat.mjs';
 import { stateDir, events } from './store.mjs';
+import { reminderSpeech } from './assistant-reminder.mjs';
 import { latestTarget, saveRequest, requests } from './remote-store.mjs';
 import { threadInfo, runExistingThread } from './codex-runner.mjs';
 import {projectThread,selectedProject,isProjectQuestion,projectAnswer,projectContext} from './assistant-project.mjs';
@@ -149,8 +150,8 @@ export class AssistantService {
     if (save) this.record('assistant', content);
     this.wake.activate(); this.state(this.listening ? 'listening' : 'idle', this.listening ? '可以继续说，45 秒后回到待唤醒' : '回复已就绪');
   }
-  async speak(content, generation) {
-    if (!this.config.speak) return;
+  async speak(content, generation, options = {}) {
+    if (options.ignoreSpeakSwitch !== true && !this.config.speak) return;
     const text = speechText(content);
     if (this.config.voice === 'system') { this.playing = true; this.emit({ type: 'speak', text }); return; }
     if (!this.keys.fish) { this.error('Fish API Key 未配置，本次使用系统声音'); this.playing = true; this.emit({ type: 'speak', text }); return; }
@@ -173,6 +174,24 @@ export class AssistantService {
     this.cancel(); const generation = this.generation; this.controller = new AbortController(); this.busy = true;
     try { await this.speak(`你好，我是${this.config.name}。随时，听你吩咐。`, generation); }
     finally { if (generation === this.generation) { this.busy = false; this.controller = null; } }
+  }
+  // Completion voice reminder. Independent of the chat reply switch: enabling the
+  // reminder is itself an explicit opt-in. Never recorded into chat history, never
+  // routed to Codex or WeChat; reuses the existing voice service and failover.
+  reminderEnabled() { return this.config.codexVoiceReminder === true; }
+  reminderBusy() { return !!(this.busy || this.asrBusy || this.playing); }
+  reminderDropped(event) {
+    const project = String(event?.project ?? '').trim() || '未命名项目';
+    this.emit({ type: 'notice', message: `「${project}」的 Codex 完成提醒未播报：当时助理正忙，微信提醒不受影响` });
+  }
+  async announceReminder(event) {
+    if (!event || typeof event.id !== 'string') return;
+    const generation = ++this.generation;
+    this.controller = new AbortController();
+    const project = String(event.project ?? '').trim() || '未命名项目';
+    this.emit({ type: 'codexReminder', project, threadId: typeof event.threadId === 'string' ? event.threadId : '', summary: String(event.summary ?? '').slice(0, 200) });
+    try { await this.speak(reminderSpeech(event), generation, { ignoreSpeakSwitch: true }); }
+    finally { if (generation === this.generation) this.controller = null; }
   }
   tick() {
     if (this.listening && !this.busy && !this.asrBusy && !this.playing && this.wake.until > 0 && Date.now() >= this.wake.until) {

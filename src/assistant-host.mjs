@@ -5,6 +5,7 @@ import { createInterface } from 'node:readline';
 import { AssistantService } from './assistant-service.mjs';
 import { LocalASR } from './assistant-asr.mjs';
 import { AssistantDictationHost } from './assistant-dictation-host.mjs';
+import { CompletionVoiceReminder } from './assistant-reminder.mjs';
 
 process.umask(0o077);
 const emit = event => process.stdout.write(JSON.stringify(event) + '\n');
@@ -12,6 +13,7 @@ const taskStatus = new CodexTaskStatus(join(homedir(), '.codex/state_5.sqlite'))
 const asr = new LocalASR();
 const assistant = new AssistantService({ emit, asr });
 const dictation = new AssistantDictationHost({ assistant, asr, emit });
+const reminder = new CompletionVoiceReminder({ service: assistant });
 // Each operation handles its own concurrency. Abort/listen/stop must be able to
 // arrive during inference or an HTTP request; do not serialize the input stream.
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -51,5 +53,5 @@ input.on('line', line => {
     }
   })().catch(error => emit({ type: 'error', message: error.message || '本机助理操作失败，请检查配置后再试' }));
 });
-setInterval(() => assistant.tick(), 1000).unref();
+setInterval(() => { assistant.tick(); reminder.tick(); }, 1000).unref();
 input.on('close', () => { dictation.cancel(); taskStatus.close(); assistant.cancel(); assistant.memory.close(); process.exit(0); });

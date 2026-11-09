@@ -108,3 +108,15 @@ test('secondary panels dim the home and close without discarding the conversatio
  get('panel-backdrop').onclick();assert.equal(get('page-tasks').hidden,true);assert.equal(get('panel-backdrop').hidden,true);assert.equal(get('page-chat').inert,false);
  get('history-open').onclick();assert.equal(get('panel-backdrop').hidden,false);get('history-close').onclick();assert.equal(get('panel-backdrop').hidden,true);assert.equal(get('history-panel').hidden,true);
 });
+
+test('Codex voice reminder ships off by default and saves as an independent opt-in',()=>{
+ const p=settingsPage(),get=id=>p.elements.get(id);
+ assert.equal(get('set-codexVoiceReminder').checked,false);
+ const html=readFileSync(new URL('../client/hud/index.html',import.meta.url),'utf8');
+ assert.match(html,/set-codexVoiceReminder/);assert.match(html,/默认关闭/);assert.match(html,/回合结束不代表代码或测试已通过/);
+ get('set-codexVoiceReminder').checked=true;
+ get('settings-form').onsubmit({preventDefault(){}});
+ const saved=p.sent.filter(e=>e.action==='save').at(-1);
+ assert.equal(saved.settings.codexVoiceReminder,true);
+ for(const key of ['speak','dictationEnabled','petEnabled'])assert.equal(saved.settings[key],assistantDefaults[key]);
+});
