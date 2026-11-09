@@ -62,6 +62,12 @@ subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=T
 if '--no-install' in sys.argv:
     print('APP_BUILT ' + str(app))
     sys.exit(0)
+# Never overwrite the bundle under a running instance: on 2026-11-09 a hot-swap
+# made the old process spawn mismatched WKWebView helpers and its page froze
+# (Network Process crash in system log). Quit the app before installing.
+running = subprocess.run(['pgrep', '-f', 'MOSS.app/Contents/MacOS/CodexWeixin'], capture_output=True)
+if running.returncode == 0:
+    raise SystemExit('MOSS 正在运行，请先退出应用再安装（运行中覆盖会导致页面卡死）；退出后重跑本命令。')
 target = Path.home() / 'Applications' / app.name
 if target.exists():
     existing = plistlib.loads((target / 'Contents/Info.plist').read_bytes())

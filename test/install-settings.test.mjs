@@ -20,3 +20,10 @@ test('with the switch off the WeChat agents stay registered but Disabled and unl
   assert.match(installSource, /launchctl', 'bootout'/, 'loaded instances are unloaded immediately');
   assert.match(installSource, /不再在微信显示/, 'the install output states the WeChat display is off');
 });
+
+test('build refuses to install over a running MOSS instance', () => {
+  const buildSource = readFileSync(join(root, 'client', 'build.py'), 'utf8');
+  assert.match(buildSource, /pgrep', '-f', 'MOSS\.app\/Contents\/MacOS\/CodexWeixin/, 'the running instance is detected');
+  assert.match(buildSource, /运行中覆盖会导致页面卡死/, 'the error explains why the install aborts');
+  assert.match(buildSource, /raise SystemExit\('MOSS 正在运行/, 'install aborts with a clear message');
+});
