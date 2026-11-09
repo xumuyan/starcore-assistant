@@ -49,26 +49,35 @@ import AppKit
         require(content.openButton.target === content && content.openButton.action == #selector(ReminderBannerContent.openClicked), "whole banner is the click target")
         require(content.openButton.accessibilityLabel() == "打开 MOSS 查看提醒", "open accessibility")
         require(content.titleLabel.stringValue.isEmpty && content.summaryLabel.stringValue.isEmpty, "labels start truly empty")
-        // Codex completion path fills labels without ever displaying a window.
+        // Codex completion path: show orders the banner front in a real WindowServer
+        // session (above all apps, without activation) and fills the labels.
+        let chosen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
         banner.show(project: "电视盒子", summary: "已修复登录并补充测试")
-        require(!banner.visible, "show prepares labels without a WindowServer-visible order-in in tests")
+        require(banner.visible, "show displays the banner above other apps")
+        require(window.accessibilityLabel() == "Codex 完成提醒", "codex accessibility per show")
         require(content.titleLabel.stringValue == "电视盒子 · Codex 本轮已结束", "codex title applied")
         require(content.summaryLabel.stringValue == "已修复登录并补充测试", "codex summary applied")
-        require(window.accessibilityLabel() == "Codex 完成提醒", "codex accessibility per show")
-        banner.hide()
-        require(!banner.visible, "hide keeps the banner hidden")
+        if let chosen = chosen {
+            let expected = ReminderBannerMetrics.frame(in: chosen.visibleFrame)
+            require(abs(window.frame.midX - expected.midX) < 1 && abs(window.frame.maxY - expected.maxY) < 1, "banner pinned to the top center of the chosen screen")
+        }
+        banner.openTapped()
+        require(!banner.visible && opened == 1, "a visible banner click hides it and reports onOpen")
         require(content.titleLabel.stringValue.isEmpty && content.summaryLabel.stringValue.isEmpty, "hide clears labels")
         // Generic notice path shows the assistant reminder surface.
         banner.showNotice("微信提醒未播报：当时助理正忙")
+        require(banner.visible, "notice displays on the same top banner")
         require(content.titleLabel.stringValue == "MOSS 提醒", "notice uses the generic title")
         require(content.summaryLabel.stringValue == "微信提醒未播报：当时助理正忙", "notice summary applied")
         require(window.accessibilityLabel() == "MOSS 提醒", "notice accessibility per show")
         banner.hide()
+        require(!banner.visible, "hide keeps the banner hidden")
         banner.showNotice("   ")
         require(!banner.visible && content.titleLabel.stringValue.isEmpty, "blank notice never shows")
         banner.showNotice(String(repeating: "长", count: 200))
-        require(content.summaryLabel.stringValue.count == 80, "long notice truncated")
+        require(banner.visible && content.summaryLabel.stringValue.count == 80, "long notice truncated")
         banner.hide()
+        require(!banner.visible, "final hide")
         require(!content.titleLabel.isSelectable && !content.titleLabel.isEditable, "labels are display only")
         print("REMINDER_BANNER_WINDOW_OK")
     }
