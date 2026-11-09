@@ -13,7 +13,7 @@ const taskStatus = new CodexTaskStatus(join(homedir(), '.codex/state_5.sqlite'))
 const asr = new LocalASR();
 const assistant = new AssistantService({ emit, asr });
 const dictation = new AssistantDictationHost({ assistant, asr, emit });
-const reminder = new CompletionVoiceReminder({ service: assistant });
+const reminder = new CompletionVoiceReminder({ service: assistant, isBusy: () => dictation.active });
 // Each operation handles its own concurrency. Abort/listen/stop must be able to
 // arrive during inference or an HTTP request; do not serialize the input stream.
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });

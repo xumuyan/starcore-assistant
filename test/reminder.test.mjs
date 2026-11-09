@@ -13,7 +13,7 @@ function stubHarness(t, { enabled = true, busy = false, preExisting = [] } = {})
   prepare(dir);
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const announced = [], dropped = [];
-  const state = { enabled, busy };
+  const state = { enabled, busy, dictationBusy: false };
   const service = {
     reminderEnabled: () => state.enabled,
     reminderBusy: () => state.busy,
@@ -22,11 +22,12 @@ function stubHarness(t, { enabled = true, busy = false, preExisting = [] } = {})
   };
   let now = 1000;
   for (const spec of preExisting) enqueue(spec, dir);
-  const reminder = new CompletionVoiceReminder({ service, dir, now: () => now });
+  const reminder = new CompletionVoiceReminder({ service, dir, now: () => now, isBusy: () => state.dictationBusy });
   return {
     dir, reminder, announced, dropped,
     setEnabled: value => { state.enabled = value; },
     setBusy: value => { state.busy = value; },
+    setDictationBusy: value => { state.dictationBusy = value; },
     advance: ms => { now += ms; },
     write: (thread, turn, project = '项目A', message = '完成摘要') =>
       enqueue({ type: 'agent-turn-complete', 'thread-id': thread, 'turn-id': turn, cwd: `/work/${project}`, 'last-assistant-message': message }, dir)
@@ -123,6 +124,33 @@ test('store-level deduplication means one turn announces at most once', t => {
   h.reminder.tick();
   assert.equal(h.announced.length, 1);
   assert.equal(h.announced[0].id, first.id);
+});
+
+test('an active dictation round holds the reminder so speech never leaks into the transcript', async t => {
+  const h = stubHarness(t);
+  h.reminder.tick(); // baseline
+  h.setDictationBusy(true);
+  h.write('thread-1', 'turn-1');
+  h.reminder.tick();
+  assert.equal(h.announced.length, 0, 'dictation recording counts as busy');
+  h.setDictationBusy(false);
+  h.reminder.tick();
+  await wait(0);
+  assert.equal(h.announced.length, 1, 'released once the dictation round ends');
+});
+
+test('turning the switch off while waiting drops the pending reminder silently', async t => {
+  const h = stubHarness(t);
+  h.reminder.tick(); // baseline
+  h.setBusy(true);
+  h.write('thread-1', 'turn-1');
+  h.reminder.tick();
+  h.setEnabled(false);
+  h.setBusy(false);
+  h.reminder.tick();
+  await wait(0);
+  assert.equal(h.announced.length, 0);
+  assert.equal(h.dropped.length, 0, 'a user-disabled reminder is not announced and needs no error');
 });
 
 test('files that are not completion events are ignored', t => {
@@ -226,4 +254,10 @@ test('the reminder module drives the real service end to end', async t => {
   assert.equal(emitted.some(x => x.type === 'speak'), true);
   reminder.tick();
   assert.equal(emitted.filter(x => x.type === 'codexReminder').length, 1);
+});
+
+test('the host gates announcements on active dictation rounds', t => {
+  const source = readFileSync(new URL('../src/assistant-host.mjs', import.meta.url), 'utf8');
+  assert.match(source, /new CompletionVoiceReminder\(\{ service: assistant, isBusy: \(\) => dictation\.active \}\)/,
+    'reminder waits while a global dictation round owns the microphone');
 });

@@ -15,15 +15,21 @@ const isEventFile = name => /^[a-f0-9]{64}\.json$/.test(name);
 // the WeChat queue and event status files are never modified. Events that already
 // exist when the assistant host constructs this watcher count as history and are
 // never replayed, so reopening the app cannot repeat an announcement; WeChat
-// remains the durable channel while the app is closed.
+// remains the durable channel while the app is closed. Announcements also hold
+// while a global dictation round is active (isBusy), so the spoken reminder can
+// never leak into the user's dictated transcript.
 export class CompletionVoiceReminder {
-  constructor({ service, dir = stateDir, now = Date.now, list = readdirSync, read = readFileSync, waitMs = 120000 } = {}) {
+  constructor({ service, dir = stateDir, now = Date.now, list = readdirSync, read = readFileSync, waitMs = 120000, isBusy = null } = {}) {
     this.service = service;
     this.directory = join(dir, 'events');
-    this.now = now; this.list = list; this.read = read; this.waitMs = waitMs;
+    this.now = now; this.list = list; this.read = read; this.waitMs = waitMs; this.isBusy = isBusy;
     this.seen = new Set();
     this.pending = null; this.pendingAt = 0; this.announcing = false;
     try { for (const name of this.list(this.directory)) if (isEventFile(name)) this.seen.add(name); } catch {}
+  }
+  busy() {
+    if (this.service.reminderBusy()) return true;
+    return this.isBusy ? this.isBusy() === true : false;
   }
   tick() {
     let names;
@@ -43,13 +49,15 @@ export class CompletionVoiceReminder {
     const newest = fresh.sort((a, b) => String(a.time ?? '').localeCompare(String(b.time ?? ''))).at(-1);
     if (newest) { this.pending = newest; this.pendingAt = this.now(); }
     if (!this.pending || this.announcing) return;
-    if (this.service.reminderBusy()) {
+    if (this.busy()) {
       if (this.now() - this.pendingAt > this.waitMs) {
         const dropped = this.pending; this.pending = null;
         this.service.reminderDropped(dropped);
       }
       return;
     }
+    // The switch may have been turned off while this reminder waited for idle.
+    if (!this.service.reminderEnabled()) { this.pending = null; return; }
     const event = this.pending; this.pending = null; this.announcing = true;
     try {
       Promise.resolve(this.service.announceReminder(event))
