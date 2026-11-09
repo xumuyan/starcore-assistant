@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-005 记录本机打包尝试受阻
+
+- 北京时间：2026-11-09 13:05:57 +08:00。
+- 修改或新增：仅操作日志。用户要求直接打包（`npm run build:mac`，含 install.py 配置备份、Swift 编译、dist/MOSS.app 签名与安装到 `~/Applications/MOSS.app`）。
+- 遇到的难题：本执行沙箱系统性拦截所有 Swift 编译器进程：Xcode 与 CommandLineTools 的 swiftc 启动即被击杀（Trace/BPT trap 5，`libxcrun.dylib` 等库加载被拒）；提权执行 swiftc 夹具编译、node 原生夹具测试、`python3 client/build.py` 完整打包三次均未获授权；系统无 Homebrew Swift 替代工具链。Python 侧 `/opt/homebrew/bin/python3`（3.14.0）可用，但编译步骤无法绕过。
+- 处理方式：如实记录，不虚报打包结果，不把本地提交写成已打包安装；恢复步骤为用户在本机终端执行：① `git push origin feat/global-dictation`（4 个待推提交）② `npm test`（预期 171 项全过，含原生夹具）③ `npm run build:mac`（输出 APP_READY 即安装完成）④ 重启 MOSS 核对关于页 0.9.6 / build 27，再做批次 B 真机播报验收。
+- 验证结果：本条为日志记录，无代码改动；`dist/` 当前无 MOSS.app，安装目标 `~/Applications/MOSS.app` 未被本会话修改。
+- 遗留问题：原生夹具编译、构建安装、真机验收全部待用户终端执行；完成后按证据回填 PLAN 勾选项。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261109-005] record blocked local packaging attempt`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-004 听写互斥与开关中途关闭补强
 
 - 北京时间：2026-11-09 13:00:40 +08:00。
