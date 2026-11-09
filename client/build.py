@@ -21,7 +21,7 @@ info = {
     'CFBundleDisplayName': 'MOSS',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
-    'CFBundleVersion': '31',
+    'CFBundleVersion': '32',
     'CFBundleIconFile': 'StarCoreIcon-v3',
     'LSMinimumSystemVersion': '13.0',
     'NSHighResolutionCapable': True,
@@ -59,6 +59,17 @@ info.update(plistlib.loads(icon_info.read_bytes()))
 subprocess.run(['swiftc', '-swift-version', '5', '-O', '-target', platform.machine() + '-apple-macosx13.0', '-framework', 'AppKit', '-framework', 'WebKit', '-framework', 'AVFoundation', '-framework', 'Security', *map(str, sorted((root / 'client').glob('*.swift'))), '-o', str(contents / 'MacOS/CodexWeixin')], check=True)
 subprocess.run(['codesign', '--force', '--sign', '-', str(app)], check=True)
 subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+# Rust 宿主（阶段一，SC-20261109-014）：随构建编译但不接线，应用运行时仍用 node 引擎。
+# cargo 缺失时跳过并提示（不阻塞构建）；编译失败则中止。二进制不入包，仅作为后续阶段的产物。
+cargo = shutil.which('cargo')
+if cargo:
+    subprocess.run([cargo, 'build', '--release', '--quiet'], cwd=str(root / 'rust-host'), check=True)
+    rust_binary = root / 'rust-host' / 'target' / 'release' / 'moss-host'
+    if not rust_binary.exists():
+        raise SystemExit('Rust 宿主编译后未找到二进制：' + str(rust_binary))
+    print('RUST_HOST_READY ' + str(rust_binary))
+else:
+    print('[警告] 未找到 cargo，跳过 Rust 宿主编译（默认引擎仍为 node，不影响本构建）')
 if '--no-install' in sys.argv:
     print('APP_BUILT ' + str(app))
     sys.exit(0)

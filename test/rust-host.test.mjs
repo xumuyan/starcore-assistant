@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,4 +73,78 @@ test('moss-host reports version and rejects unknown commands', { skip: !existsSy
   execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
   assert.match(run(mkdtempSync(join(tmpdir(), 'moss-host-ver-')), mossHost, ['--version']).trim(), /^moss-host \d+\.\d+\.\d+$/);
   assert.throws(() => run(mkdtempSync(join(tmpdir(), 'moss-host-x-')), mossHost, ['bogus']), /Unsupported command/);
+});
+
+function fakeLaunchctl(log) {
+  const bin = mkdtempSync(join(tmpdir(), 'moss-host-bin-'));
+  const script = join(bin, 'fake-launchctl.sh');
+  writeFileSync(script, `#!/bin/bash
+echo "$*" >> "${log}"
+if [ "$1" = "print" ]; then exit 1; fi
+exit 0
+`);
+  chmodSync(script, 0o755);
+  return script;
+}
+
+function runWithLaunchctl(home, launchctl, executable, args) {
+  return execFileSync(executable, args, {
+    encoding: 'utf8',
+    timeout: 30000,
+    env: {
+      HOME: home,
+      CODEX_WEIXIN_STATE_DIR: join(home, '.codex-weixin-notifier'),
+      MOSS_LAUNCHCTL: launchctl,
+      PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+    },
+  });
+}
+
+function agentPlist(home, label, disabled) {
+  const agents = join(home, 'Library/LaunchAgents');
+  mkdirSync(agents, { recursive: true });
+  writeFileSync(join(agents, `${label}.plist`), `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>Label</key><string>${label}</string>${disabled ? '<key>Disabled</key><true/>' : '<key>RunAtLoad</key><true/>'}</dict></plist>
+`);
+}
+
+const darwinSkip = process.platform !== 'darwin' ? 'plutil/launchctl 语义仅限 macOS' : false;
+
+test('rust host start matches node control invocation for invocation', { skip: !existsSync(cargo) ? 'cargo 未安装' : darwinSkip }, () => {
+  execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
+  const scenario = (disabled) => {
+    const home = sandbox();
+    agentPlist(home, 'local.codex-weixin-notifier', disabled);
+    agentPlist(home, 'local.codex-weixin-desktop-watch', disabled);
+    const logNode = join(home, 'log-node');
+    const logRust = join(home, 'log-rust');
+    writeFileSync(logNode, '');
+    writeFileSync(logRust, '');
+    try {
+      const nodeOut = runWithLaunchctl(home, fakeLaunchctl(logNode), process.execPath, [join(root, 'src/client-control.mjs'), 'start']);
+      const rustOut = runWithLaunchctl(home, fakeLaunchctl(logRust), mossHost, ['start']);
+      assert.equal(rustOut, nodeOut, 'start 输出字节级一致');
+      const a = readFileSync(logNode, 'utf8');
+      const b = readFileSync(logRust, 'utf8');
+      assert.equal(b, a, 'launchctl 调用序列完全一致');
+      return a;
+    } finally { rmSync(home, { recursive: true, force: true }); }
+  };
+  const disabledLog = scenario(true);
+  assert.doesNotMatch(disabledLog, /bootstrap/, 'Disabled 代理绝不引导（双方一致）');
+  const enabledLog = scenario(false);
+  assert.match(enabledLog, /bootstrap .*local\.codex-weixin-notifier\.plist/);
+  assert.match(enabledLog, /bootstrap .*local\.codex-weixin-desktop-watch\.plist/);
+  assert.match(enabledLog, /print gui\/\d+\/local\.codex-weixin-notifier/, '快照阶段同样查询服务状态');
+});
+
+test('rust host stop matches node control output', { skip: !existsSync(cargo) ? 'cargo 未安装' : darwinSkip }, () => {
+  execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
+  const home = sandbox();
+  try {
+    const nodeOut = run(home, process.execPath, [join(root, 'src/client-control.mjs'), 'stop']);
+    const rustOut = run(home, mossHost, ['stop']);
+    assert.equal(rustOut, nodeOut, 'stop 输出字节级一致（对未注册代理双方均为安全空操作）');
+  } finally { rmSync(home, { recursive: true, force: true }); }
 });

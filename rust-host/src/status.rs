@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const LABELS: [&str; 2] = [
+pub const LABELS: [&str; 2] = [
     "local.codex-weixin-notifier",
     "local.codex-weixin-desktop-watch",
 ];
@@ -55,16 +55,20 @@ pub fn state_dir() -> PathBuf {
     }
 }
 
-fn home_dir() -> PathBuf {
+pub fn home_dir() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_default())
 }
 
 // 与 node 版一致：允许测试注入，生产固定系统路径。
-fn launchctl() -> String {
+pub fn launchctl_path() -> String {
     std::env::var("MOSS_LAUNCHCTL").unwrap_or_else(|_| "/bin/launchctl".to_string())
 }
 
-fn domain() -> String {
+pub fn plutil_path() -> String {
+    std::env::var("MOSS_PLUTIL").unwrap_or_else(|_| "/usr/bin/plutil".to_string())
+}
+
+pub fn domain() -> String {
     format!("gui/{}", unsafe { libc::getuid() })
 }
 
@@ -77,7 +81,7 @@ fn now_ms() -> i64 {
 
 /// launchctl print 的 state = running 判定（node 版正则 /^\s*state = running\s*$/m 的等价实现）。
 fn loaded(label: &str) -> bool {
-    let output = Command::new(launchctl())
+    let output = Command::new(launchctl_path())
         .args(["print", &format!("{}/{}", domain(), label)])
         .stdin(Stdio::null())
         .stderr(Stdio::null())

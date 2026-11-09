@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-014 Rust 宿主阶段一 P1：start/stop 对齐与构建集成（build 32）
+
+- 北京时间：2026-11-09 23:51:57 +08:00。
+- 修改或新增：rust-host 新增 control.rs，`moss-host start/stop` 与 node 版 client-control 逐调用对齐——start 按 plist 的 Disabled 标记跳过（绝不复活用户停用的微信代理）、已注册跳过、否则 bootstrap（失败吞掉）；stop 倒序 bootout（与 node 版一致硬编码 /bin/launchctl，不走注入）；start/stop 同样输出 status 快照（与 node 版流程一致）。main.rs 接入 start/stop 分发。client/build.py 新增 Rust 宿主编译步骤：cargo 存在则 `cargo build --release` 并校验二进制存在（失败中止构建），cargo 缺失则警告并跳过（不阻塞，默认引擎仍 node，二进制不入包）；CFBundleVersion 31→32，CHANGELOG 同步。
+- 遇到的难题：闭包返回引用生命周期报错（改用具名 fn）；Rust 无测试跳过属性，plutil 相关单测用 target_os 守门。
+- 处理方式：control.rs 函数全部显式收参（launchctl/plutil/目录/domain 可注入），生产入口 run() 才读真实环境，单测用假 launchctl 脚本（chmod 755）驱动。
+- 验证结果：cargo test 13 项全部通过（新增 5 项控制命令单测：Disabled 不引导/启用引导/已注册跳过/stop 倒序/损坏与缺失 plist 视为未停用）；test/rust-host.test.mjs 增至 4 项——start 场景双二进制 stdout 字节级一致且 launchctl 调用序列日志完全一致（Disabled 与启用两种夹具）、stop 输出一致；npm test 185 项全部通过；build.py 实测两个分支：cargo 在 PATH 时输出 RUST_HOST_READY 且 release 二进制 608KB/arm64 生成，cargo 不在 PATH 时构建照常完成（警告跳过）；`python3 client/build.py --no-install` 构建与签名校验通过。未安装新包（应用正在运行 build 31，安装守卫拦截符合预期，也未打断用户真机验收）；应用运行时行为不变（引擎仍 node）。
+- 遗留问题：build 32 未安装，待用户退出应用后安装（内容相对 build 31 仅增加构建步骤，应用行为无变化）；P2（stdio 协议子集 + Swift runtime-engine 开关）待推进；用户命名体系（沐声）的应用展示名变更将作为独立 Change-ID 在 P1/P2 之间一次性改齐（涉及 build.py 守卫 pgrep 模式、安装路径、UI 文案与权限标识联动）。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-014] align rust host start-stop and compile in build`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-013 Rust 宿主引擎阶段一启动：工具链 + moss-host status 只读对齐
 
 - 北京时间：2026-11-09 23:15:03 +08:00。

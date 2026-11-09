@@ -193,7 +193,7 @@
 目标：用 Rust 替换 node 宿主层，降低安装体积（当前 node_modules 104MB）与常驻内存（node 宿主约 46MB）；Swift 壳与全部原生功能（唤醒对话、聊天、声音、项目选择、加密数据、Codex 交接、语音提醒、听写、横幅）不重写、不改变行为；用户配置与真实数据不重置。灰度共存：`runtime-engine` 开关默认 `node`，rust 宿主全对齐前不切换。微信 bot（早已停用）不在移植范围；若用户未来要恢复微信显示另立范围。
 
 - [x] P0 工具链与只读状态对齐（SC-20261109-013）：rustup stable 工具链安装；`rust-host` 工程实现 `moss-host status` 只读快照，与 node 版 client-control 逐字段对齐（delivery/serviceRunning/watching/bound/ready/paused/sent/pending/uncertain/remoteEnabled/remoteProject/remoteThreadId/remoteStatus/latest），输出字节级一致。证据：[rust-host 测试](test/rust-host.test.mjs) 同沙箱下两个二进制 stdout 字符串全等 + `cargo test` 单元测试；`npm test` 全量通过。工具链 cargo 1.99.1 安装完成。
-- [ ] P1 控制命令对齐：`moss-host start/stop`（含 Disabled 跳过、绝不复活微信代理、launchctl 可注入）；build.py 编译 moss-host 但不接线。
+- [x] P1 控制命令对齐（SC-20261109-014，build 32）：`moss-host start/stop` 与 node 版逐调用对齐（Disabled 跳过、已注册跳过、bootstrap/bootout 失败吞掉、start/stop 同样输出快照、stop 硬编码 launchctl 与 node 一致）；build.py 编译 Rust 宿主（cargo 缺失跳过不阻塞、失败中止）但二进制不入包、不接线，默认引擎仍 node。证据：cargo test 13 项通过；[rust-host 测试](test/rust-host.test.mjs) start 场景双二进制 stdout 与 launchctl 调用日志字节级一致；npm test 185 项通过；build.py 两分支实测（有 cargo 出 RUST_HOST_READY、无 cargo 警告跳过）且 --no-install 构建签名通过。
 - [ ] P2 宿主 stdio 协议最小子集：tasks/configure/listen 转发与现有 JSON 行协议对齐；Swift 端新增 `runtime-engine` 开关（默认 node，兼容旧配置）。
 - [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。
 - [ ] P4 灰度切换与回滚演练：默认仍 node，用户显式试开 rust 并验证回滚；全部真机验收记录后才讨论默认值变更。
