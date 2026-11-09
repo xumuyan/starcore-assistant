@@ -100,7 +100,7 @@ test('companion home shows live subtitles and secondary status without a workben
  p.receive({type:'snapshot',snapshot:{bound:true,ready:false,paused:false}});assert.equal(get('weixin-glance').textContent,'等待会话');
  get('open-dictation').onclick();assert.equal(get('settings-overlay').hidden,false);get('settings-close').onclick();assert.equal(get('settings-overlay').hidden,true);
  get('history-open').onclick();assert.equal(get('history-panel').hidden,false);get('history-close').onclick();assert.equal(get('history-panel').hidden,true);
- const html=readFileSync(new URL('../client/hud/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/<nav/);assert.match(html,/aria-label="MOSS 助理形象"/);
+ const html=readFileSync(new URL('../client/hud/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/<nav/);assert.match(html,/aria-label="沐言 助理形象"/);
 });
 
 test('secondary panels dim the home and close without discarding the conversation',()=>{

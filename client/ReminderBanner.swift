@@ -19,7 +19,7 @@ enum ReminderBannerMetrics {
         return (name.isEmpty ? "未命名项目" : name) + " · Codex 本轮已结束"
     }
 
-    static let noticeTitle = "MOSS 提醒"
+    static let noticeTitle = "沐言提醒"
 
     static func clipped(_ text: String, limit: Int = 80) -> String {
         String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(limit))
@@ -60,8 +60,8 @@ final class ReminderBanner: NSObject {
                                      styleMask: [.borderless, .nonactivatingPanel],
                                      backing: .buffered, defer: false)
         super.init()
-        window.title = "MOSS 提醒"
-        window.setAccessibilityLabel("MOSS 提醒")
+        window.title = "沐言提醒"
+        window.setAccessibilityLabel("沐言提醒")
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         window.hidesOnDeactivate = false
@@ -87,7 +87,7 @@ final class ReminderBanner: NSObject {
     func showNotice(_ message: String) {
         let clipped = ReminderBannerMetrics.clipped(message)
         guard !clipped.isEmpty else { return }
-        show(title: ReminderBannerMetrics.noticeTitle, summary: clipped, accessibilityLabel: "MOSS 提醒")
+        show(title: ReminderBannerMetrics.noticeTitle, summary: clipped, accessibilityLabel: "沐言提醒")
     }
 
     func show(title: String, summary: String, accessibilityLabel: String) {
@@ -148,11 +148,11 @@ final class ReminderBannerContent: NSView {
         titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         titleLabel.textColor = .init(srgbRed: 0.10, green: 0.19, blue: 0.30, alpha: 1)
         titleLabel.lineBreakMode = .byTruncatingTail
-        titleLabel.setAccessibilityLabel("MOSS 提醒标题")
+        titleLabel.setAccessibilityLabel("沐言提醒标题")
         summaryLabel.font = .systemFont(ofSize: 10.5)
         summaryLabel.textColor = .init(srgbRed: 0.30, green: 0.40, blue: 0.51, alpha: 1)
         summaryLabel.lineBreakMode = .byTruncatingTail
-        summaryLabel.setAccessibilityLabel("MOSS 提醒内容")
+        summaryLabel.setAccessibilityLabel("沐言提醒内容")
         for label in [titleLabel, summaryLabel] {
             label.isSelectable = false
             label.isEditable = false
@@ -167,8 +167,8 @@ final class ReminderBannerContent: NSView {
         openButton.focusRingType = .none
         openButton.target = self
         openButton.action = #selector(openClicked)
-        openButton.setAccessibilityLabel("打开 MOSS 查看提醒")
-        openButton.toolTip = "点击打开 MOSS"
+        openButton.setAccessibilityLabel("打开沐言查看提醒")
+        openButton.toolTip = "点击打开沐言"
         glass.addSubview(indicator)
         glass.addSubview(titleLabel)
         glass.addSubview(summaryLabel)

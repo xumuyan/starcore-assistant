@@ -74,8 +74,8 @@ final class DictationPanel: NSObject {
                                              styleMask: [.borderless, .nonactivatingPanel],
                                              backing: .buffered, defer: false)
         super.init()
-        window.title = "MOSS 语音输入"
-        window.setAccessibilityLabel("MOSS 语音输入")
+        window.title = "沐言 语音输入"
+        window.setAccessibilityLabel("沐言 语音输入")
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         window.hidesOnDeactivate = false

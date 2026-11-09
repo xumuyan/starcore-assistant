@@ -81,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func buildWindow() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        window.title = "MOSS"
+        window.title = "沐言"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.backgroundColor = .clear
@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func buildMenu() {
         let main = NSMenu()
         let appItem = NSMenuItem()
-        let applicationMenu = NSMenu(title: "MOSS")
+        let applicationMenu = NSMenu(title: "沐言")
         let reopen = NSMenuItem(title: "显示客户端", action: #selector(showWindow), keyEquivalent: "0")
         reopen.target = self
         applicationMenu.addItem(reopen)
@@ -135,7 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         editItem.submenu = edit; main.addItem(editItem)
         NSApp.mainMenu = main
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "MOSS")
+        statusItem.button?.image = NSImage(systemSymbolName: "bell.badge", accessibilityDescription: "沐言")
         let menu = NSMenu()
         for (title, selector) in [("显示客户端", #selector(showWindow)), ("开始监听", #selector(startServices)), ("停止监听", #selector(stopServices)), ("绑定微信", #selector(bindWeixin))] {
             let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
@@ -326,7 +326,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func showError(_ message: String) {
         let alert = NSAlert()
-        alert.messageText = "MOSS"
+        alert.messageText = "沐言"
         alert.informativeText = message
         alert.runModal()
     }

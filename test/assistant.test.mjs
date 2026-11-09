@@ -26,7 +26,7 @@ test('wake word is configurable, prefix only, and session expires', () => {
   now = 90000; assert.equal(wake.accept('继续讨论', '小助手'), null);
 });
 test('settings separate name and wake phrase; reject invalid providers and targets', () => {
-  assert.equal(validateSettings({ name: '星期五' }).wakeWord, 'MOSS');
+  assert.equal(validateSettings({ name: '星期五' }).wakeWord, '沐言', '自定义名字不动内置唤醒词');
   assert.throws(() => validateSettings({ wakeWord: '' }));
   assert.throws(() => validateSettings({ wakeWord: '！！！' }));
   assert.throws(() => validateSettings({ target: 'wrong' }));
@@ -45,7 +45,7 @@ test('unawakened audio never enters chat or network', async t => {
   assert.equal(emitted.some(x => x.type === 'message'), false);
 });
 test('wake-only audio gives a cue without a cloud call', async t => {
-  const { service, emitted } = harness(t, { asr: { transcribe: async () => 'MOSS。' }, fetchRequest: () => assert.fail('network called') });
+  const { service, emitted } = harness(t, { asr: { transcribe: async () => '沐言。' }, fetchRequest: () => assert.fail('network called') });
   service.asrReady = true; service.listening = true;
   await service.audio('fixture'); assert.equal(emitted.some(x => x.type === 'earcon'), true);
 });
@@ -164,7 +164,7 @@ test('project snapshot is frozen before optional speech polishing awaits a respo
   const system=relayContext.filter(x=>x.role==='system').map(x=>x.content).join('\n');assert.match(system,/电视项目/);assert.doesNotMatch(system,/网站项目/);service.memory.close();
 });
 test('spoken current-project query works locally after wake and uses existing system playback',async t=>{
-  const {service,emitted}=harness(t,{asr:{transcribe:async()=> 'MOSS，当前项目'},getLatest:()=>({threadId:projectA}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:()=>assert.fail('must not call cloud')});
+  const {service,emitted}=harness(t,{asr:{transcribe:async()=> '沐言，当前项目'},getLatest:()=>({threadId:projectA}),getProjectThread:(_,id)=>projectRows[id],fetchRequest:()=>assert.fail('must not call cloud')});
   service.config={...service.config,target:projectA};service.asrReady=true;service.listening=true;await service.audio('fixture');
   assert.ok(emitted.some(e=>e.type==='speak'&&e.text.includes('电视项目')));service.memory.close();
 });

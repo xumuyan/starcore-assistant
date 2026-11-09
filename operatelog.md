@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-015 产品定名沐言（MuYan）：应用更名与身份迁移（build 32）
+
+- 北京时间：2026-11-10 00:15:37 +08:00。
+- 修改或新增：用户确定产品名「沐言」（英文/包名 MuYan）。应用层：CFBundleName=MuYan、CFBundleDisplayName=沐言，构建产物与安装目标改为 MuYan.app；运行守卫同时覆盖新名 MuYan.app 与旧名 MOSS.app（任一运行即拒装，文案改「沐言正在运行」），安装成功后自动移除未运行的旧版 ~/Applications/MOSS.app（在运行则提示手动清理）。身份层：内置助理名字与唤醒词默认 MOSS→沐言，迁移链 贾维斯→MOSS→沐言（只迁移内置名，用户自定义名与唤醒词不动）。文案层：窗口/菜单/状态栏/错误弹窗/语音提醒横幅/听写浮条/桌面宠物/权限指引/设置页与 HUD 页（标题、品牌标识、示例句、aria-label）全部更名。README 补定名说明。bundle ID、可执行名、LaunchAgent 标签、状态目录、runtime 引擎均不变，用户配置与权限数据保留。
+- 遇到的难题：① 助理默认名即唤醒词（用户未自定义过，配置文件不存在），应用名与助理名若分裂会造成 UI 不自洽，需一并迁移；② 测试初版按旧字面量断言新守卫结构失败（守卫改为模式列表后同步断言）；③ ReminderBanner 一处 tooltip 漏改，二轮扫尾补齐。
+- 处理方式：身份迁移沿用既有内置名迁移机制（assistant-core validateSettings），迁移链指向沐言；唤醒匹配为 NFKC 归一化比较，纯中文唤醒词无兼容问题；文案替换用精确字符串对全量扫描（含未命中即报错），残留用 grep 复检归零。
+- 验证结果：npm test 185 项全部通过（含迁移链断言、自定义名保护断言、双模式守卫断言、夹具标题断言同步）；cargo test 13 项不受影响全部通过；真机安装：退出旧 MOSS.app → 构建安装 → OLD_APP_REMOVED 与 APP_READY 输出核对，签名校验通过，Info.plist 读回 MuYan/沐言/local.codex-weixin.client/32，二进制 grep 沐言文案存在，~/Applications 仅剩 MuYan.app，应用已启动并稳定运行（PID 24247）。
+- 遗留问题：build 32 真机验收待用户确认——新名应用各界面显示沐言、唤醒词沐言实测、麦克风与输入监授权限读回（ad-hoc 签名随构建变化，若输入监控失效需在系统设置重新添加 MuYan）；旧 MOSS.app 已移除，如需回退需重建。rust 宿主 P2（stdio 协议 + runtime-engine 开关）待推进。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-015] rename product to MuYan with builtin identity migration`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-014 Rust 宿主阶段一 P1：start/stop 对齐与构建集成（build 32）
 
 - 北京时间：2026-11-09 23:51:57 +08:00。

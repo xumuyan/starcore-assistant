@@ -10,15 +10,15 @@ root = Path(__file__).resolve().parent.parent
 if '--ui-only' not in sys.argv:
     subprocess.run([sys.executable, str(root / 'install.py')], check=True)
 subprocess.run([str(root / 'node_modules/.bin/esbuild'), str(root / 'client/scene/renderer.mjs'), '--bundle', '--format=iife', '--target=safari16', '--minify', '--loader:.png=dataurl', '--outfile=' + str(root / 'client/hud/scene-3d.js')], check=True)
-app = root / 'dist' / 'MOSS.app'
+app = root / 'dist' / 'MuYan.app'
 contents = app / 'Contents'
 (contents / 'MacOS').mkdir(parents=True, exist_ok=True)
 (contents / 'Resources').mkdir(exist_ok=True)
 info = {
     'CFBundleExecutable': 'CodexWeixin',
     'CFBundleIdentifier': 'local.codex-weixin.client',
-    'CFBundleName': 'MOSS',
-    'CFBundleDisplayName': 'MOSS',
+    'CFBundleName': 'MuYan',
+    'CFBundleDisplayName': '沐言',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
     'CFBundleVersion': '32',
@@ -76,10 +76,14 @@ if '--no-install' in sys.argv:
 # Never overwrite the bundle under a running instance: on 2026-11-09 a hot-swap
 # made the old process spawn mismatched WKWebView helpers and its page froze
 # (Network Process crash in system log). Quit the app before installing.
-running = subprocess.run(['pgrep', '-f', 'MOSS.app/Contents/MacOS/CodexWeixin'], capture_output=True)
-if running.returncode == 0:
-    raise SystemExit('MOSS 正在运行，请先退出应用再安装（运行中覆盖会导致页面卡死）；退出后重跑本命令。')
+# 2026-11-09 产品定名沐言：旧安装名 MOSS.app 与新名 MuYan.app 都在守卫范围内。
+running_patterns = ['MuYan.app/Contents/MacOS/CodexWeixin', 'MOSS.app/Contents/MacOS/CodexWeixin']
+for pattern in running_patterns:
+    running = subprocess.run(['pgrep', '-f', pattern], capture_output=True)
+    if running.returncode == 0:
+        raise SystemExit('沐言正在运行，请先退出应用再安装（运行中覆盖会导致页面卡死）；退出后重跑本命令。')
 target = Path.home() / 'Applications' / app.name
+legacy = Path.home() / 'Applications' / 'MOSS.app'
 if target.exists():
     existing = plistlib.loads((target / 'Contents/Info.plist').read_bytes())
     if existing.get('CFBundleIdentifier') != info['CFBundleIdentifier']:
@@ -87,4 +91,12 @@ if target.exists():
 target.parent.mkdir(exist_ok=True)
 shutil.copytree(app, target, dirs_exist_ok=True)
 subprocess.run(['codesign', '--verify', '--deep', '--strict', str(target)], check=True)
+# 旧名应用是我们自己生成的构建产物：未运行则移除避免双图标混淆；在运行则提示用户手动处理。
+if legacy.exists():
+    legacy_running = subprocess.run(['pgrep', '-f', 'MOSS.app/Contents/MacOS/CodexWeixin'], capture_output=True)
+    if legacy_running.returncode == 0:
+        print('[提示] 旧版 MOSS.app 正在运行，未自动清理；退出后可手动删除 ~/Applications/MOSS.app')
+    else:
+        shutil.rmtree(legacy)
+        print('OLD_APP_REMOVED ' + str(legacy))
 print('APP_READY ' + str(target))

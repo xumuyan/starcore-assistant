@@ -161,7 +161,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
             if self.watchdog.recoveryDue(now: now) {
                 self.recoverPage("页面长时间无响应，已自动恢复，语音监听已重置")
             } else if self.watchdog.exhausted(now: now) {
-                self.error("页面多次自动恢复失败，请退出并重新打开 MOSS")
+                self.error("页面多次自动恢复失败，请退出并重新打开沐言")
             }
         }
     }
@@ -205,7 +205,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         case "configured":
             if let config = event["settings"] as? [String: Any] {
                 configuration = config; persistConfiguration(); pendingConfiguration = nil
-                owner?.window.title = (config["name"] as? String ?? "MOSS") == "MOSS" ? "MOSS" : "MOSS · " + (config["name"] as? String ?? "MOSS")
+                owner?.window.title = (config["name"] as? String ?? "沐言") == "沐言" ? "沐言" : "沐言 · " + (config["name"] as? String ?? "沐言")
                 emit(event)
                 owner?.pet.configure(enabled: config["petEnabled"] as? Bool ?? false)
                 send(["type": "tasks"])

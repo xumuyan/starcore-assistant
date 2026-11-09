@@ -31,7 +31,7 @@ import CoreGraphics
         }
         _ = NSApplication.shared
         let panel = DictationPanel()
-        let window = NSApp.windows.first { $0.title == "MOSS 语音输入" }!
+        let window = NSApp.windows.first { $0.title == "沐言 语音输入" }!
         require(!panel.visible && !window.isVisible, "constructor stays hidden")
         require(!window.canBecomeKey && !window.canBecomeMain, "never takes focus")
         require(window.styleMask.contains(.nonactivatingPanel) && !window.styleMask.contains(.titled), "nonactivating borderless style")

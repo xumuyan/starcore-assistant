@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 
 export const assistantDefaults = Object.freeze({
-  name: 'MOSS', wakeWord: 'MOSS', autoListen: false, speak: true,
+  name: '沐言', wakeWord: '沐言', autoListen: false, speak: true,
   modelPath: homedir() + '/.speakmore/models/qwen3-asr-0.6b-q8/Qwen3-ASR-0.6B-Q8_0.gguf',
   schemaVersion: 3, chatModel: 'gpt-6-astra', chatBaseUrl: 'https://api.yunqiao.me/v1',
   petEnabled: false, dictationEnabled: false, dictationHotkey: 'right-option', dictationPolish: false,
@@ -17,8 +17,9 @@ export function validateSettings(input = {}) {
   if (!input.schemaVersion && /^deepseek/.test(value.chatModel)) {
     value.polishModel = value.chatModel; value.chatModel = assistantDefaults.chatModel;
   }
-  if (value.name === '贾维斯') value.name = 'MOSS';
-  if (value.wakeWord === '贾维斯') value.wakeWord = 'MOSS';
+  // 内置身份迁移链（2026-11-09 产品定名沐言）：贾维斯→MOSS→沐言；只迁移内置名，用户自定义名（如星期五）不动。
+  if (value.name === '贾维斯' || value.name === 'MOSS') value.name = '沐言';
+  if (value.wakeWord === '贾维斯' || value.wakeWord === 'MOSS') value.wakeWord = '沐言';
   value.chatBaseUrl = value.chatBaseUrl.replace(/\/+$/, '');
   if (value.chatBaseUrl !== 'https://api.yunqiao.me/v1') throw new Error('当前版本仅向所指定的云桥网关发送聊天密钥');
   if (!value.name || value.name.length > 30) throw new Error('名字请填写 1–30 个字');

@@ -110,13 +110,13 @@ final class MossPet: NSObject {
     private func createPetIfNeeded() {
         guard petPanel == nil else { return }
         let panel = MossPetPanel(contentRect: NSRect(x: 0, y: 0, width: 136, height: 112), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.title = "MOSS 桌面宠物"; panel.setAccessibilityLabel("MOSS 桌面宠物")
+        panel.title = "沐言 桌面宠物"; panel.setAccessibilityLabel("沐言 桌面宠物")
         panel.isReleasedWhenClosed = false; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
         panel.level = .floating; panel.hidesOnDeactivate = false; panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         let content = glass(panel.frame.size); panel.contentView = content
         let robot = MossRobotView(frame: NSRect(x: 16, y: 33, width: 104, height: 72)); content.addSubview(robot)
-        let button = NSButton(frame: robot.frame); button.title = ""; button.isBordered = false; button.target = self; button.action = #selector(toggleChat); button.toolTip = "打开 MOSS 轻量聊天"; button.setAccessibilityLabel("打开 MOSS 轻量聊天"); content.addSubview(button)
+        let button = NSButton(frame: robot.frame); button.title = ""; button.isBordered = false; button.target = self; button.action = #selector(toggleChat); button.toolTip = "打开沐言轻量聊天"; button.setAccessibilityLabel("打开沐言轻量聊天"); content.addSubview(button)
         let status = label(state.status, frame: NSRect(x: 8, y: 11, width: 120, height: 20)); status.alignment = .center; content.addSubview(status); statusLabel = status
         if let screen = NSScreen.main { panel.setFrameOrigin(NSPoint(x: screen.visibleFrame.maxX - 158, y: screen.visibleFrame.minY + 44)) }
         petPanel = panel
@@ -129,7 +129,7 @@ final class MossPet: NSObject {
     private func createChatIfNeeded() {
         guard chatPanel == nil else { return }
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 400, height: 420), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        panel.title = "MOSS · 轻量聊天"; panel.isReleasedWhenClosed = false; panel.level = .floating
+        panel.title = "沐言 · 轻量聊天"; panel.isReleasedWhenClosed = false; panel.level = .floating
         let content = glass(NSSize(width: 400, height: 420)); panel.contentView = content
         let targetField = label("目标：\(target)", frame: NSRect(x: 16, y: 380, width: 278, height: 22)); targetField.toolTip = target; content.addSubview(targetField); targetLabel = targetField
         let expand = NSButton(title: "展开 ↗", target: self, action: #selector(expandChat)); expand.frame = NSRect(x: 305, y: 377, width: 80, height: 28); content.addSubview(expand)
@@ -137,14 +137,14 @@ final class MossPet: NSObject {
         let text = NSTextView(frame: scroll.bounds); text.isEditable = false; text.isSelectable = true; text.drawsBackground = false; text.font = .systemFont(ofSize: 13); text.textContainerInset = NSSize(width: 8, height: 8); text.isVerticallyResizable = true; text.autoresizingMask = [.width]; text.textContainer?.widthTracksTextView = true
         scroll.documentView = text; content.addSubview(scroll); transcript = text
         let activityField = label(activity, frame: NSRect(x: 16, y: 62, width: 368, height: 21)); content.addSubview(activityField); activityLabel = activityField
-        let entry = NSTextField(frame: NSRect(x: 16, y: 19, width: 225, height: 30)); entry.placeholderString = "与 MOSS 聊天…"; entry.target = self; entry.action = #selector(sendText); content.addSubview(entry); input = entry
+        let entry = NSTextField(frame: NSRect(x: 16, y: 19, width: 225, height: 30)); entry.placeholderString = "与沐言聊天…"; entry.target = self; entry.action = #selector(sendText); content.addSubview(entry); input = entry
         let voice = NSButton(title: "语音", target: self, action: #selector(listen)); voice.frame = NSRect(x: 246, y: 18, width: 62, height: 32); content.addSubview(voice)
         let send = NSButton(title: "发送", target: self, action: #selector(sendText)); send.frame = NSRect(x: 313, y: 18, width: 71, height: 32); content.addSubview(send)
         if let pet = petPanel, let screen = pet.screen { panel.setFrameOrigin(NSPoint(x: max(screen.visibleFrame.minX, min(pet.frame.maxX - 400, screen.visibleFrame.maxX - 400)), y: max(screen.visibleFrame.minY, min(pet.frame.maxY + 12, screen.visibleFrame.maxY - 448)))) }
         chatPanel = panel; renderConversation()
     }
     private func renderConversation() {
-        transcript?.string = messages.map { ($0.0 == "user" ? "你" : "MOSS") + "\n" + $0.1 }.joined(separator: "\n\n")
+        transcript?.string = messages.map { ($0.0 == "user" ? "你" : "沐言") + "\n" + $0.1 }.joined(separator: "\n\n")
         if let text = transcript { text.scrollRangeToVisible(NSRange(location: (text.string as NSString).length, length: 0)) }
         activityLabel?.stringValue = activity
     }

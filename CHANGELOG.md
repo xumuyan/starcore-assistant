@@ -6,6 +6,8 @@
 
 ## 0.9.7 — 2026-11-09 · build 32
 
+- 产品定名「沐言（MuYan）」（SC-20261109-015）：应用包 dist/MuYan.app，安装到 ~/Applications/MuYan.app，CFBundleName=MuYan、CFBundleDisplayName=沐言；内置助理身份（名字与唤醒词）由 MOSS 自动迁移为沐言（旧内置名贾维斯→MOSS→沐言链保持，用户自定义名不受影响）；全部用户可见文案（窗口、菜单、横幅、听写浮条、桌面宠物、权限指引、设置页）同步更名；运行守卫同时覆盖新名 MuYan.app 与旧名 MOSS.app，安装成功后自动移除未运行的旧版 ~/Applications/MOSS.app；bundle ID、可执行名、LaunchAgent 标签、状态目录不变，麦克风等权限与用户配置保留。
+
 - Rust 宿主阶段一（SC-20261109-013/014）：新增 rust-host 工程，`moss-host status/start/stop` 与 node 版 client-control 逐字段、逐调用对齐（Disabled 代理绝不复活、stdout 与 launchctl 调用序列字节级一致）；构建流程新增 Rust 宿主编译（cargo 缺失时跳过不阻塞，编译失败则中止），二进制不入包、默认引擎仍为 node，未接入应用。
 - 修复「无法读取后台服务」弹窗：开始监听时 `client-control start` 对 Disabled 的 LaunchAgent 引导必然失败且未捕获（微信停用后 plist 为 Disabled），导致空输出与弹窗；现在跳过用户停用的代理（绝不复活微信代理）、引导失败不再中断、snapshot 新增 `delivery` 字段，面板如实显示「微信显示已停用」及恢复方式；控制命令增加重试（共 3 次）与真实错误详情。
 - 页面自愈看门狗：心跳监测 HUD 页面响应，页面挂起或 Web 进程退出时自动停止语音监听、重置状态、刷新页面并弹横幅告知；带冷却与次数上限防止恢复死循环（build 30）。

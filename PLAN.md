@@ -188,6 +188,15 @@
 - [x] 「无法读取后台服务」弹窗修复（SC-20261109-012，build 31）：根因为微信代理停用后 `client-control start` 引导 Disabled plist 必然失败且未捕获。现在跳过用户停用的代理（不复活微信代理）、引导失败不中断、面板如实显示停用态与恢复方式、控制命令 3 次重试并携带真实错误。证据：[client-control 测试](test/client-control.test.mjs) 全链路验证（临时 HOME + 假 launchctl），`npm test` 181 项全部通过；真实环境手动执行 start 返回 exit 0 且 delivery:false；重装 build 31 签名校验通过。
 - 未验收：build 31 真机行为（首屏无弹窗、监听启停、面板停用态文案、页面自愈、全局点击）待用户重启验证。
 
+## 产品定名沐言（MuYan）· SC-20261109-015
+
+范围：应用更名（中文名沐言、包名 MuYan），不影响内部标识与用户数据。
+
+- [x] 产品与身份更名：CFBundleName=MuYan、CFBundleDisplayName=沐言；内置助理名字与唤醒词默认 MOSS→沐言（贾维斯→MOSS→沐言迁移链，自定义名不动）；窗口/菜单/横幅/听写浮条/桌面宠物/权限指引/设置页全部用户可见文案同步；HUD 品牌标识改沐言。证据：npm test 185 项全部通过（含迁移链与自定义名保护断言、夹具标题断言同步更新）；`grep` 确认 index.html 与 Swift 用户可见字符串无 MOSS 残留。
+- [x] 安装链路适配：构建产物 dist/MuYan.app，安装到 ~/Applications/MuYan.app；运行守卫同时覆盖新名与旧名 MOSS.app（任一在运行即拒装）；安装成功后自动移除未运行的旧版 MOSS.app（在运行则提示手动清理）。证据：[安装设置测试](test/install-settings.test.mjs) 双模式守卫与清理标记断言；实际构建安装后 OLD_APP_REMOVED 与 APP_READY 输出核对，签名校验通过。
+- [x] 内部标识保持不变：bundle ID（local.codex-weixin.client）、可执行名、LaunchAgent 标签、状态目录、runtime 引擎均未改，用户配置与权限数据保留。证据：build.py/install.py 源码核对，客户端控制与 rust-host 一致性测试不受影响全部通过。
+- 未验收：build 32 真机验收（新名应用启动、菜单栏/横幅/听写浮条显示沐言、唤醒词沐言实测、麦克风与输入监授权限读回、旧 MOSS.app 已移除）待用户确认；提示：ad-hoc 签名随构建变化，若输入监控权限失效需在系统设置重新添加 MuYan。
+
 ## Rust 宿主引擎 · 阶段一（2026-11-09 用户批准立项）
 
 目标：用 Rust 替换 node 宿主层，降低安装体积（当前 node_modules 104MB）与常驻内存（node 宿主约 46MB）；Swift 壳与全部原生功能（唤醒对话、聊天、声音、项目选择、加密数据、Codex 交接、语音提醒、听写、横幅）不重写、不改变行为；用户配置与真实数据不重置。灰度共存：`runtime-engine` 开关默认 `node`，rust 宿主全对齐前不切换。微信 bot（早已停用）不在移植范围；若用户未来要恢复微信显示另立范围。

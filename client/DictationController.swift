@@ -179,7 +179,7 @@ final class DictationController: NSObject {
         }
         let access = permissions()
         guard access.input && access.accessibility && access.microphone == .authorized else {
-            show("等待授权 · 未录音", "请完成设置中的三项权限。输入监控没有 MOSS 时，点＋添加当前应用。"); return
+            show("等待授权 · 未录音", "请完成设置中的三项权限。输入监控没有沐言时，点＋添加当前应用。"); return
         }
         show("听写已就绪 · 未录音", "切到需要输入的文本框，单独按所选快捷键开始；再按结束，Esc 取消。")
     }
@@ -195,10 +195,10 @@ final class DictationController: NSObject {
         }
         let access = permissions()
         guard access.input && access.accessibility else {
-            show("需要系统权限", "请在MOSS 设置中检查输入监控与辅助功能权限"); return
+            show("需要系统权限", "请在沐言设置中检查输入监控与辅助功能权限"); return
         }
         guard access.microphone == .authorized || access.microphone == .notDetermined else {
-            show("需要麦克风权限", "请在系统设置中允许MOSS访问麦克风"); return
+            show("需要麦克风权限", "请在系统设置中允许沐言访问麦克风"); return
         }
         uiGeneration += 1; copyText = nil; notice = nil
         let id = UUID().uuidString
