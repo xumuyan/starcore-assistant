@@ -21,7 +21,7 @@ info = {
     'CFBundleDisplayName': 'MOSS',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
-    'CFBundleVersion': '30',
+    'CFBundleVersion': '31',
     'CFBundleIconFile': 'StarCoreIcon-v3',
     'LSMinimumSystemVersion': '13.0',
     'NSHighResolutionCapable': True,

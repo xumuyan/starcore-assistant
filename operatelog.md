@@ -2,6 +2,17 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-012 修复「无法读取后台服务」弹窗与开始监听失效（build 31）
+
+- 北京时间：2026-11-09 21:06:37 +08:00。
+- 修改或新增：用户安装新版后首屏弹「MOSS 无法读取后台服务」并卡住。根因（确定性）：SC-20261109-008 将微信 bot 与桌面监视两个 LaunchAgent plist 置为 Disabled 后，`client-control start` 中 `launchctl bootstrap` 对 Disabled 标签必然失败，且该调用未包 try/catch → client-control 护出、空 stdout 退出 → Swift JSONDecoder 抛错 → 弹窗；0.9.6 因 plist 未停用从未触发。
+- 修改：src/client-control.mjs —— start 命令读取 plist 的 Disabled 标记（plutil 转 JSON）并跳过用户停用的代理（绝不复活微信代理）；bootstrap 包 try/catch；launchctl/plutil 路径支持测试环境变量覆盖；snapshot 新增 `delivery` 字段（读 runtime-settings.json）。client/App.swift —— runControl 改为 3 次重试（间隔 0.4s）并在错误文案携带真实错误详情；Snapshot 新增 `delivery: Bool?` 容错字段；render 在停用态如实显示「微信显示已停用」与恢复方式。构建号 30→31。
+- 遇到的难题：测试初版断言假设日志含「bootstrap + 标签」相邻字符串（实际是 bootstrap + domain + plist 路径）；假 launchctl 脚本未 chmod 可执行，EACCES 被新加的容错捕获，恰好验证了恢复路径。
+- 处理方式：修正断言匹配 plist 路径；测试用临时 HOME + CODEX_WEIXIN_STATE_DIR + 假 launchctl 全链路验证 start/status。
+- 验证结果：npm test 181 项全部通过（含新增 client-control 功能测试：Disabled 不引导、启用态正常引导、status 带 delivery 字段）；安装时运行中保护守卫首次实战拦截（旧实例未退出时拒绝覆盖安装，退出后正常安装）；重装 0.9.7/build 31 签名校验通过并已启动（PID 66668）；真实环境手动执行 start 返回 exit 0 且 delivery:false、serviceRunning:false，微信代理未被复活；runtime 目录已同步新代码。
+- 遗留问题：build 31 真机验收（首屏不再弹窗、开始监听按钮行为、面板显示「微信显示已停用」、监听启停、页面自愈）待用户确认；开始监听在停用态的实际语义（仅跳过引导）已在面板文案说明，如需「开启 Codex 完成监听但不开微信」需另立范围。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261109-012] skip disabled agents on start and surface delivery state`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-011 页面自愈看门狗与 build 30
 
 - 北京时间：2026-11-09 20:45:06 +08:00。

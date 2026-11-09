@@ -17,6 +17,8 @@ struct Snapshot: Codable {
     let remoteThreadId: String?
     let remoteStatus: String
     let latest: Latest?
+    /// Older runtimes omit this field; decode tolerantly.
+    let delivery: Bool?
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -161,22 +163,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func runControl(_ command: String, completion: @escaping (Snapshot?, String?) -> Void) {
         let configuration = settings!
         DispatchQueue.global(qos: .utility).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: configuration.node)
-            process.arguments = [configuration.runtime + "/src/client-control.mjs", command]
-            process.currentDirectoryURL = URL(fileURLWithPath: configuration.runtime)
-            let output = Pipe()
-            process.standardOutput = output
-            process.standardError = FileHandle.nullDevice
-            do {
-                try process.run()
-                let data = output.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
-                let snapshot = try JSONDecoder().decode(Snapshot.self, from: data)
-                DispatchQueue.main.async { completion(snapshot, nil) }
-            } catch {
-                DispatchQueue.main.async { completion(nil, "无法读取后台服务，请检查本地安装。") }
+            var lastError: Error?
+            // Startup can transiently fail while the host boots; retry before blaming the install.
+            for attempt in 0..<3 {
+                if attempt > 0 { Thread.sleep(forTimeInterval: 0.4) }
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: configuration.node)
+                process.arguments = [configuration.runtime + "/src/client-control.mjs", command]
+                process.currentDirectoryURL = URL(fileURLWithPath: configuration.runtime)
+                let output = Pipe()
+                process.standardOutput = output
+                process.standardError = FileHandle.nullDevice
+                do {
+                    try process.run()
+                    let data = output.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
+                    let snapshot = try JSONDecoder().decode(Snapshot.self, from: data)
+                    DispatchQueue.main.async { completion(snapshot, nil) }
+                    return
+                } catch { lastError = error }
             }
+            let detail = lastError.map { $0.localizedDescription } ?? "未知错误"
+            DispatchQueue.main.async { completion(nil, "无法读取后台服务（\(detail)），请检查本地安装。") }
         }
     }
 
@@ -200,6 +208,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             heading.stringValue = "监听已开启，等待微信会话"
             heading.textColor = .systemOrange
             detail.stringValue = "在手机 ClawBot 发送「开启提醒」，收到回复后即可自动推送。"
+        } else if s.delivery == false {
+            heading.stringValue = "微信显示已停用"
+            heading.textColor = .secondaryLabelColor
+            detail.stringValue = "已按你的要求不再在微信显示；Codex 完成事件由语音提醒播报。恢复方式：runtime-settings.json 设 wechatDelivery=true 后重新构建。"
         } else {
             heading.stringValue = "监听已停止或正在启动"
             heading.textColor = .secondaryLabelColor

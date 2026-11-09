@@ -7,9 +7,20 @@ import { remoteEnabled, latestTarget, requests } from './remote-store.mjs';
 
 const labels = ['local.codex-weixin-notifier', 'local.codex-weixin-desktop-watch'];
 const domain = `gui/${process.getuid()}`;
+// 可替换的 launchctl/plutil 仅用于测试；生产固定系统路径。
+const launchctl = process.env.MOSS_LAUNCHCTL || '/bin/launchctl';
+const plutil = process.env.MOSS_PLUTIL || '/usr/bin/plutil';
+// 微信显示停用（2026-11-09 用户要求）：runtime-settings.json wechatDelivery=false 时 plist 为 Disabled。
+const delivery = read('runtime-settings.json').wechatDelivery !== false;
+function plistDisabled(label) {
+  try {
+    const parsed = JSON.parse(execFileSync(plutil, ['-convert', 'json', '-o', '-', join(homedir(), 'Library/LaunchAgents', `${label}.plist`)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+    return parsed.Disabled === true;
+  } catch { return false; }
+}
 function loaded(label) {
   try {
-    const text = execFileSync('/bin/launchctl', ['print', `${domain}/${label}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const text = execFileSync(launchctl, ['print', `${domain}/${label}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
     return /^\s*state = running\s*$/m.test(text);
   } catch { return false; }
 }
@@ -19,10 +30,12 @@ function read(name) {
 const command = process.argv[2] ?? 'status';
 if (command === 'start') {
   for (const label of labels) {
+    // 用户停用（Disabled）的代理绝不重新引导；否则开始监听会把微信代理拉回来。
+    if (plistDisabled(label)) continue;
     // A registered service may be waiting to restart. Don't register it twice.
-    try { execFileSync('/bin/launchctl', ['print', `${domain}/${label}`], { stdio: 'ignore' }); }
+    try { execFileSync(launchctl, ['print', `${domain}/${label}`], { stdio: 'ignore' }); }
     catch {
-      execFileSync('/bin/launchctl', ['bootstrap', domain, join(homedir(), 'Library/LaunchAgents', `${label}.plist`)], { stdio: 'ignore' });
+      try { execFileSync(launchctl, ['bootstrap', domain, join(homedir(), 'Library/LaunchAgents', `${label}.plist`)], { stdio: 'ignore' }); } catch {}
     }
   }
 } else if (command === 'stop') {
@@ -42,6 +55,7 @@ let bound = false;
 try { bound = existsSync(index) && JSON.parse(readFileSync(index, 'utf8')).length > 0; } catch {}
 const remote = requests();
 console.log(JSON.stringify({
+  delivery,
   serviceRunning: botRunning,
   watching: watcherRunning && desktop.running === true && !desktop.error && Date.now() - Date.parse(desktop.checkedAt) < 15000,
   bound,
