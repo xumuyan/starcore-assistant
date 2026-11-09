@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-002 记录 SC-20261109-001 哈希与推送受阻
+
+- 北京时间：2026-11-09 12:47:09 +08:00。
+- 修改或新增：仅操作日志。回填 SC-20261109-001 实际提交哈希 `b63f7ed`（分支 `feat/global-dictation`，含 21 个文件：提醒服务、横幅与桥接、设置接线、版本 0.9.6/build 27、测试与文档）。
+- 遇到的难题：本执行环境无法推送远端。HTTPS 路径：osxkeychain 无 github.com 凭据、`gh` 未登录（`gh auth status` 显示未登录）、终端密码提示不可用（Device not configured）；SSH 路径：密钥认证为 `xuguopeng`，对 `xumuyan/starcore-assistant.git` 无写权限（Permission denied）。
+- 处理方式：按规则保留本地提交，不强制推送，不把本地提交写成线上已更新；恢复步骤为用户在有凭据的终端执行普通 `git push origin feat/global-dictation`（同批包含 `b63f7ed` 与本条提交），推送后核对远端并回看 CI（Mac 构建编译原生夹具）。
+- 验证结果：本条为日志记录，无代码改动；`git status` 确认待推送提交与工作区状态一致。
+- 遗留问题：远端尚未收到 `b63f7ed`；原生夹具编译、`npm run build:mac:check`、安装与真机播报验收全部待后续完成，PLAN 对应项保持未勾选。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261109-002] log SC-20261109-001 hash and blocked push`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-001 Codex 完成语音提醒 服务与顶部横幅实现
 
 - 北京时间：2026-11-09 12:44:24 +08:00（实施开始后本批记录；计划登记于 2026-11-04 提交 `e70650c`，用户批准时间以会话口述为准，未单独存档）。
@@ -10,7 +20,7 @@
 - 处理方式：基线移到构造时（应用打开瞬间的历史不补播，语义更准）；播报携带 `ignoreSpeakSwitch` 专属放行而不改变原 speak 语义；横幅沿用 `DictationNonactivatingPanel` 模式并加覆盖全幅隐形按钮，`orderFrontRegardless` + `canJoinAllSpaces`，`hidesOnDeactivate=false`；提醒的语音走既有 `speak`/`play` 通道复用 `playbackEnded` 恢复拾音协议；原生验证改为推送后以 GitHub Mac CI 编译结果为准，未验证项如实留空。
 - 验证结果：截至 2026-11-09 12:44 +08:00，本机实际执行 `node --test test/reminder.test.mjs` 14 项通过、moss-ui/assistant/project-docs 新增断言通过；`npm test` 全量 167 项：161 通过、6 失败，失败全部为 Swift 编译类夹具且原因相同（沙箱拦截 swiftc/libxcrun），其中 5 项为本批之前就存在的 dictation/pet 旧测试，与本批代码无关；`git diff --check` 干净。原生夹具、`npm run build:mac:check`、安装与真机播报均未执行，PLAN 相应项保持未勾选，详见 docs/verification/2026-11-09-reminder.md。
 - 遗留问题：横幅原生夹具与签名构建待 CI/本机构建核对；真机自动播报、旧唤醒/听写/微信回归待批次 B；小爱音箱不纳入本步。解除条件：CI 编译通过后勾选横幅与构建项，备份安装 0.9.6/build 27 并真机验证后才能勾选整项完成。
-- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-001] announce Codex turn completion with voice and banner`；最终哈希按 Change-ID 查询。
+- 对应 Git 提交：`b63f7ed` — `feat: [SC-20261109-001] announce Codex turn completion with voice and banner`；推送状态见 SC-20261109-002。
 
 ## SC-20261101-005 安装读回与权限验收交接
 
