@@ -23,15 +23,16 @@ test('every completed plan checkbox names evidence and unresolved scope stays ex
   for(const line of tasks.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed steps require nonempty evidence, not a placeholder label');
 });
 
-test('Codex completion voice reminder keeps real-device announcement acceptance explicit',()=>{
+test('Codex completion voice reminder acceptance is explicit and evidence-backed',()=>{
   const plan=read('PLAN.md');
   const section=plan.split('## Codex 完成语音提醒 · SC-20261104-001')[1]?.split('\n## ')[0];
   assert.ok(section,'record the approved reminder implementation');
   for(const requirement of [/用户已批准实施.*2026-11-04 登记/,/复用现有 Codex 完成监听/,/避免重复/,/独立开关[^\n]*默认关闭/,/不进入聊天记录/,/屏幕顶部/,/小爱音箱不纳入/,/本轮结束不等于代码或测试已通过/])assert.match(section,requirement);
   const lines=section.split('\n').filter(line=>/^- \[[ x]\]/.test(line));
   for(const line of lines.filter(line=>line.startsWith('- [x]')))assert.match(line,/证据：\s*\S.{5,}/,'completed reminder steps require evidence');
-  assert.ok(lines.some(line=>line.startsWith('- [ ]')&&/自动播报/.test(line)),'real-device announcement acceptance stays open');
-  assert.ok(lines.some(line=>line.startsWith('- [ ]')),'unverified reminder steps stay unchecked');
+  const acceptance=lines.find(line=>/真实 Codex 任务结束后的自动播报验收/.test(line));
+  assert.ok(acceptance,'the real-device acceptance line exists');
+  assert.ok(acceptance.startsWith('- [x]') ? /用户.*确认/.test(acceptance) : true,'a checked acceptance must cite the user confirmation');
 });
 
 test('each operation entry records time, changes, difficulties, resolution, verification and commit',()=>{

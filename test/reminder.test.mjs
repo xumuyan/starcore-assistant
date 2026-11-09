@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CompletionVoiceReminder, reminderSpeech } from '../src/assistant-reminder.mjs';
@@ -43,14 +43,16 @@ test('reminder speech names the project and turn end without inventing a verdict
   assert.equal(reminderSpeech({ project: 'x' }).includes('已通过'), false);
 });
 
-test('events existing before the watcher starts are history and never replayed', t => {
+test('events existing before the watcher starts are history: never replayed and files removed', t => {
   const h = stubHarness(t, { preExisting: [{ type: 'agent-turn-complete', 'thread-id': 'thread-1', 'turn-id': 'turn-1', cwd: '/work/项目A', 'last-assistant-message': '完成摘要' }] });
   h.reminder.tick(); h.reminder.tick();
   assert.equal(h.announced.length, 0);
   assert.equal(h.dropped.length, 0);
+  assert.equal(existsSync(join(h.dir, 'events', `${'a'.repeat(64)}.json`)), false, 'history file consumed at construction');
+  assert.equal(readdirSync(join(h.dir, 'events')).length, 0, 'no backlog remains');
 });
 
-test('a new completion announces once, keeps the event read-only and never repeats', async t => {
+test('a new completion announces once, its file is consumed and it never repeats', async t => {
   const h = stubHarness(t);
   h.reminder.tick(); // baseline
   const event = h.write('thread-1', 'turn-2');
@@ -59,10 +61,10 @@ test('a new completion announces once, keeps the event read-only and never repea
   assert.equal(h.announced.length, 1);
   assert.equal(h.announced[0].id, event.id);
   assert.equal(h.announced[0].project, '项目A');
+  assert.equal(existsSync(join(h.dir, 'events', `${event.id}.json`)), false, 'announced event file removed: no backlog');
+  assert.equal(readdirSync(join(h.dir, 'events')).length, 0, 'events directory stays clean');
   h.reminder.tick(); h.reminder.tick();
   assert.equal(h.announced.length, 1, 'same event id never announces twice');
-  const stored = JSON.parse(readFileSync(join(h.dir, 'events', `${event.id}.json`), 'utf8'));
-  assert.equal(stored.status, 'pending', 'reminder never touches WeChat delivery status');
 });
 
 test('the switch is checked on arrival; enabling later never replays skipped completions', t => {
@@ -72,6 +74,7 @@ test('the switch is checked on arrival; enabling later never replays skipped com
   h.write('thread-1', 'turn-1');
   h.reminder.tick();
   assert.equal(h.announced.length, 0);
+  assert.equal(readdirSync(join(h.dir, 'events')).length, 0, 'dismissed-while-disabled events are consumed, not stored');
   h.setEnabled(true);
   h.reminder.tick();
   assert.equal(h.announced.length, 0, 'skipped history stays skipped');
@@ -110,6 +113,7 @@ test('waiting past the limit drops the pending reminder with an explicit notice'
   h.reminder.tick();
   assert.equal(h.announced.length, 0);
   assert.equal(h.dropped.length, 1);
+  assert.equal(readdirSync(join(h.dir, 'events')).length, 0, 'dropped event is consumed too: no stale backlog');
   h.setBusy(false);
   h.reminder.tick();
   assert.equal(h.announced.length, 0, 'a dropped reminder is not announced later');
@@ -153,13 +157,38 @@ test('turning the switch off while waiting drops the pending reminder silently',
   assert.equal(h.dropped.length, 0, 'a user-disabled reminder is not announced and needs no error');
 });
 
-test('files that are not completion events are ignored', t => {
+test('files that are not completion events are ignored and cleaned up', t => {
   const h = stubHarness(t);
   h.reminder.tick(); // baseline
   writeFileSync(join(h.dir, 'events', 'not-an-event.json'), '{}');
   writeFileSync(join(h.dir, 'events', `${'a'.repeat(64)}.json`), JSON.stringify({ id: 'mismatch', project: '伪造' }));
   h.reminder.tick();
   assert.equal(h.announced.length, 0);
+  assert.equal(existsSync(join(h.dir, 'events', `${'a'.repeat(64)}.json`)), false, 'invalid hex event file is cleaned up');
+  assert.equal(existsSync(join(h.dir, 'events', 'not-an-event.json')), true, 'files outside the event namespace are untouched');
+});
+
+test('a failing file removal never breaks announcing or lets events replay', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'reminder-test-'));
+  prepare(dir);
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const announced = [];
+  const service = {
+    reminderEnabled: () => true,
+    reminderBusy: () => false,
+    announceReminder: event => { announced.push(event); return Promise.resolve(); },
+    reminderDropped: () => {}
+  };
+  let now = 1000;
+  const remove = () => { throw new Error('disk busy'); };
+  const reminder = new CompletionVoiceReminder({ service, dir, now: () => now, remove, isBusy: () => false });
+  const event = enqueue({ type: 'agent-turn-complete', 'thread-id': 'thread-1', 'turn-id': 'turn-1', cwd: '/work/项目A', 'last-assistant-message': '完成摘要' }, dir);
+  reminder.tick();
+  await wait(0);
+  assert.equal(announced.length, 1, 'announce works even when deletion fails');
+  assert.equal(announced[0].id, event.id);
+  reminder.tick(); reminder.tick();
+  assert.equal(announced.length, 1, 'seen-memory prevents replay when the file could not be removed');
 });
 
 function serviceHarness(t, options = {}) {

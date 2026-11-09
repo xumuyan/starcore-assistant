@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-008 微信显示停用、积压清理与 0.9.7 构建安装
+
+- 北京时间：2026-11-09 19:58:45 +08:00。
+- 修改或新增：用户确认真机播报验收通过（“可以了”）；同时要求不再在微信显示、清掉 900+ 条积压、以后不再存储。① install.py 新增 `wechatDelivery` 开关（默认 false，显式 true 保留）：关闭时微信 bot（`local.codex-weixin-notifier`）与桌面监视（`local.codex-weixin-desktop-watch`）代理仍注册但 `Disabled: true` 并立即 `launchctl bootout`，安装输出明示停用。② 语音提醒成为事件唯一消费方：到达即读入内存并删除文件，播报/丢弃/跳过/无效一律清理，删除失败不影响播报也不重播，非 64-hex 命名文件不碰。③ 版本 0.9.7 / build 28，CHANGELOG/README 同步。
+- 遇到的难题：install.py 每次构建都会无条件重写两个 LaunchAgent，仅改 plist 会在下次登录复活微信 bot，必须在构建脚本层面落开关；事件文件是语音提醒的数据源，不能停写，只能改为消费即删。清理过程中有 7 条新事件正在到达（0.9.6 运行中已播报），留待新版构造基线作为历史清理。
+- 处理方式：实删历史事件 946 条（其中 `pending` 913 条，19:56 执行）；修正两处编码笔误（install.py 误写 JS 花括号、测试断言误要求删除非事件命名空间文件）。
+- 验证结果：`npm test` 174 项全部通过（reminder 18 项含新增消费/清理/删除失败用例，install-settings 2 项源检查）；`npm run build:mac` 输出 `APP_READY` 与「微信提醒已停用」，安装后核对 0.9.7 / 28、签名 deep/strict 通过、runtime 0.9.7、`runtime-settings.json` `{"codex": null, "wechatDelivery": false}`、两 plist `Disabled=true`、launchctl 无微信代理；`git diff --check` 干净。PLAN 与验收记录已回填（真机验收以用户口头确认为证据）。
+- 遗留问题：微信显示恢复路径未真机演练（无此需求）；远端仍缺提交，按用户此前指示未推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-008] disable WeChat display and consume completion events`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-006 原生验证、夹具修正与打包安装
 
 - 北京时间：2026-11-09 16:27:48 +08:00。
