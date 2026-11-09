@@ -2,6 +2,17 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-010 排查全局点击卡死：听写快捷键 tap 加固与 build 29
+
+- 北京时间：2026-11-09 20:29:29 +08:00。
+- 修改或新增：用户补充症状——监听停不了、停止按钮与右侧项目点击无反应、点击其他应用也无反应、只能强退。排查确认主窗口为普通带标题窗口不具备全屏遮罩能力；唯一具备全局鼠标事件拦截能力的组件是 DictationHotkey：其 `.defaultTap` 会话级 tap 同时覆盖鼠标按下与滚轮。本次将其拆分为两个 tap：键盘仍用可拦截 tap（Esc/F8 需吞掉），鼠标与滚轮改用纯观察 `.listenOnly` tap（系统保证不会因它拖住全局事件投递）；超时重启用逻辑改为对两个 tap 幂等重启用。
+- 修改：client/DictationHotkey.swift 拆分 keyTap/pointerTap 与对应 runloop source，stop() 成对失效；test/dictation-native.test.mjs 新增源级断言（拦截 tap 永不含鼠标/滚轮事件，指针 tap 必须为 listenOnly）；client/build.py 构建号 28→29。
+- 遇到的难题：Swift 回调首参为 CGEventTapProxy 而非 CFMachPort，无法直接重启用对应 tap；源级断言首版切片边界错误（pointerMask 声明先于 tapCreate）。
+- 处理方式：改为对存储的两个 tap 幂等重启用；断言改按 tapCreate 语句块切片。另修正测试导入（readFileSync 属 node:fs）。
+- 验证结果：npm test 176 项全部通过（含原生夹具 swiftc 实编译运行）；npm run build:mac 重装 0.9.7/build 29 到 ~/Applications/MOSS.app，签名严格校验通过；安装守卫在应用未运行时正常放行。真机行为（听写快捷键、全局点击不再卡死）待用户重启验证，标注未验收。
+- 遗留问题：此次卡死事故的直接触发源（0.9.6 实例热替换后网络进程崩溃）与全局点击不可用的完整因果链（tap 风暴 or 系统级降级）未能完全定位——应用已强退无法采样堆栈；已通过消除唯一的全局指针拦截面把同类风险归零。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261109-010] observe pointer events via listen-only tap`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-009 排查页面卡死并加运行中禁止覆盖安装保护
 
 - 北京时间：2026-11-09 20:09:01 +08:00。

@@ -65,11 +65,20 @@ final class DictationHotkey {
     var isActive: () -> Bool = { false }
     var onFailure: ((String) -> Void)?
     private var tap: CFMachPort?
-    private var source: CFRunLoopSource?
+    private var keySource: CFRunLoopSource?
+    private var pointerTap: CFMachPort?
+    private var pointerSource: CFRunLoopSource?
     private var matcher = DictationKeyMatcher()
     private var preset = "right-option"
     private var generation = 0
-    var running: Bool { tap != nil }
+    var running: Bool { tap != nil && pointerTap != nil }
+
+    /// The filtering tap covers keyboard events only. Mouse and scroll events are
+    /// observed by a separate listen-only tap: macOS never stalls system-wide
+    /// event delivery for listen-only taps, so pointer input stays alive even if
+    /// a callback is late. On 2026-11-09 a frozen instance left the whole UI
+    /// unclickable; the mouse-covering .defaultTap was the only global pointer
+    /// interception surface this app owned, so it no longer gets one.
 
     static func retainsTap(enabled: Bool, preset: String, currentPreset: String, running: Bool, permitted: Bool) -> Bool {
         enabled && permitted && running && preset == currentPreset
@@ -86,37 +95,57 @@ final class DictationHotkey {
         if Self.retainsTap(enabled: enabled, preset: preset, currentPreset: self.preset, running: running, permitted: true) { return true }
         stop()
         self.preset = preset
-        var mask = (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
-                   (CGEventMask(1) << CGEventType.keyDown.rawValue) |
-                   (CGEventMask(1) << CGEventType.keyUp.rawValue)
-        for kind in [CGEventType.leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel] { mask |= CGEventMask(1) << kind.rawValue }
+        let keyMask = (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
+                      (CGEventMask(1) << CGEventType.keyDown.rawValue) |
+                      (CGEventMask(1) << CGEventType.keyUp.rawValue)
+        let pointerMask = (CGEventMask(1) << CGEventType.leftMouseDown.rawValue) |
+                          (CGEventMask(1) << CGEventType.rightMouseDown.rawValue) |
+                          (CGEventMask(1) << CGEventType.otherMouseDown.rawValue) |
+                          (CGEventMask(1) << CGEventType.scrollWheel.rawValue)
+        let callback: CGEventTapCallBack = { _, type, event, context in
+            guard let context else { return Unmanaged.passUnretained(event) }
+            return Unmanaged<DictationHotkey>.fromOpaque(context).takeUnretainedValue().receive(type, event)
+        }
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
-            options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, context in
-                guard let context else { return Unmanaged.passUnretained(event) }
-                return Unmanaged<DictationHotkey>.fromOpaque(context).takeUnretainedValue().receive(type, event)
-            }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+            options: .defaultTap, eventsOfInterest: keyMask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
             onFailure?("无法启动听写快捷键监听，请检查系统权限"); return false
         }
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
             CFMachPortInvalidate(tap); onFailure?("无法创建听写快捷键监听"); return false
         }
-        self.tap = tap; self.source = source
+        guard let pointerTap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
+            options: .listenOnly, eventsOfInterest: pointerMask, callback: callback, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+            CFMachPortInvalidate(tap); onFailure?("无法创建听写指针观察监听，请检查输入监控权限"); return false
+        }
+        guard let pointerSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, pointerTap, 0) else {
+            CFMachPortInvalidate(tap); CFMachPortInvalidate(pointerTap)
+            onFailure?("无法创建听写指针观察监听"); return false
+        }
+        self.tap = tap; self.keySource = source
+        self.pointerTap = pointerTap; self.pointerSource = pointerSource
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CFRunLoopAddSource(CFRunLoopGetMain(), pointerSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        CGEvent.tapEnable(tap: pointerTap, enable: true)
         return true
     }
 
     func stop() {
         generation += 1
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
-        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        source = nil; tap = nil; matcher.reset()
+        if let keySource { CFRunLoopRemoveSource(CFRunLoopGetMain(), keySource, .commonModes) }
+        if let pointerTap { CGEvent.tapEnable(tap: pointerTap, enable: false); CFMachPortInvalidate(pointerTap) }
+        if let pointerSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), pointerSource, .commonModes) }
+        keySource = nil; tap = nil; pointerSource = nil; pointerTap = nil
+        matcher.reset()
     }
 
     private func receive(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             matcher.reset()
+            // Re-enable both taps; doing it on the healthy one is a no-op.
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            if let pointerTap { CGEvent.tapEnable(tap: pointerTap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
         let result = matcher.handle(type: type,
