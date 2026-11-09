@@ -188,6 +188,17 @@
 - [x] 「无法读取后台服务」弹窗修复（SC-20261109-012，build 31）：根因为微信代理停用后 `client-control start` 引导 Disabled plist 必然失败且未捕获。现在跳过用户停用的代理（不复活微信代理）、引导失败不中断、面板如实显示停用态与恢复方式、控制命令 3 次重试并携带真实错误。证据：[client-control 测试](test/client-control.test.mjs) 全链路验证（临时 HOME + 假 launchctl），`npm test` 181 项全部通过；真实环境手动执行 start 返回 exit 0 且 delivery:false；重装 build 31 签名校验通过。
 - 未验收：build 31 真机行为（首屏无弹窗、监听启停、面板停用态文案、页面自愈、全局点击）待用户重启验证。
 
+## Rust 宿主引擎 · 阶段一（2026-11-09 用户批准立项）
+
+目标：用 Rust 替换 node 宿主层，降低安装体积（当前 node_modules 104MB）与常驻内存（node 宿主约 46MB）；Swift 壳与全部原生功能（唤醒对话、聊天、声音、项目选择、加密数据、Codex 交接、语音提醒、听写、横幅）不重写、不改变行为；用户配置与真实数据不重置。灰度共存：`runtime-engine` 开关默认 `node`，rust 宿主全对齐前不切换。微信 bot（早已停用）不在移植范围；若用户未来要恢复微信显示另立范围。
+
+- [x] P0 工具链与只读状态对齐（SC-20261109-013）：rustup stable 工具链安装；`rust-host` 工程实现 `moss-host status` 只读快照，与 node 版 client-control 逐字段对齐（delivery/serviceRunning/watching/bound/ready/paused/sent/pending/uncertain/remoteEnabled/remoteProject/remoteThreadId/remoteStatus/latest），输出字节级一致。证据：[rust-host 测试](test/rust-host.test.mjs) 同沙箱下两个二进制 stdout 字符串全等 + `cargo test` 单元测试；`npm test` 全量通过。工具链 cargo 1.99.1 安装完成。
+- [ ] P1 控制命令对齐：`moss-host start/stop`（含 Disabled 跳过、绝不复活微信代理、launchctl 可注入）；build.py 编译 moss-host 但不接线。
+- [ ] P2 宿主 stdio 协议最小子集：tasks/configure/listen 转发与现有 JSON 行协议对齐；Swift 端新增 `runtime-engine` 开关（默认 node，兼容旧配置）。
+- [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。
+- [ ] P4 灰度切换与回滚演练：默认仍 node，用户显式试开 rust 并验证回滚；全部真机验收记录后才讨论默认值变更。
+- [ ] P5 清理：确认无回退需求后移除 node_modules 分发。前置条件：P4 完成且用户明确确认。
+
 ## 实施接口与执行约定
 
 采用 writing-plans 的任务拆分方式，在本会话按服务 → 原生组件 → 接线 → 回归/真机推进；复用当前 checkout，不额外创建 worktree。每批独立 commit/push，原应用继续使用旧运行副本直到验证后安装。

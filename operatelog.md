@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261109-013 Rust 宿主引擎阶段一启动：工具链 + moss-host status 只读对齐
+
+- 北京时间：2026-11-09 23:15:03 +08:00。
+- 修改或新增：用户批准用 Rust 替换 node 宿主层（阶段一方案：Swift 壳与原生功能不动，灰度共存默认 node）。已立项写入 PLAN（P0–P5 六阶段）。本次交付 P0：安装 rustup stable 工具链（cargo/rustc 1.99.1，minimal profile，位于 ~/.rustup 与 ~/.cargo，不动系统目录）；新建 rust-host/ Cargo 工程（serde/serde_json/libc 三个依赖，Cargo.lock 已提交）；实现 `moss-host status` 只读快照命令与 `--version`，与 node 版 client-control 逐字段对齐（delivery/serviceRunning/watching/bound/ready/paused/sent/pending/uncertain/remoteEnabled/remoteProject/remoteThreadId/remoteStatus/latest），包括事件目录过滤（64 位小写十六进制名、损坏 JSON 跳过、cancelled 排除、按 time 排序）、远程请求状态链、wechatDelivery/enabled 缺省语义、toISOString 固定形状解析（Hinnant days_from_civil）、目录 0700 权限；`rust-host/target/` 加入 .gitignore。
+- 遇到的难题：① 本机无 Rust 工具链，crates.io 网页 403 但索引与 static.rust-lang.org 可达，确认可安装；② rustup 安装两次被 600 秒命令超时打断，产生半安装损坏（rustc 组件声明已装但二进制缺失，“not applicable to toolchain”错误），改用 nohup 后台安装 + 轮询解决；③ 闭包返回引用生命周期报错改用具名 fn；④ node 测试断言未计入末尾换行符。
+- 处理方式：后台任务+轮询避让超时；对齐差异点（宽松 ISO 解析、缺 time 字段排序抛错）在 status.rs 头部注释明确为“比 node 更稳健且不影响正常数据”的已知可容忍差异。
+- 验证结果：cargo test 8 项单元测试全部通过；新增 test/rust-host.test.mjs 两项——同沙箱下 rust 与 node 两版 status 输出字节级全等（含 18 事件/3 请求/坏名/损坏 JSON 的完整夹具）与 --version/未知命令行为；npm test 183 项全部通过（新增 2 项）；真实环境（~/.codex-weixin-notifier，只读）手动对比两版输出亦字节级一致。未接入应用、未改 build.py、默认引擎仍为 node，符合 P0 范围。
+- 遗留问题：P1（start/stop 对齐含 Disabled 跳过 + build.py 编译不接线）、P2（stdio 协议子集 + Swift runtime-engine 开关）、P3（聊天/ASR/听写/提醒/金库对齐）、P4（灰度切换与回滚演练）、P5（移除 node_modules 分发）待推进；SC-20261109-012 的 build 31 真机验收仍待用户确认。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261109-013] bootstrap rust host engine with byte-identical status`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-012 修复「无法读取后台服务」弹窗与开始监听失效（build 31）
 
 - 北京时间：2026-11-09 21:06:37 +08:00。

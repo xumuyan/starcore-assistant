@@ -40,3 +40,6 @@ dist/
 *.zip
 *.pyc
 .venv/
+
+# Rust 宿主构建产物（Cargo）
+rust-host/target/
