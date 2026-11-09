@@ -178,7 +178,8 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
                 do { try microphone.start(); emit(["type": "microphone", "enabled": true]) }
                 catch { wantsListen = false; send(["type": "listen", "enabled": false]); self.error(error.localizedDescription) }
             } else { microphone.stop(); emit(["type": "microphone", "enabled": false]) }
-        case "error": launchingListen = false; emit(event)
+        case "error": launchingListen = false; reminderBanner.showNotice(event["message"] as? String ?? ""); emit(event)
+        case "notice": reminderBanner.showNotice(event["message"] as? String ?? ""); emit(event)
         case "speak":
             guard let text = event["text"] as? String else { return }
             stopAudio(); microphone.suspend(true); emit(["type": "state", "name": "speaking", "detail": "正在用 Mac 系统声音回复 · 点击打断可继续说"])

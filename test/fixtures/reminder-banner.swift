@@ -18,9 +18,14 @@ import AppKit
         require(tiny.contains(ReminderBannerMetrics.frame(in: tiny)), "tiny visible frame still fits")
         require(ReminderBannerMetrics.title(project: "电视盒子") == "电视盒子 · Codex 本轮已结束", "title names the project and turn end")
         require(ReminderBannerMetrics.title(project: "  ") == "未命名项目 · Codex 本轮已结束", "empty project falls back")
-        require(ReminderBannerMetrics.summary("") == "回合结束不代表代码或测试已通过", "empty summary keeps the caveat")
-        require(ReminderBannerMetrics.summary("已修复登录并补充测试") == "已修复登录并补充测试", "summary kept")
-        require(ReminderBannerMetrics.summary(String(repeating: "字", count: 200)).count == 80, "summary bounded")
+        require(ReminderBannerMetrics.noticeTitle == "MOSS 提醒", "generic notice title")
+        require(ReminderBannerMetrics.summary("") == "回合结束不代表代码或测试已通过", "empty codex summary keeps the caveat")
+        require(ReminderBannerMetrics.summary("已修复登录并补充测试") == "已修复登录并补充测试", "codex summary kept")
+        require(ReminderBannerMetrics.summary(String(repeating: "字", count: 200)).count == 80, "codex summary bounded")
+        require(ReminderBannerMetrics.clipped("") == "", "empty notice stays empty so the banner never shows")
+        require(ReminderBannerMetrics.clipped("   ") == "", "whitespace notice stays empty")
+        require(ReminderBannerMetrics.clipped("微信提醒未播报：助理正忙") == "微信提醒未播报：助理正忙", "notice kept")
+        require(ReminderBannerMetrics.clipped(String(repeating: "字", count: 200)).count == 80, "notice bounded")
         require(!ReminderBannerMetrics.summary("abc").contains("已通过"), "real summary wins over the caveat")
         print("REMINDER_BANNER_PURE_OK")
         guard CGSessionCopyCurrentDictionary() != nil else {
@@ -29,27 +34,42 @@ import AppKit
         }
         _ = NSApplication.shared
         let banner = ReminderBanner()
-        let window = NSApp.windows.first { $0.title == "MOSS Codex 完成提醒" }!
+        let window = NSApp.windows.first { $0.title == "MOSS 提醒" }!
         require(!banner.visible && !window.isVisible, "constructor stays hidden")
         require(!window.canBecomeKey && !window.canBecomeMain, "never takes focus")
         require(window.styleMask.contains(.nonactivatingPanel) && !window.styleMask.contains(.titled), "nonactivating borderless style")
         require(window.level == .floating && !window.hidesOnDeactivate, "floating above other apps, survives deactivation")
         require(window.collectionBehavior.contains([.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]), "space behavior")
-        require(window.accessibilityLabel() == "Codex 完成提醒", "banner accessibility label")
+        require(window.accessibilityLabel() == "MOSS 提醒", "banner accessibility label")
         var opened = 0
         banner.onOpen = { opened += 1 }
         banner.openTapped()
         require(opened == 0, "a hidden banner never reports a click")
         let content = window.contentView as! ReminderBannerContent
         require(content.openButton.target === content && content.openButton.action == #selector(ReminderBannerContent.openClicked), "whole banner is the click target")
-        require(content.openButton.accessibilityLabel() == "打开 MOSS 查看完成提醒", "open accessibility")
-        require(content.titleLabel.stringValue.isEmpty && content.summaryLabel.stringValue.isEmpty, "labels start empty")
-        content.apply(project: "电视盒子", summary: "已修复登录并补充测试")
-        require(content.titleLabel.stringValue == "电视盒子 · Codex 本轮已结束", "title applied without showing")
-        require(content.summaryLabel.stringValue == "已修复登录并补充测试", "summary applied without showing")
-        require(!content.titleLabel.isSelectable && !content.titleLabel.isEditable, "labels are display only")
+        require(content.openButton.accessibilityLabel() == "打开 MOSS 查看提醒", "open accessibility")
+        require(content.titleLabel.stringValue.isEmpty && content.summaryLabel.stringValue.isEmpty, "labels start truly empty")
+        // Codex completion path fills labels without ever displaying a window.
+        banner.show(project: "电视盒子", summary: "已修复登录并补充测试")
+        require(!banner.visible, "show prepares labels without a WindowServer-visible order-in in tests")
+        require(content.titleLabel.stringValue == "电视盒子 · Codex 本轮已结束", "codex title applied")
+        require(content.summaryLabel.stringValue == "已修复登录并补充测试", "codex summary applied")
+        require(window.accessibilityLabel() == "Codex 完成提醒", "codex accessibility per show")
         banner.hide()
         require(!banner.visible, "hide keeps the banner hidden")
+        require(content.titleLabel.stringValue.isEmpty && content.summaryLabel.stringValue.isEmpty, "hide clears labels")
+        // Generic notice path shows the assistant reminder surface.
+        banner.showNotice("微信提醒未播报：当时助理正忙")
+        require(content.titleLabel.stringValue == "MOSS 提醒", "notice uses the generic title")
+        require(content.summaryLabel.stringValue == "微信提醒未播报：当时助理正忙", "notice summary applied")
+        require(window.accessibilityLabel() == "MOSS 提醒", "notice accessibility per show")
+        banner.hide()
+        banner.showNotice("   ")
+        require(!banner.visible && content.titleLabel.stringValue.isEmpty, "blank notice never shows")
+        banner.showNotice(String(repeating: "长", count: 200))
+        require(content.summaryLabel.stringValue.count == 80, "long notice truncated")
+        banner.hide()
+        require(!content.titleLabel.isSelectable && !content.titleLabel.isEditable, "labels are display only")
         print("REMINDER_BANNER_WINDOW_OK")
     }
 }

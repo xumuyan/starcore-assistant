@@ -19,6 +19,12 @@ enum ReminderBannerMetrics {
         return (name.isEmpty ? "未命名项目" : name) + " · Codex 本轮已结束"
     }
 
+    static let noticeTitle = "MOSS 提醒"
+
+    static func clipped(_ text: String, limit: Int = 80) -> String {
+        String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(limit))
+    }
+
     static func summary(_ summary: String) -> String {
         let trimmed = summary.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "回合结束不代表代码或测试已通过" }
@@ -36,9 +42,10 @@ private final class ReminderBannerButton: NSButton {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// A top-of-screen glass banner for Codex completion reminders. Presentation only:
-/// the bridge owns when to show it; a click hands the callback back to the app.
-/// All methods, including construction, must be called on the main queue.
+/// A top-of-screen glass banner for Codex completion reminders and general
+/// assistant notices. Presentation only: the bridge owns when to show it; a
+/// click hands the callback back to the app. All methods, including
+/// construction, must be called on the main queue.
 final class ReminderBanner: NSObject {
     var onOpen: (() -> Void)?
     var visible: Bool { window.isVisible }
@@ -53,8 +60,8 @@ final class ReminderBanner: NSObject {
                                      styleMask: [.borderless, .nonactivatingPanel],
                                      backing: .buffered, defer: false)
         super.init()
-        window.title = "MOSS Codex 完成提醒"
-        window.setAccessibilityLabel("Codex 完成提醒")
+        window.title = "MOSS 提醒"
+        window.setAccessibilityLabel("MOSS 提醒")
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         window.hidesOnDeactivate = false
@@ -69,7 +76,23 @@ final class ReminderBanner: NSObject {
     }
 
     func show(project: String, summary: String) {
-        content.apply(project: project, summary: summary)
+        show(title: ReminderBannerMetrics.title(project: project),
+             summary: ReminderBannerMetrics.summary(summary),
+             accessibilityLabel: "Codex 完成提醒")
+    }
+
+    /// System-level surface for assistant notices and errors: visible above all
+    /// apps even when MOSS is in the background. Empty or whitespace-only
+    /// messages never display. The HUD keeps its own in-window toast.
+    func showNotice(_ message: String) {
+        let clipped = ReminderBannerMetrics.clipped(message)
+        guard !clipped.isEmpty else { return }
+        show(title: ReminderBannerMetrics.noticeTitle, summary: clipped, accessibilityLabel: "MOSS 提醒")
+    }
+
+    func show(title: String, summary: String, accessibilityLabel: String) {
+        content.apply(title: title, summary: summary)
+        window.setAccessibilityLabel(accessibilityLabel)
         let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
         if let screen = screen { window.setFrame(ReminderBannerMetrics.frame(in: screen.visibleFrame), display: false) }
         window.orderFrontRegardless()
@@ -125,11 +148,11 @@ final class ReminderBannerContent: NSView {
         titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         titleLabel.textColor = .init(srgbRed: 0.10, green: 0.19, blue: 0.30, alpha: 1)
         titleLabel.lineBreakMode = .byTruncatingTail
-        titleLabel.setAccessibilityLabel("Codex 完成提醒项目")
+        titleLabel.setAccessibilityLabel("MOSS 提醒标题")
         summaryLabel.font = .systemFont(ofSize: 10.5)
         summaryLabel.textColor = .init(srgbRed: 0.30, green: 0.40, blue: 0.51, alpha: 1)
         summaryLabel.lineBreakMode = .byTruncatingTail
-        summaryLabel.setAccessibilityLabel("Codex 完成提醒摘要")
+        summaryLabel.setAccessibilityLabel("MOSS 提醒内容")
         for label in [titleLabel, summaryLabel] {
             label.isSelectable = false
             label.isEditable = false
@@ -144,7 +167,7 @@ final class ReminderBannerContent: NSView {
         openButton.focusRingType = .none
         openButton.target = self
         openButton.action = #selector(openClicked)
-        openButton.setAccessibilityLabel("打开 MOSS 查看完成提醒")
+        openButton.setAccessibilityLabel("打开 MOSS 查看提醒")
         openButton.toolTip = "点击打开 MOSS"
         glass.addSubview(indicator)
         glass.addSubview(titleLabel)
@@ -167,17 +190,17 @@ final class ReminderBannerContent: NSView {
         openButton.frame = NSRect(x: 0, y: 0, width: width, height: bounds.height)
     }
 
-    func apply(project: String, summary: String) {
-        titleLabel.stringValue = ReminderBannerMetrics.title(project: project)
-        summaryLabel.stringValue = ReminderBannerMetrics.summary(summary)
-        titleLabel.toolTip = titleLabel.stringValue
-        summaryLabel.toolTip = summaryLabel.stringValue
-        setAccessibilityHelp(titleLabel.stringValue)
+    func apply(title: String, summary: String) {
+        titleLabel.stringValue = title
+        summaryLabel.stringValue = summary
+        titleLabel.toolTip = title
+        summaryLabel.toolTip = summary
+        setAccessibilityHelp(title.isEmpty && summary.isEmpty ? "" : "\(title)：\(summary)")
         needsLayout = true
     }
 
     func clear() {
-        apply(project: "", summary: "")
+        apply(title: "", summary: "")
     }
 
     @objc func openClicked() { openAction?() }
