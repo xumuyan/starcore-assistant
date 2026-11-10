@@ -6,6 +6,9 @@
 
 - 北京时间：2026-11-10 16:25:30 +08:00。
 - 修改或新增：用户真机反馈光球「不是很明显」。排查发现根因：明暗判定用 body 背景色解析，而 HUD 背景是 radial-gradient 字符串，正则抓到的第一个数字是渐变坐标 78，被误判为暗色底，光球全程使用暗底淡墨 #C9A3AD 绘制在亮色界面上，导致几乎不可见。修复：明暗改按根元素 color-scheme 判定；同时增强——主光球 64→96px 并加灰玫光晕（drop-shadow）、迷你球 20→32px、动画提速 1.35 倍、暗底墨色提亮为 #E2C3CC。版本 0.9.12 / build 38。
+- 遇到的难题：① 明暗判定 bug 的根因隐蔽（getComputedStyle 返回完整渐变字符串，坐标数字被当成 RGB）；② build --no-install 首跑因 PATH 漏 nvm node 而失败（Node 22.16+ 提示），补全 PATH 后正常。
+- 处理方式：① 改用根元素 color-scheme 判定，彻底避开解析背景字符串；② 全量 npm test 后再提交。
+- 验证结果：npm test 201 项全部通过；构建签名通过，Plist 读回 0.9.12/38。
 - 遗留问题：build 38 待用户退出沐言后安装复核；UI 点阵风格批次 A（背景装饰、卡片质感）待光球确认后进行；远端积压待推送。
 - 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261110-008] orb visibility color scheme fix and boost`；最终哈希按 Change-ID 查询。
 
