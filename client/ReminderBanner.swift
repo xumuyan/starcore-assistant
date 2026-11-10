@@ -138,8 +138,8 @@ final class ReminderBannerContent: NSView {
         glass.layer?.borderWidth = 0.75
         glass.layer?.borderColor = NSColor(white: 1, alpha: 0.7).cgColor
         tint.wantsLayer = true
-        sheen.colors = [NSColor(srgbRed: 0.94, green: 0.95, blue: 1, alpha: 0.84).cgColor,
-                        NSColor(srgbRed: 0.87, green: 0.96, blue: 0.98, alpha: 0.70).cgColor]
+        sheen.colors = [NSColor(srgbRed: 0.98, green: 0.93, blue: 0.95, alpha: 0.84).cgColor,
+                        NSColor(srgbRed: 0.97, green: 0.88, blue: 0.92, alpha: 0.70).cgColor]
         sheen.startPoint = CGPoint(x: 0, y: 1)
         sheen.endPoint = CGPoint(x: 1, y: 0)
         tint.layer?.addSublayer(sheen)

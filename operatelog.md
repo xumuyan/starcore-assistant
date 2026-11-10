@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-002 应用图标与主题色向用户图标靠拢（并入 build 34）
+
+- 北京时间：2026-11-10 10:50:32 +08:00。
+- 修改或新增：启用用户生成的沐言声波气泡图标（橙粉渐变玻璃质感）：从剪贴板取得原图（371×380 无 alpha），PIL 流水线定位圆角方、四角白底 flood-fill 透明化、按 macOS Big Sur 规范 1024 画布 824 内容居中合成 AppIcon-v5.png，iconset（16–1024）与 actool 资产目录（Contents.json 全部 10 个尺寸）同步替换，build.py 图标源 AppIcon-v3→v5，CFBundleVersion 33→34（33 从未安装）。HUD 全部 CSS（moss/glass/companion/controls/panels/style/reference-layout）按色相系统性转换：冷青蓝灰（hue 170°–260°）→ 图标同源暖玫粉（hue ≈347°），保持明度/饱和度层级；绿色语义、红色透镜、中性灰不动；极浅玻璃底降饱和防腻；提醒横幅 Swift 光泽同步暖化。CHANGELOG 0.9.8 节并入 build 34。
+- 遇到的难题：① 剪贴板取图首次用 «class PNGF»（大写）失败，实际类型是 «class PNGf»；② 图标原图无 alpha、圆角外是白底，直接做图标会带白角，用四角 flood-fill 白色转透明解决（不会误伤气泡内白色，因连通性限制）；③ 色值替换正则初版把残缺 4/7 位十六进制也吞了导致崩溃，改为精确 3/6/8 位；④ 第一轮转换崩溃前已写入 companion/controls/glass，第二轮补齐其余四文件，旧青色 grep 复检归零；⑤ project-docs 一致性测试拦住 CHANGELOG 未提 build 34 的不一致。
+- 处理方式：图标用 flood-fill 而非全局换色（保住气泡内部白色）；主题色用 HSL 色相带映射而非手工映射（300+ 离散值可系统性覆盖）；验证从图标 1024 源对角采样色相断言与界面 accent 同域。
+- 验证结果：npm test 193 项全部通过（新增 3 项：图标资产齐全与构建引用、旧冷色清零与横幅光泽暖化、图标采样色相与界面 accent 同域）；构建成功签名通过，Resources 内 StarCoreAppIcon.icns/Assets.car 已更新；图标成品四角 alpha=0、中心 255，目视检查通过。
+- 遗留问题：build 34 真机验收待用户（Dock 图标、界面暖色观感、文字对比度、横幅配色）；中央 3D 形象（three.js 场景）仍是冷青材质，与暖色主题的协调待用户看实机后再定；应用运行中安装被守卫拦住，待退出后安装。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-002] adopt muyan bubble icon and warm glass theme`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-001 苹果液态玻璃折射效果（build 33，默认关闭）
 
 - 北京时间：2026-11-10 10:22:49 +08:00。

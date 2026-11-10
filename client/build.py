@@ -23,7 +23,7 @@ info = {
     'CFBundleDisplayName': '沐言',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
-    'CFBundleVersion': '33',
+    'CFBundleVersion': '34',
     'CFBundleIconFile': 'StarCoreIcon-v3',
     'LSMinimumSystemVersion': '13.0',
     'NSHighResolutionCapable': True,
@@ -45,7 +45,7 @@ for points in (16, 32, 128, 256, 512):
     for scale in (1, 2):
         pixels = points * scale
         name = f'icon_{points}x{points}' + ('@2x' if scale == 2 else '') + '.png'
-        subprocess.run(['sips', '-z', str(pixels), str(pixels), str(root / 'client/assets/AppIcon-v3.png'), '--out', str(iconset / name)], check=True, capture_output=True)
+        subprocess.run(['sips', '-z', str(pixels), str(pixels), str(root / 'client/assets/AppIcon-v5.png'), '--out', str(iconset / name)], check=True, capture_output=True)
 subprocess.run(['iconutil', '-c', 'icns', str(iconset), '-o', str(contents / 'Resources/StarCoreIcon-v3.icns')], check=True)
 # A native asset catalog supplies opaque, unmasked artwork to the system icon
 # renderer. A transparent, pre-rounded ICNS alone can receive a visible tray.
