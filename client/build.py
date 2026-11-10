@@ -19,7 +19,7 @@ contents = app / 'Contents'
 info = {
     'CFBundleExecutable': 'CodexWeixin',
     'CFBundleIdentifier': 'local.codex-weixin.client',
-    'CFBundleName': 'MuYan',
+    'CFBundleName': '沐言',
     'CFBundleDisplayName': '沐言',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
