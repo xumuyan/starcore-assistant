@@ -103,7 +103,14 @@ export class DictationService {
       if (!session.ready || session.finishing) throw new Error('当前听写状态不接受音频');
       if (!Number.isInteger(index) || index !== session.count || index >= MAX_CHUNKS) throw new Error('听写音频顺序或片段数量无效');
       const info = audioInfo(audio);
-      if (session.samples + info.samples > RATE * 120) throw new Error('听写总长度不能超过 120 秒');
+      if (session.samples + info.samples > RATE * 120) {
+        // 封顶（SC-20261110-009）：丢弃新块；已有可交付文本则自动结束并提示，否则维持报错。
+        if (session.count >= 1 && session.texts.some(Boolean)) {
+          this.emit({ type: 'dictationNotice', id: session.id, message: '已达 120 秒上限，正在交付已识别内容' });
+          await this.finish({ id: session.id, count: session.count });
+        } else throw new Error('听写总长度不能超过 120 秒');
+        return;
+      }
       session.count++; session.samples += info.samples;
       const job = this.tail.then(async () => {
         if (!this.current(session) || info.silent) return;
