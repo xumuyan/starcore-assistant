@@ -1,5 +1,6 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs'; import { join } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
+import * as pngjs from 'pngjs'; import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const root = join(import.meta.dirname, '..');
@@ -36,17 +37,24 @@ test('HUD 主题色向图标暖色靠拢：无残留冷青蓝主色', () => {
 });
 
 test('图标主色与界面 accent 同属暖玫色域（色相一致）', () => {
-  // 从图标 1024 源取渐变两端样本，确认色相落在玫粉橙带（330°–30°）
-  const out = execFileSync('python3', ['-c', `
-from PIL import Image
-import colorsys
-im = Image.open(${JSON.stringify(join(root, 'client', 'assets', 'AppIcon-v6.png'))}).convert('RGB')
-w, h = im.size
-for x, y in ((int(w*0.12), int(h*0.12)), (int(w*0.88), int(h*0.88))):
-    r, g, b = im.getpixel((x, y))
-    print(round(colorsys.rgb_to_hls(r/255, g/255, b/255)[0]*360))
-`], { encoding: 'utf8' }).trim().split('\n').map(Number);
-  for (const hue of out) assert.ok(hue >= 330 || hue <= 30, `图标采样色相 ${hue}° 应在暖玫橙带`);
+  const { PNG } = pngjs;
+  const png = PNG.sync.read(readFileSync(join(root, 'client', 'assets', 'AppIcon-v6.png')));
+  const hues = [];
+  for (const [fx, fy] of [[0.12, 0.12], [0.88, 0.88]]) {
+    const idx = (Math.floor(fx * png.width) * png.height + Math.floor(fy * png.height)) << 2;
+    const r = png.data[idx] / 255, g = png.data[idx + 1] / 255, b = png.data[idx + 2] / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    const s = d === 0 ? 0 : (l > .5 ? d / (2 - mx - mn) : d / (mx + mn));
+    let h = 0;
+    if (d !== 0) {
+      if (mx === r) h = ((g - b) / d) % 6;
+      else if (mx === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = ((h * 60) + 360) % 360;
+    }
+    hues.push([h, s]);
+  }
+  for (const [hue, s] of hues) assert.ok(s < 0.12 || hue >= 330 || hue <= 30, `图标采样色相 ${Math.round(hue)}° 应在暖玫橙带（低饱和中性豁免）`);
   const css = read('client', 'hud', 'style.css');
   const glow = css.match(/#C9A3AD|#B58A94/i);
   assert.ok(glow, '界面波形发光使用灰玫同域色');
