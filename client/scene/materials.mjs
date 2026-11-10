@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export const TAU = Math.PI * 2;
-export const rose = 0xee7993, pale = 0xf7c0cc, amber = 0xffc477;
+export const rose = 0xcc9ba6, pale = 0xe7d0d5, amber = 0xffc477;
 export function random(seed) { const value = Math.sin(seed * 127.1 + 41.7) * 43758.5453; return value - Math.floor(value); }
 export function emissive(color, opacity = .6) {
   return new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });

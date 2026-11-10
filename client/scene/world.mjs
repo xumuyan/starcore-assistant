@@ -59,7 +59,7 @@ export function createWorld() {
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: i % 4 ? rose : amber, blending: THREE.AdditiveBlending, transparent: true, opacity: .8, depthWrite: false }));
     s.position.set(Math.cos(a) * r, .018, Math.sin(a) * r); s.scale.set(.11,.11,1); sparks.add(s);
   }
-  const beam = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: 0xeb607e, blending: THREE.AdditiveBlending, transparent: true, opacity: .28, depthWrite: false }));
+  const beam = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: 0xc38895, blending: THREE.AdditiveBlending, transparent: true, opacity: .28, depthWrite: false }));
   beam.position.set(0, -.05, -.02); beam.scale.set(.07, 1.15, 1); group.add(beam);
   const starGeometry = new THREE.BufferGeometry(), count = 1100;
   const positions = new Float32Array(count * 3), seeds = new Float32Array(count);
