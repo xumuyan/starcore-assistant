@@ -7,7 +7,7 @@ const root = join(import.meta.dirname, '..');
 const read = (...parts) => readFileSync(join(root, ...parts), 'utf8');
 
 test('应用图标使用沐言声波气泡设计，全尺寸资产一致', () => {
-  assert.equal(existsSync(join(root, 'client', 'assets', 'AppIcon-v6.png')), true, '图标源文件已入库');
+  assert.equal(existsSync(join(root, 'client', 'assets', 'AppIcon-v7.png')), true, '图标源文件已入库');
   const assets = join(root, 'client', 'assets', 'StarCore.xcassets', 'StarCoreAppIcon.appiconset');
   const spec = JSON.parse(readFileSync(join(assets, 'Contents.json'), 'utf8'));
   for (const img of spec.images) {
@@ -17,7 +17,7 @@ test('应用图标使用沐言声波气泡设计，全尺寸资产一致', () =>
     assert.notEqual(head, -1, `${img.filename} 是 PNG`);
   }
   const build = read('client', 'build.py');
-  assert.match(build, /AppIcon-v6\.png/, '构建引用新图标源');
+  assert.match(build, /AppIcon-v7\.png/, '构建引用新图标源');
   assert.doesNotMatch(build, /AppIcon-v3\.png/, '不再引用旧图标源');
 });
 
@@ -38,7 +38,7 @@ test('HUD 主题色向图标暖色靠拢：无残留冷青蓝主色', () => {
 
 test('图标主色与界面 accent 同属暖玫色域（色相一致）', () => {
   const { PNG } = pngjs;
-  const png = PNG.sync.read(readFileSync(join(root, 'client', 'assets', 'AppIcon-v6.png')));
+  const png = PNG.sync.read(readFileSync(join(root, 'client', 'assets', 'AppIcon-v7.png')));
   const hues = [];
   for (const [fx, fy] of [[0.12, 0.12], [0.88, 0.88]]) {
     const idx = (Math.floor(fx * png.width) * png.height + Math.floor(fy * png.height)) << 2;
