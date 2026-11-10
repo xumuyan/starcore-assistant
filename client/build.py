@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import plistlib
 import platform
+import os
 import shutil
 import subprocess
 import sys
@@ -35,7 +36,11 @@ info = {
     'NSAppTransportSecurity': {'NSAllowsLocalNetworking': True},
 }
 (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
-settings = {'node': shutil.which('node'), 'runtime': str(Path.home() / '.codex-weixin-notifier/runtime')}
+# Rust 阶段二（P2）：runtime-engine 开关，默认 node；仅构建参数可切换（P4 灰度用），旧 bundle 配置无此字段时 Swift 容错为 node。
+engine = os.environ.get('MOSS_RUNTIME_ENGINE', 'node')
+if engine not in ('node', 'rust'):
+    engine = 'node'
+settings = {'node': shutil.which('node'), 'runtime': str(Path.home() / '.codex-weixin-notifier/runtime'), 'runtimeEngine': engine}
 (contents / 'Resources/client-settings.json').write_text(json.dumps(settings, ensure_ascii=False))
 shutil.copy2(root / 'client/assets/SceneReference-v3.png', root / 'client/hud/reference-target.png')
 shutil.copytree(root / 'client/hud', contents / 'Resources/hud', dirs_exist_ok=True)

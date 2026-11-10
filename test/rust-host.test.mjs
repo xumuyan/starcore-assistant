@@ -148,3 +148,63 @@ test('rust host stop matches node control output', { skip: !existsSync(cargo) ? 
     assert.equal(rustOut, nodeOut, 'stop 输出字节级一致（对未注册代理双方均为安全空操作）');
   } finally { rmSync(home, { recursive: true, force: true }); }
 });
+
+test('rust host serve speaks the minimal stdio protocol subset', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, async () => {
+  execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
+  const { spawn } = await import('node:child_process');
+  const proc = spawn(mossHost, ['serve'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const lines = [];
+  let buffer = '';
+  proc.stdout.on('data', chunk => {
+    buffer += chunk.toString('utf8');
+    let end;
+    while ((end = buffer.indexOf('\n')) >= 0) { lines.push(buffer.slice(0, end)); buffer = buffer.slice(end + 1); }
+  });
+  proc.stdin.write(JSON.stringify({ type: 'tasks' }) + '\n');
+  proc.stdin.write(JSON.stringify({ type: 'configure', settings: { name: '沐言', wakeWord: '沐言' }, keys: { yunqiao: 'k1', deepseek: 'k2', fish: '' } }) + '\n');
+  proc.stdin.write(JSON.stringify({ type: 'listen', enabled: true }) + '\n');
+  proc.stdin.write(JSON.stringify({ type: 'text', text: 'hi' }) + '\n');
+  proc.stdin.write('not-json\n');
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error('serve 无响应')), 10000);
+    const poll = setInterval(() => { if (lines.length >= 6) { clearInterval(poll); clearTimeout(timer); resolve(); } }, 50);
+  });
+  proc.stdin.end();
+  proc.kill();
+  const events = lines.map(line => JSON.parse(line));
+  const tasks = events[0];
+  assert.equal(tasks.type, 'tasks');
+  assert.equal(tasks.available, false);
+  assert.deepEqual(tasks.tasks, []);
+  assert.match(tasks.checkedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.match(tasks.error, /P3/);
+  const configured = events[1];
+  assert.equal(configured.type, 'configured');
+  assert.equal(configured.settings.name, '沐言');
+  assert.equal(configured.hasGateway, true);
+  assert.equal(configured.hasDeepSeek, true);
+  assert.equal(configured.hasFish, false);
+  const state = events[2];
+  assert.equal(state.type, 'state');
+  assert.equal(state.name, 'error');
+  assert.match(state.detail, /P3/);
+  const capture = events[3];
+  assert.equal(capture.type, 'capture');
+  assert.equal(capture.enabled, false);
+  assert.equal(events[4].type, 'error');
+  assert.match(events[4].message, /不支持的类型/);
+  assert.equal(events[5].type, 'error');
+  assert.match(events[5].message, /无法解析/);
+});
+
+test('bundle client-settings keeps the runtime-engine switch defaulting to node', () => {
+  const build = readFileSync(join(root, 'client/build.py'), 'utf8');
+  assert.match(build, /MOSS_RUNTIME_ENGINE/);
+  assert.match(build, /'runtimeEngine': engine/);
+  assert.match(build, /if engine not in \('node', 'rust'\)/, '引擎值必须白名单校验');
+  const bridge = readFileSync(join(root, 'client/AssistantBridge.swift'), 'utf8');
+  assert.match(bridge, /settings\.runtimeEngine == "rust"/);
+  assert.match(bridge, /moss-host"/);
+  const app = readFileSync(join(root, 'client/App.swift'), 'utf8');
+  assert.match(app, /let runtimeEngine: String\?/, '旧配置缺字段时容错解码');
+});

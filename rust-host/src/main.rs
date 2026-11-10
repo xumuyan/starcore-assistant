@@ -1,4 +1,5 @@
 mod control;
+mod serve;
 mod status;
 
 use std::process::exit;
@@ -14,6 +15,8 @@ fn main() {
             println!("{}", status::snapshot_json());
         }
         "status" => println!("{}", status::snapshot_json()),
+        // Rust 阶段二（P2）：宿主 stdio JSON 行协议最小子集（tasks/configure/listen 形状对齐）。
+        "serve" => serve::run(),
         other => {
             eprintln!("Unsupported command: {}", other);
             exit(2);

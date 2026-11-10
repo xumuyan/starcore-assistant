@@ -1,7 +1,7 @@
 import AppKit
 import WebKit
 
-struct Settings: Decodable { let node: String; let runtime: String }
+struct Settings: Decodable { let node: String; let runtime: String; let runtimeEngine: String? }
 struct Latest: Codable { let project: String; let summary: String; let status: String }
 struct Snapshot: Codable {
     let serviceRunning: Bool

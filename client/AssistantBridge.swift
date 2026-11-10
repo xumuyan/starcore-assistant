@@ -106,8 +106,12 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     }
     func startHost() {
         guard host?.isRunning != true, let settings = owner?.settings else { return }
-        let process = Process(); process.executableURL = URL(fileURLWithPath: settings.node)
-        process.arguments = [settings.runtime + "/src/assistant-host.mjs"]
+        // Rust 阶段二（P2）：runtime-engine 开关默认 node，旧配置无此字段时保持原行为；
+        // rust 模式由构建参数显式启用（MOSS_RUNTIME_ENGINE=rust），指向随 runtime 目录构建的 moss-host serve。
+        let useRust = settings.runtimeEngine == "rust"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: useRust ? settings.runtime + "/rust-host/target/release/moss-host" : settings.node)
+        process.arguments = useRust ? ["serve"] : [settings.runtime + "/src/assistant-host.mjs"]
         process.currentDirectoryURL = URL(fileURLWithPath: settings.runtime)
         var environment = ProcessInfo.processInfo.environment
         if environment["HTTPS_PROXY"] == nil && environment["https_proxy"] == nil && environment["ALL_PROXY"] == nil && environment["all_proxy"] == nil,

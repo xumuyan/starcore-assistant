@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-011 Rust 宿主 P2 stdio 协议子集与 runtime-engine 开关
+
+- 北京时间：2026-11-10 21:09:41 +08:00。
+- 修改或新增：继续功能主线，完成 Rust 引擎阶段二（PLAN P2）。① 新增 rust-host/src/serve.rs：moss-host serve 进入 stdio JSON 行循环，实现 tasks/configure/listen 最小子集，事件形状与 src/assistant-host.mjs 逐字段对齐（tasks 快照形状、configured 五字段回显、listen 按 node 关闭语义输出 state+capture）；UTC 时间戳用 civil_from_days 手写格式化（零新依赖）；未提供的能力以显式 error/capture=false 呈现并注明 P3 提供，不静默假装；② Swift：Settings 新增 runtimeEngine 容错字段（旧配置缺字段解码为 nil）、startHost 按 runtimeEngine==rust 切换 spawn moss-host serve，默认与旧行为完全一致；③ build.py：client-settings.json 写入 runtimeEngine，仅 MOSS_RUNTIME_ENGINE 构建参数可切换且白名单 node/rust（bundle 签名完整性不受影响，P4 灰度用）；④ 测试：rust-host.test.mjs 新增 serve 协议六事件断言与 bundle/源码断言两用例。
+- 遇到的难题：listen 在 P2 无采集与 ASR 能力，直接对齐 node 的 enabled=true 行为会静默假装成功误导用户；configure 若做 defaults 合并会提前做 P3 的事。
+- 处理方式：listen 诚实输出未启用+错误状态（注明 P3）；configured 仅透传请求 settings，完整 defaults 合并留 P3 能力对齐阶段，均已写入代码注释。
+- 验证结果：npm test 205 项全部通过（新增两用例）；npm run build:mac:check 通过（Rust release 构建成功 RUST_HOST_READY + Swift 编译成功 APP_BUILT）。真机以 rust 引擎运行属 P4 灰度验证，未验收。
+- 遗留问题：P3 宿主能力逐模块对齐（聊天/本地 ASR/听写/语音提醒/金库读取）；P4 灰度切换与回滚演练；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-011] rust host serve protocol subset and engine switch`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-010 听写许可核对与第三方声明补录
 
 - 北京时间：2026-11-10 21:03:45 +08:00。
