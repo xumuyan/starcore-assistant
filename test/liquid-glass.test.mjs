@@ -39,9 +39,9 @@ test('折射激活时原 CSS 玻璃材质退场，避免双重渲染', () => {
   assert.match(css, /\.side-card\[data-liquid-glass="webgl"\]/, '侧卡片覆盖');
 });
 
-test('构建打包液态玻璃入口，产物与源文件同时入库', () => {
+test('构建打包液态玻璃入口，产物与 scene-3d 同为生成件不入库', () => {
   const build = read('client', 'build.py');
   assert.match(build, /liquid-glass\.mjs'.*--outfile=.*liquid-glass\.js/s, '构建步骤包含打包命令');
-  assert.equal(existsSync(join(root, 'client', 'hud', 'liquid-glass.js')), true, '打包产物已生成');
-  assert.ok(statSync(join(root, 'client', 'hud', 'liquid-glass.js')).size > 50000, '产物包含库本体而非空文件');
+  assert.equal(existsSync(join(root, 'client', 'hud', 'liquid-glass.js')), true, '本地已生成打包产物');
+  assert.match(read('.gitignore'), /\/client\/hud\/liquid-glass\.js/, '产物遵循 scene-3d 同款忽略约定');
 });

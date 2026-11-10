@@ -134,16 +134,16 @@ export function createReferenceScene({art=null,environment=null,cleanArt=art}={}
   }
   const glow=glowTexture(),orbitBeacons=[];
   for(let i=0;i<7;i++) {
-    const beacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:i%4?0x7ddaff:0xffd6a0,transparent:true,opacity:.30,blending:THREE.AdditiveBlending,depthWrite:false}));beacon.scale.setScalar((i%3?10:17)*U);rings.add(beacon);orbitBeacons.push(beacon);
+    const beacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:i%4?0xf18ba1:0xffd6a0,transparent:true,opacity:.30,blending:THREE.AdditiveBlending,depthWrite:false}));beacon.scale.setScalar((i%3?10:17)*U);rings.add(beacon);orbitBeacons.push(beacon);
   }
   const stars=new THREE.Group();group.add(stars);
   for(let i=0;i<56;i++) {
-    const p=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:i%11?0x73caff:0xffc17d,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending}));
+    const p=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:i%11?0xf0829a:0xffc17d,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending}));
     const x=(random(i+1300)*1672-cx)*U,y=(cy-random(i+1500)*620)*U;
     p.position.set(x,y,-.7+random(i+1700)*.4);p.scale.setScalar((1.6+random(i+1800)*5)*U);p.userData.start=p.position.clone();stars.add(p);
   }
   const originalMaterials=new WeakMap();
-  const lineMaterial=new THREE.MeshBasicMaterial({color:0x83d6ff,wireframe:true,transparent:true,opacity:.36});
+  const lineMaterial=new THREE.MeshBasicMaterial({color:0xf191a6,wireframe:true,transparent:true,opacity:.36});
   function setWireframe(value){wireframe=value;base.visible=!value;effects.group.visible=!value;group.traverse(o=>{if(o.isMesh&&o!==base){if(value){if(!originalMaterials.has(o))originalMaterials.set(o,o.material);o.material=lineMaterial;}else if(originalMaterials.has(o))o.material=originalMaterials.get(o);}});}
   function update(time,energy=0,pixelRatio=1){
     currentTime=time;baseMaterial.uniforms.time.value=time;

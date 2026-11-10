@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TAU, cyan, pale, amber, random, emissive, glowTexture, worldPose } from './materials.mjs';
+import { TAU, rose, pale, amber, random, emissive, glowTexture, worldPose } from './materials.mjs';
 
 function floorRing(radius, width, color, opacity, arc = TAU) {
   const mesh = new THREE.Mesh(new THREE.RingGeometry(radius - width, radius, Math.max(20, Math.ceil(arc * 60)), 1, 0, arc), emissive(color, opacity));
@@ -28,13 +28,13 @@ export function createWorld() {
     const arc = floorRing(i % 2 ? 2.19 : 1.32, i % 2 ? .022 : .032, i % 7 ? pale : amber, i % 3 ? .35 : .8, .09 + random(i + 33) * .26);
     arc.rotation.z = i / 16 * TAU; (i % 2 ? outer : inner).add(arc);
   }
-  const tickCount = 320, tickMaterial = emissive(cyan, .48);
+  const tickCount = 320, tickMaterial = emissive(rose, .48);
   const ticks = new THREE.InstancedMesh(new THREE.BoxGeometry(.006, .008, .040), tickMaterial, tickCount), tick = new THREE.Object3D();
   for (let i = 0; i < tickCount; i++) {
     const a = i / tickCount * TAU, radius = i % 2 ? 2.30 : 1.48;
     tick.position.set(Math.cos(a) * radius, .008, Math.sin(a) * radius); tick.rotation.y = -a + Math.PI / 2;
     tick.scale.z = i % 10 ? 1 : 2.7; tick.updateMatrix(); ticks.setMatrixAt(i, tick.matrix);
-    ticks.setColorAt(i, new THREE.Color(i % 47 ? cyan : amber).multiplyScalar(i % 5 ? .45 : 1.5));
+    ticks.setColorAt(i, new THREE.Color(i % 47 ? rose : amber).multiplyScalar(i % 5 ? .45 : 1.5));
   }
   outer.add(ticks);
   const scan = new THREE.Mesh(new THREE.RingGeometry(.37, 2.25, 80, 1, 0, .42), new THREE.ShaderMaterial({
@@ -56,10 +56,10 @@ export function createWorld() {
   const texture = glowTexture();
   for (let i = 0; i < 9; i++) {
     const a = i / 9 * TAU, r = i % 2 ? 2.16 : 1.29;
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: i % 4 ? cyan : amber, blending: THREE.AdditiveBlending, transparent: true, opacity: .8, depthWrite: false }));
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: i % 4 ? rose : amber, blending: THREE.AdditiveBlending, transparent: true, opacity: .8, depthWrite: false }));
     s.position.set(Math.cos(a) * r, .018, Math.sin(a) * r); s.scale.set(.11,.11,1); sparks.add(s);
   }
-  const beam = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: 0x4ccfff, blending: THREE.AdditiveBlending, transparent: true, opacity: .28, depthWrite: false }));
+  const beam = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color: 0xeb607e, blending: THREE.AdditiveBlending, transparent: true, opacity: .28, depthWrite: false }));
   beam.position.set(0, -.05, -.02); beam.scale.set(.07, 1.15, 1); group.add(beam);
   const starGeometry = new THREE.BufferGeometry(), count = 1100;
   const positions = new Float32Array(count * 3), seeds = new Float32Array(count);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TAU, cyan, pale, amber, random, glowTexture } from '../materials.mjs';
+import { TAU, rose, pale, amber, random, glowTexture } from '../materials.mjs';
 import { createEnergyVolume } from './energy-volume.mjs';
 
 function alloy(radius, width, depth, bevel = .003) {
@@ -101,7 +101,7 @@ export function createMechanicalCore({bandTexture=null}={}) {
       const a=i/tickCount*TAU;
       transform.position.set(Math.cos(a)*spec.radius,Math.sin(a)*spec.radius,spec.depth/2+.010);
       transform.rotation.set(0,0,a-Math.PI/2);transform.scale.set(1,i%15?1:2,1);transform.updateMatrix();ticks.setMatrixAt(i,transform.matrix);
-      ticks.setColorAt(i,new THREE.Color(i%45?cyan:amber).multiplyScalar(i%5?.35:1));
+      ticks.setColorAt(i,new THREE.Color(i%45?rose:amber).multiplyScalar(i%5?.35:1));
     }
     spin.add(ticks);
     for(let i=0;i<8;i++) {
@@ -110,7 +110,7 @@ export function createMechanicalCore({bandTexture=null}={}) {
     }
     // Clearly visible beacons belong to each ring, not to the camera.
     const beacon=new THREE.Mesh(new THREE.SphereGeometry(.008,12,8),lampMaterial);beacon.position.set(spec.radius,0,.018);spin.add(beacon);
-    sprite(beacon,new THREE.Vector3(),.065,cyan,.45);
+    sprite(beacon,new THREE.Vector3(),.065,rose,.45);
     tracks.push({gimbal,spin,spec});
   }
   const paths=[],flowMaterials=[];

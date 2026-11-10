@@ -19,7 +19,7 @@ document.addEventListener('assistant-event',({detail:e})=>{
 function fallback(message){const status=document.getElementById('graphics-status');if(status)status.textContent='动态效果未启用 · 正在使用静态备用画面';stop=true;document.body.classList.remove('three-active');document.body.classList.add('graphics-fallback');const detail=document.getElementById('core-detail');if(detail)detail.textContent=message;}
 async function start(){
   renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:true,powerPreference:'low-power'});
-  renderer.setClearColor(0x020a10,1);renderer.toneMapping=THREE.NoToneMapping;renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.setClearColor(0x100205,1);renderer.toneMapping=THREE.NoToneMapping;renderer.outputColorSpace=THREE.SRGBColorSpace;
   const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-4.18,4.18,2.3525,-2.3525,.1,40);
   camera.position.set(0,0,6.1);camera.lookAt(0,0,0);camera.updateMatrixWorld();
   const loader=new THREE.TextureLoader();

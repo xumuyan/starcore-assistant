@@ -2,6 +2,15 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-003 中央 3D 形象与场景纹理转向暖色（并入 build 34）
+
+- 北京时间：2026-11-10 11:08:13 +08:00。
+- 修改或新增：用户确认「3D 形象也提成暖色」。① 运行时纹理四张像素级色相重映射（SceneReference-v3、environment-v4/v5、jarvis-scene-v3，冷色像素 54%/32%/34%/60% 转暖，色相带 170°–265° 压缩映射到 325°–15°，保明度层次，目视拼图确认星环装置已成玫粉珊瑚色）；② 场景源码共享常量 cyan→rose（0xee7993 玩粉），pale 同步暖化，prototype/mechanical-core 同步；其余冷色 0x 字面量按同规则映射（core/projected-scene/world/renderer 共 18 处），场景底色 0x020a10→暖黑；③ 重新打包 scene-3d.js（6.6MB，比已装旧版 8.0MB 更小）；④ 修正昨天 SC-001 的不一致：liquid-glass.js 是构建生成件，补进 .gitignore 并 git rm --cached，与 scene-3d 同约定；liquid-glass 测试断言同步改为忽略约定。
+- 遇到的难题：① 常量改名脚本先值转换后字符串替换，静默未命中导致 cyan 名残留，两个场景测试（mechanical-study/world-motion）抓到，修复 materials.mjs 与 prototype 引用后恢复；② 追加测试的 Python 内嵌 JS 模板串语法错误一次未遂，重写后成功；③ 首次打包后 bundle 涨到 6.8MB，PNG optimize 重存后 6.6MB，仍优于已装版本。
+- 验证结果：npm test 194 项全部通过（含新增 3D 场景断言：六源文件旧冷色清零、rose 常量、bundle 同检；上轮失败的两个场景测试恢复）；纹理转暖比例手工核验，冷色目视检查通过；构建签名通过。
+- 遗留问题：纹理冷像素占比未写成自动化断言（依赖手工核验），已在测试中以源码/bundle 冷色字符串断言代替；build 34 真机验收继续待用户；应用运行中安装被守卫拦住。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-003] warm-tint 3d scene and textures`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-002 应用图标与主题色向用户图标靠拢（并入 build 34）
 
 - 北京时间：2026-11-10 10:50:32 +08:00。

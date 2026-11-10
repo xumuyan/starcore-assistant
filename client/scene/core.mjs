@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import plasmaImage from '../assets/PlasmaSurface-v4.png';
-import { TAU, cyan, pale, amber, random, emissive, glowTexture } from './materials.mjs';
-function line(points, color = cyan, opacity = .35, closed = true) {
+import { TAU, rose, pale, amber, random, emissive, glowTexture } from './materials.mjs';
+function line(points, color = rose, opacity = .35, closed = true) {
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
   return closed ? new THREE.LineLoop(geometry, material) : new THREE.Line(geometry, material);
@@ -20,10 +20,10 @@ export function createCore() {
     const object = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false }));
     object.scale.set(size, size, 1); parent.add(object); return object;
   }
-  const aura = flare(0x1789ef, 2.5, .13), hot = flare(0x59dfff, .66, .85), center = flare(0xe0fbff, .22, 1);
+  const aura = flare(0xe4224c, 2.5, .13), hot = flare(0xed6b87, .66, .85), center = flare(0xfce3e9, .22, 1);
   center.material.color.setRGB(1.3,3.4,5.5); hot.material.color.setRGB(.25,1.05,2.1);
   const horizontal = flare(pale, 1, .47); horizontal.scale.set(1.9, .045, 1);
-  const vertical = flare(cyan, 1, .19); vertical.scale.set(.025, 1.8, 1);
+  const vertical = flare(rose, 1, .19); vertical.scale.set(.025, 1.8, 1);
 
   const shell = new THREE.Mesh(new THREE.SphereGeometry(.70, 64, 40), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.FrontSide,
@@ -40,10 +40,10 @@ export function createCore() {
   for (let i = -4; i <= 4; i++) {
     const latitude = i * .255, radius = Math.sqrt(1 - Math.sin(latitude) ** 2);
     const points = Array.from({ length: 180 }, (_, j) => new THREE.Vector3(radius * Math.cos(j / 180 * TAU), Math.sin(latitude), radius * Math.sin(j / 180 * TAU)));
-    grid.add(line(points, 0x3aabdd, i % 2 ? .035 : .06));
+    grid.add(line(points, 0xe63158, i % 2 ? .035 : .06));
   }
   for (let i = 0; i < 12; i++) {
-    const ring = line(circle(1.01), 0x4fb6e4, .035); ring.rotation.y = i / 12 * Math.PI; grid.add(ring);
+    const ring = line(circle(1.01), 0xe94a6d, .035); ring.rotation.y = i / 12 * Math.PI; grid.add(ring);
   }
   tracks.push({ object: grid, axis: 'y', speed: .075 });
 
@@ -55,7 +55,7 @@ export function createCore() {
       points.push(new THREE.Vector3(Math.cos(t) * radius, Math.sin(t) * radius, Math.sin(t * (2 + i % 3) + i) * radius * .48));
     }
     const curve = new THREE.CatmullRomCurve3(points, true);
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, i % 5 ? .0018 : .0034, 4, true), emissive(i % 6 ? 0x37b9ff : pale, .23));
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, i % 5 ? .0018 : .0034, 4, true), emissive(i % 6 ? 0xe94d6f : pale, .23));
     tube.rotation.set(random(i + 5) * Math.PI, random(i + 23) * Math.PI, random(i + 78) * Math.PI);
     filaments.add(tube);
   }
@@ -64,14 +64,14 @@ export function createCore() {
   function instrumentRing(radius, rotation, speed, count = 180, width = .022) {
     const gimbal = new THREE.Group(); gimbal.rotation.set(...rotation); group.add(gimbal);
     const spin = new THREE.Group(); gimbal.add(spin);
-    spin.add(torus(radius, .017, new THREE.MeshStandardMaterial({ color: 0x39627a, emissive: 0x144764, emissiveIntensity: .8, metalness: .72, roughness: .3 })));
-    spin.add(torus(radius + .017, .0055, emissive(0x4ac6fa, .67)));
-    spin.add(torus(radius + .028, .0017, emissive(0x85ddff, .32)));
-    spin.add(torus(radius - .026, .002, emissive(0x3a91ba, .55)));
+    spin.add(torus(radius, .017, new THREE.MeshStandardMaterial({ color: 0x803344, emissive: 0x6b0d21, emissiveIntensity: .8, metalness: .72, roughness: .3 })));
+    spin.add(torus(radius + .017, .0055, emissive(0xeb5979, .67)));
+    spin.add(torus(radius + .028, .0017, emissive(0xf292a7, .32)));
+    spin.add(torus(radius - .026, .002, emissive(0xc62e4f, .55)));
     // Segmented alloy faces supply mechanical depth around the inner plasma.
     // Instancing keeps the detailed belt to two draw calls per orbital plane.
     const panelCount = 64;
-    const plates = new THREE.InstancedMesh(new THREE.RingGeometry(radius - .035, radius + .045, 8, 1, 0, TAU / panelCount * .76), new THREE.MeshStandardMaterial({ color: 0x204b66, emissive: 0x082638, metalness: .82, roughness: .27, side: THREE.DoubleSide }), panelCount);
+    const plates = new THREE.InstancedMesh(new THREE.RingGeometry(radius - .035, radius + .045, 8, 1, 0, TAU / panelCount * .76), new THREE.MeshStandardMaterial({ color: 0x6c1a2c, emissive: 0x390712, metalness: .82, roughness: .27, side: THREE.DoubleSide }), panelCount);
     const marks = new THREE.InstancedMesh(new THREE.BoxGeometry(.011, .033, .009), new THREE.MeshBasicMaterial({ color: pale }), panelCount);
     const panel = new THREE.Object3D();
     for (let i = 0; i < panelCount; i++) {
@@ -79,7 +79,7 @@ export function createCore() {
       panel.position.set(0, 0, .014); panel.rotation.set(0, 0, a); panel.updateMatrix(); plates.setMatrixAt(i, panel.matrix);
       panel.position.set(Math.cos(a) * (radius + .007), Math.sin(a) * (radius + .007), .026);
       panel.rotation.z = a - Math.PI / 2; panel.updateMatrix(); marks.setMatrixAt(i, panel.matrix);
-      marks.setColorAt(i, new THREE.Color(i % 16 === 0 ? amber : cyan).multiplyScalar(i % 4 ? .25 : 1.1));
+      marks.setColorAt(i, new THREE.Color(i % 16 === 0 ? amber : rose).multiplyScalar(i % 4 ? .25 : 1.1));
     }
     spin.add(plates, marks);
     const ticks = new THREE.InstancedMesh(new THREE.BoxGeometry(.006, width, .006), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .72 }), count);
@@ -87,7 +87,7 @@ export function createCore() {
     for (let i = 0; i < count; i++) {
       const a = i / count * TAU; transform.position.set(Math.cos(a) * radius, Math.sin(a) * radius, .006);
       transform.rotation.z = a - Math.PI / 2; transform.scale.set(1, i % 10 ? 1 : 2.5, 1); transform.updateMatrix();
-      ticks.setMatrixAt(i, transform.matrix); ticks.setColorAt(i, new THREE.Color(i % 31 ? cyan : amber).multiplyScalar(i % 3 ? .5 : 1.1));
+      ticks.setMatrixAt(i, transform.matrix); ticks.setColorAt(i, new THREE.Color(i % 31 ? rose : amber).multiplyScalar(i % 3 ? .5 : 1.1));
     }
     spin.add(ticks);
     for (let i = 0; i < 12; i++) {
@@ -95,7 +95,7 @@ export function createCore() {
       piece.rotation.z = i / 12 * TAU + random(i) * .08; spin.add(piece);
     }
     const orb = new THREE.Mesh(new THREE.SphereGeometry(.017, 10, 8), emissive(pale, 1)); orb.position.x = radius; spin.add(orb);
-    const point = flare(cyan, .15, .9, orb); point.position.z = .015;
+    const point = flare(rose, .15, .9, orb); point.position.z = .015;
     tracks.push({ object: spin, axis: 'z', speed });
     return gimbal;
   }

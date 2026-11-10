@@ -6,6 +6,7 @@ dist/
 
 # Generated frontend bundles and copied reference artwork
 /client/hud/scene-3d.js
+/client/hud/liquid-glass.js
 /client/hud/reference-target.png
 
 # Local QA captures may include private desktop content

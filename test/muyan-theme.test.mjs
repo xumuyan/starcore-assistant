@@ -51,3 +51,17 @@ for x, y in ((int(w*0.12), int(h*0.12)), (int(w*0.88), int(h*0.88))):
   const glow = css.match(/#e8476a|#f29aad/);
   assert.ok(glow, '界面波形发光使用同域玫粉');
 });
+
+test('3D 场景材质与纹理转向图标同域暖色', () => {
+  const stale = ['0x69d5ff', '0x4ccfff', '0x1789ef', '0x59dfff', '0x73caff', '0x7ddaff', '0x37b9ff'];
+  for (const file of ['materials.mjs', 'core.mjs', 'world.mjs', 'projected-scene.mjs', 'renderer.mjs', 'prototype/mechanical-core.mjs']) {
+    const src = read('client', 'scene', file);
+    for (const color of stale) assert.ok(!src.includes(color), `scene/${file} 残留旧冷色 ${color}`);
+  }
+  const materials = read('client', 'scene', 'materials.mjs');
+  assert.match(materials, /rose = 0xee7993/, '共享主色常量已转玫粉并改名 rose');
+  assert.doesNotMatch(materials, /\bcyan\b/, '常量名不再叫 cyan');
+  const bundle = read('client', 'hud', 'scene-3d.js');
+  for (const color of stale) assert.ok(!bundle.includes(color), `scene-3d bundle 残留旧冷色 ${color}`);
+  assert.doesNotMatch(read('client', 'scene', 'renderer.mjs'), /0x020a10/, '场景底色不再用冷黑蓝');
+});
