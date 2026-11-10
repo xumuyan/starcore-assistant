@@ -80,11 +80,10 @@ function applyThinkingOrb(on) {
 }
 function initThinkingOrb() {
   const engine = window.MuYanOrbEngine; if (!engine || !$('orb-main')) return;
-  const bg = getComputedStyle(document.body).backgroundColor;
-  const [r, g, b] = (bg.match(/\d+/g) || ['0', '0', '0']).slice(0, 3).map(Number);
-  orbMain = engine.createThinkingOrb($('orb-main'), { size: 64 });
-  orbMini = engine.createThinkingOrb($('orb-mini'), { size: 20 });
-  const dark = r * 0.299 + g * 0.587 + b * 0.114 < 128;
+  // 明暗按根元素 color-scheme 判定（body 背景是渐变，无法安全解析）
+  const dark = getComputedStyle(document.documentElement).colorScheme === 'dark';
+  orbMain = engine.createThinkingOrb($('orb-main'), { size: 96 });
+  orbMini = engine.createThinkingOrb($('orb-mini'), { size: 32 });
   orbMain.setDark(dark); orbMini.setDark(dark);
   document.addEventListener('assistant-state', e => {
     orbMain.setState(e.detail); orbMini.setState(e.detail);

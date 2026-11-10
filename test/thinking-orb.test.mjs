@@ -34,6 +34,8 @@ test('app.js 状态转发与开关逻辑', () => {
     if (frag) assert.ok(app.includes(frag), `app.js 缺少 ${frag}`);
   }
   assert.ok(/thinkingOrb !== false/.test(app), '思考光球开关读取缺失');
+  assert.ok(/size: 96/.test(app) && /size: 32/.test(app), '光球尺寸 96/32 缺失');
+  assert.ok(app.includes("colorScheme === 'dark'"), '明暗判定应基于 color-scheme');
 });
 
 test('assistant-core 默认开启且参与布尔校验', () => {

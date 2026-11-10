@@ -3,7 +3,7 @@
 import { MODE_FRAMES, resolvePreset, paintFrame } from 'thinking-orbs/engine';
 
 const TINT_LIGHT = { r: 0xa0, g: 0x78, b: 0x82 }; // 灰玫（亮底墨色）
-const TINT_DARK = { r: 0xc9, g: 0xa3, b: 0xad };  // 亮灰玫（暗底墨色）
+const TINT_DARK = { r: 0xe2, g: 0xc3, b: 0xcc };  // 亮灰玫（暗底墨色，提亮保证对比）
 
 // assistant-state → OrbState 映射；speaking 交给核心动画，光球隐藏
 const STATE_MAP = {
@@ -14,7 +14,7 @@ const STATE_MAP = {
   executing: 'solving',
 };
 
-export function createThinkingOrb(canvas, { size = 64 } = {}) {
+export function createThinkingOrb(canvas, { size = 64, speedMul = 1.35 } = {}) {
   const ctx = canvas.getContext('2d');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = size * dpr;
@@ -34,7 +34,7 @@ export function createThinkingOrb(canvas, { size = 64 } = {}) {
     const orbState = STATE_MAP[state] || 'breathing';
     const { mode, speed, opts } = resolvePreset(orbState, size === 20 ? 20 : 64);
     // 尺寸档位：引擎只手工调校 64/32/20；20 用 inline 档，其余用 64 档
-    const frame = MODE_FRAMES[mode](size, time * speed, opts);
+    const frame = MODE_FRAMES[mode](size, time * speed * speedMul, opts);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size, size);
     paintFrame(ctx, frame, dark, dark ? TINT_DARK : TINT_LIGHT);
