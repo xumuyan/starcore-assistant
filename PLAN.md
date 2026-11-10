@@ -98,7 +98,7 @@
 - [ ] 粘贴只发一次，不按回车；区别“已发出粘贴”和“目标确认接收”。
 - [ ] 备份多格式剪贴板；恢复前核对 changeCount，避免覆盖用户新复制的内容。
 - [ ] 剪贴板操作串行化，测试连续请求、取消和恢复时机。
-- [ ] 核对上游采用范围与许可，完成测试/隔离输入验收后记录并提交/推送。
+- [x] 核对上游采用范围与许可，完成测试/隔离输入验收后记录并提交/推送。证据：DictationPaste/DictationPanel/DictationController/DictationHotkey/DictationAudio/DictationRecorder 仅 import 系统框架（AppKit/ApplicationServices/CoreGraphics/AVFoundation），无第三方运行时依赖；参考实现 SpeakMore 已登记（licenses/SpeakMore-MIT.txt 与 THIRD_PARTY_NOTICES.md）；dictation-paste.test.mjs 隔离输入测试通过，npm test 203 项全过（operatelog SC-20261110-010）。跨应用真实输入验收仍属阶段 8。
 
 验收标准：文本不进入错误窗口，不因输入模式调用 Codex/微信发送；剪贴板并发测试通过，无原始正文或录音日志。
 

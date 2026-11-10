@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-010 听写许可核对与第三方声明补录
+
+- 北京时间：2026-11-10 21:03:45 +08:00。
+- 修改或新增：完成 PLAN 阶段 5「核对上游采用范围与许可」文档项：核查听写全系列 Swift 文件（DictationPaste/Panel/Controller/Hotkey/Audio/Recorder）仅 import 系统框架，无第三方运行时依赖；参考实现 SpeakMore 许可与 THIRD_PARTY_NOTICES.md 条目此前已登记。同时补录 SC-20261110-007 遗漏：THIRD_PARTY_NOTICES.md 新增 thinking-orbs（引擎子集，MIT，licenses/thinking-orbs-MIT.txt）。PLAN 阶段 5 许可项勾选。
+- 遇到的难题：PLAN 底部纪律条款要求「不因模拟成功勾选完成」，故其余模拟测试已过的听写实现项（热键/粘贴/悬浮条）保持未勾，等待阶段 8 真机验收，不以测试代替。
+- 处理方式：仅勾选纯文档/代码核对类条目，真机项保留。
+- 验证结果：npm test 203 项全部通过（含 project-docs 文档一致性检查）。
+- 遗留问题：听写阶段 8 真机验收清单（PLAN 137-142）待用户配合；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261110-010] dictation license audit and notices backfill`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-009 听写 120 秒封顶自动交付（build 38 未含，仅节点服务层）
 
 - 北京时间：2026-11-10 19:56:10 +08:00。
