@@ -11,6 +11,7 @@
 - 验证结果：npm test 195 项全部通过（新增 C 方案 accent 统一与艳玫/冷青清零断言）；构建签名通过，Plist 读回 CFBundleName=沐言、ShortVersion=0.9.9、Build=35；图标角透明/中心实/色相灰玫域校验通过；图标与场景目视拼图确认效果。应用运行中仅 --no-install，未安装。
 - 遗留问题：build 35 待用户退出沐言后安装验收（图标、菜单栏中文名、整体灰玫观感、文字对比度）；真机验收后回填。
 - 安装与真机状态（2026-11-10 13:32:58 +08:00 更新）：用户退出后实装 build 35 成功，签名校验通过，CFBundleName=沐言、CFBundleVersion=35；killall Dock 刷新图标后应用启动稳定（PID 74214）。真机验收项：菜单栏中文名、新图标、灰玫观感、文字对比度、液态玻璃开关，待用户确认。
+- 后续修正（2026-11-10 13:52 前后，同一 Change-ID）：① PLAN 完成项证据由独立行改为同行内联（project-docs 测试要求 `- [x]` 同行带证据）；② 图标色相采样改用 pngjs（加入 devDependencies），不再依赖 homebrew PIL 的 python3，裸环境 npm test 可复现；两问题均由全量测试抓出后修复。对应提交：PLAN/测试修复 `fix: [SC-20261110-005] plan evidence inline and pngjs-based icon sampling`（本 Change-ID 下第二笔）。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-005] morandi grey-rose theme and icon v6`；最终哈希按 Change-ID 查询。
 
 ## SC-20261110-004 应用名改中文沐言 + 降饱和图标配色候选（待用户选定）
