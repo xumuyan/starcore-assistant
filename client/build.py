@@ -10,6 +10,8 @@ root = Path(__file__).resolve().parent.parent
 if '--ui-only' not in sys.argv:
     subprocess.run([sys.executable, str(root / 'install.py')], check=True)
 subprocess.run([str(root / 'node_modules/.bin/esbuild'), str(root / 'client/scene/renderer.mjs'), '--bundle', '--format=iife', '--target=safari16', '--minify', '--loader:.png=dataurl', '--outfile=' + str(root / 'client/hud/scene-3d.js')], check=True)
+# 液态玻璃折射入口（SC-20261110-001）：MIT 依赖 apple-liquid-glass-webgl，打包为本地脚本满足 CSP script-src 'self'。
+subprocess.run([str(root / 'node_modules/.bin/esbuild'), str(root / 'client/scene/liquid-glass.mjs'), '--bundle', '--format=iife', '--target=safari16', '--minify', '--outfile=' + str(root / 'client/hud/liquid-glass.js')], check=True)
 app = root / 'dist' / 'MuYan.app'
 contents = app / 'Contents'
 (contents / 'MacOS').mkdir(parents=True, exist_ok=True)
@@ -21,7 +23,7 @@ info = {
     'CFBundleDisplayName': '沐言',
     'CFBundlePackageType': 'APPL',
     'CFBundleShortVersionString': '0.9.7',
-    'CFBundleVersion': '32',
+    'CFBundleVersion': '33',
     'CFBundleIconFile': 'StarCoreIcon-v3',
     'LSMinimumSystemVersion': '13.0',
     'NSHighResolutionCapable': True,

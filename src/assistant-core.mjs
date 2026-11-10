@@ -5,6 +5,7 @@ export const assistantDefaults = Object.freeze({
   modelPath: homedir() + '/.speakmore/models/qwen3-asr-0.6b-q8/Qwen3-ASR-0.6B-Q8_0.gguf',
   schemaVersion: 3, chatModel: 'gpt-6-astra', chatBaseUrl: 'https://api.yunqiao.me/v1',
   petEnabled: false, dictationEnabled: false, dictationHotkey: 'right-option', dictationPolish: false,
+  liquidGlass: false,
   codexVoiceReminder: false,
   polishModel: 'deepseek-flash', polishEnabled: false, reducedMotion: false,
   voice: 'system', fishModel: 's2.1-pro-free', voiceId: '', target: ''
@@ -31,7 +32,7 @@ export function validateSettings(input = {}) {
   if (!['s2.1-pro-free', 's2.1-pro', 's2-pro'].includes(value.fishModel)) throw new Error('Fish 模型无效');
   if (value.voiceId && !/^[a-zA-Z0-9_-]{1,100}$/.test(value.voiceId)) throw new Error('音色 ID 无效');
   if (value.target && !/^[0-9a-f-]{36}$/i.test(value.target)) throw new Error('目标聊天无效');
-  for (const field of ['autoListen', 'speak', 'polishEnabled', 'reducedMotion']) if (typeof input[field] === 'boolean') value[field] = input[field];
+  for (const field of ['autoListen', 'speak', 'polishEnabled', 'reducedMotion', 'liquidGlass']) if (typeof input[field] === 'boolean') value[field] = input[field];
   for (const field of ['dictationEnabled', 'dictationPolish', 'petEnabled', 'codexVoiceReminder']) {
     if (input[field] !== undefined && typeof input[field] !== 'boolean') throw new Error('听写开关必须为布尔值');
     if (typeof input[field] === 'boolean') value[field] = input[field];

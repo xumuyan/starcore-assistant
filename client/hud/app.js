@@ -58,6 +58,12 @@ $('target-menu').onkeydown=e=>{
 };
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.target-picker'))closeTargetMenu();});
 document.addEventListener('keydown',e=>{if($('target-popover').hidden)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeTargetMenu(true);}else if(e.key==='Tab')closeTargetMenu(true);},true);
+// 液态玻璃折射效果（SC-20261110-001）：设置开启且未开减少动态效果且环境支持 WebGL2 才启用。
+function applyLiquidGlass(on) {
+  const glass = window.MuYanGlass; if (!glass) return;
+  if (on && !document.body.classList.contains('reduce-motion') && glass.glassSupported()) glass.enableGlass();
+  else glass.disableGlass();
+}
 function configure(config, gateway, deepseek, fish) {
   settings = config; $('assistant-name').replaceChildren(document.createTextNode(config.name)); const suffix = document.createElement('span'); suffix.textContent = ' / PERSONAL ASSISTANT'; $('assistant-name').append(suffix);
   $('wake-word').textContent = config.wakeWord;
@@ -66,6 +72,7 @@ function configure(config, gateway, deepseek, fish) {
   $('gateway-key').placeholder = gateway ? '已保存 · 留空不修改' : '输入云桥自己的 API Key';
   $('gateway-key').value = ''; $('remove-gateway').checked = false;
   document.body.classList.toggle('reduce-motion', config.reducedMotion);
+  applyLiquidGlass(config.liquidGlass);
   $('deepseek-status').textContent = deepseek ? '本地已加密保存' : '待填写 API Key';
   $('chat-setup').hidden = gateway;
   $('deepseek-key').placeholder = deepseek ? '已保存 · 留空不修改' : '输入 DeepSeek API Key'; $('fish-key').placeholder = fish ? '已保存 · 留空不修改' : '输入 Fish Audio API Key';
@@ -155,6 +162,7 @@ targetOptions();
 function openSettings() { if (window.mossNavigate) { window.mossNavigate('settings'); bridge('dictationRefresh'); return; } oldFocus = document.activeElement; $('settings-overlay').hidden = false; $('set-name').focus(); bridge('dictationRefresh'); }
 function closeSettings() { if (window.mossNavigate) { window.mossNavigate('chat'); return; } $('settings-overlay').hidden = true; oldFocus?.focus(); }
 document.querySelectorAll('.settings-open').forEach(button => button.onclick = openSettings);
+document.addEventListener('click', e => { if (e.target.closest?.('.settings-open')) window.MuYanGlass?.refreshGlass(); });
 $('settings-close').onclick = closeSettings;
 $('settings-overlay').onclick = e => { if (e.target === $('settings-overlay')) closeSettings(); };
 document.addEventListener('keydown', e => {

@@ -2,6 +2,17 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-001 苹果液态玻璃折射效果（build 33，默认关闭）
+
+- 北京时间：2026-11-10 10:22:49 +08:00。
+- 评估结论：用户指定开源库 https://github.com/Oliverrr2424/webgl-apple-liquid-glass（npm: apple-liquid-glass-webgl 2.6.0）。可用——MIT 协议、零依赖、Safari/WebGL2 支持且回退 backdrop-filter、帧循环在页面静止时休眠不耗电；机制是库自行重绘玻璃背后的 DOM（浏览器不允许 WebGL 读页面像素）再折射，正好适配我们 three.js 动态场景+渐变背景的页面。原生面板（提醒横幅、听写浮条）是 Swift 自绘，不在本库作用范围。
+- 修改或新增：依赖 package.json +apple-liquid-glass-webgl（源码 2.8MB，打包后 120KB 本地脚本，满足 CSP script-src 'self'）；新增 client/scene/liquid-glass.mjs 入口（探测支持/批量挂载/销毁/重新测量，回退模式即销毁保持原外观）；设置页新增「液态玻璃折射效果」开关（liquidGlass 默认 false，assistant-core 布尔校验）；app.js 配置到达时接线（开启且未开减少动态效果且环境支持才启用）；glass.css 新增 data-liquid-glass=webgl 覆盖（原 CSS 玻璃退场避免叠加）；玻璃表面：设置面板、控制条、右侧辅助卡片；build.py 新增 esbuild 打包步骤，CFBundleVersion 32→33；CHANGELOG/PLAN/README 同步。
+- 遇到的难题：① 设置面板的真玻璃元素是 #settings-overlay 本体而非内层 .settings（后者 background:none），首版选择器选错已修正；② 字幕条无背景无圆角，玻璃形状不可控，从首列表移除；③ CSP 仅允许本地脚本，库必须打包不能走 CDN（沿用 scene-3d 的 esbuild IIFE 模式）。
+- 处理方式：表面选择器按最终布局核对；降级路径明确——设置关/减少动态效果/无 WebGL2 任一命中即销毁实例回到 glass.css 原观感；开启时设置面板从 hidden 转可见，点击打开设置触发 refreshAll 重新测量。
+- 验证结果：npm test 190 项全部通过（新增 5 项：默认关闭与布尔校验、开关与本地脚本加载、降级逻辑、CSS 覆盖、构建产物存在且非空）；cargo test 不受影响；`--no-install` 构建成功，dist/MuYan.app 签名校验通过，CFBundleVersion 33。
+- 遗留问题：build 33 真机视觉验收待用户——三类玻璃表面折射观感、文字可读性、关闭开关后的回退、长时间开着聊天页的性能与发热。应用正在运行，安装被运行守卫拦住，待用户退出后安装。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-001] add apple liquid glass refraction toggle`；最终哈希按 Change-ID 查询。
+
 ## SC-20261109-015 产品定名沐言（MuYan）：应用更名与身份迁移（build 32）
 
 - 北京时间：2026-11-10 00:15:37 +08:00。

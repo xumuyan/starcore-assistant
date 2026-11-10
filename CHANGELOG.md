@@ -4,6 +4,10 @@
 
 历史构建记录不代表已经创建对应的 GitHub Tag、Release 或通用安装包。测试数量是各阶段当时的结果；真实语音、付费服务、微信送达和 Codex 接口兼容性分别验收。
 
+## 0.9.8 — 2026-11-10 · build 33
+
+- 苹果液态玻璃折射效果（SC-20261110-001，默认关闭）：集成开源库 apple-liquid-glass-webgl（MIT，零依赖），设置页新增「液态玻璃折射效果」开关；开启后设置面板、控制条、右侧辅助卡片用 WebGL2 真实折射背后画面（three.js 形象与渐变背景），替代平面模糊；减少动态效果开启或环境无 WebGL2 时保持原外观；页面静止时库的渲染循环完全休眠；打包为本地脚本满足 CSP，无外部请求。
+
 ## 0.9.7 — 2026-11-09 · build 32
 
 - 产品定名「沐言（MuYan）」（SC-20261109-015）：应用包 dist/MuYan.app，安装到 ~/Applications/MuYan.app，CFBundleName=MuYan、CFBundleDisplayName=沐言；内置助理身份（名字与唤醒词）由 MOSS 自动迁移为沐言（旧内置名贾维斯→MOSS→沐言链保持，用户自定义名不受影响）；全部用户可见文案（窗口、菜单、横幅、听写浮条、桌面宠物、权限指引、设置页）同步更名；运行守卫同时覆盖新名 MuYan.app 与旧名 MOSS.app，安装成功后自动移除未运行的旧版 ~/Applications/MOSS.app；bundle ID、可执行名、LaunchAgent 标签、状态目录不变，麦克风等权限与用户配置保留。

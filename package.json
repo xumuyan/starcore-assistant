@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@phosphor-icons/core": "2.1.1",
+    "apple-liquid-glass-webgl": "^2.6.0",
     "qrcode": "1.5.4",
     "qrcode-terminal": "0.12.0",
     "three": "0.186.1",
