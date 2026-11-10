@@ -17,6 +17,7 @@
 - 北京时间：2026-11-10 11:08:13 +08:00。
 - 修改或新增：用户确认「3D 形象也提成暖色」。① 运行时纹理四张像素级色相重映射（SceneReference-v3、environment-v4/v5、jarvis-scene-v3，冷色像素 54%/32%/34%/60% 转暖，色相带 170°–265° 压缩映射到 325°–15°，保明度层次，目视拼图确认星环装置已成玫粉珊瑚色）；② 场景源码共享常量 cyan→rose（0xee7993 玩粉），pale 同步暖化，prototype/mechanical-core 同步；其余冷色 0x 字面量按同规则映射（core/projected-scene/world/renderer 共 18 处），场景底色 0x020a10→暖黑；③ 重新打包 scene-3d.js（6.6MB，比已装旧版 8.0MB 更小）；④ 修正昨天 SC-001 的不一致：liquid-glass.js 是构建生成件，补进 .gitignore 并 git rm --cached，与 scene-3d 同约定；liquid-glass 测试断言同步改为忽略约定。
 - 遇到的难题：① 常量改名脚本先值转换后字符串替换，静默未命中导致 cyan 名残留，两个场景测试（mechanical-study/world-motion）抓到，修复 materials.mjs 与 prototype 引用后恢复；② 追加测试的 Python 内嵌 JS 模板串语法错误一次未遂，重写后成功；③ 首次打包后 bundle 涨到 6.8MB，PNG optimize 重存后 6.6MB，仍优于已装版本。
+- 处理方式：先像素层（纹理）后材质层（源码常量与字面量）分层转暖，共享常量改名与值转换分两步复核，生成件入库约定同步校正。
 - 验证结果：npm test 194 项全部通过（含新增 3D 场景断言：六源文件旧冷色清零、rose 常量、bundle 同检；上轮失败的两个场景测试恢复）；纹理转暖比例手工核验，冷色目视检查通过；构建签名通过。
 - 遗留问题：纹理冷像素占比未写成自动化断言（依赖手工核验），已在测试中以源码/bundle 冷色字符串断言代替；build 34 真机验收继续待用户；应用运行中安装被守卫拦住。
 - 安装与真机状态（2026-11-10 11:16:01 +08:00 更新）：用户退出旧实例后实装 build 34 成功，签名校验通过，CFBundleVersion=34，Resources 内新图标 icns/Assets.car、暖化 scene-3d.js（6.6MB，旧版 8.0MB）与 liquid-glass.js（120KB）就位；killall Dock 刷新图标后应用启动稳定（PID 19486）。
