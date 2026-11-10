@@ -9,6 +9,7 @@
 - 遇到的难题：① 常量改名脚本先值转换后字符串替换，静默未命中导致 cyan 名残留，两个场景测试（mechanical-study/world-motion）抓到，修复 materials.mjs 与 prototype 引用后恢复；② 追加测试的 Python 内嵌 JS 模板串语法错误一次未遂，重写后成功；③ 首次打包后 bundle 涨到 6.8MB，PNG optimize 重存后 6.6MB，仍优于已装版本。
 - 验证结果：npm test 194 项全部通过（含新增 3D 场景断言：六源文件旧冷色清零、rose 常量、bundle 同检；上轮失败的两个场景测试恢复）；纹理转暖比例手工核验，冷色目视检查通过；构建签名通过。
 - 遗留问题：纹理冷像素占比未写成自动化断言（依赖手工核验），已在测试中以源码/bundle 冷色字符串断言代替；build 34 真机验收继续待用户；应用运行中安装被守卫拦住。
+- 安装与真机状态（2026-11-10 11:16:01 +08:00 更新）：用户退出旧实例后实装 build 34 成功，签名校验通过，CFBundleVersion=34，Resources 内新图标 icns/Assets.car、暖化 scene-3d.js（6.6MB，旧版 8.0MB）与 liquid-glass.js（120KB）就位；killall Dock 刷新图标后应用启动稳定（PID 19486）。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-003] warm-tint 3d scene and textures`；最终哈希按 Change-ID 查询。
 
 ## SC-20261110-002 应用图标与主题色向用户图标靠拢（并入 build 34）
