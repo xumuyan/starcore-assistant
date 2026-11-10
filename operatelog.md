@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261110-007 接入 Thinking Orbs 思考光球（build 37）
+
+- 北京时间：2026-11-10 15:40:12 +08:00。
+- 修改或新增：用户确认整体视觉向 libraries.dev 的 Thinking Orbs（点阵球体科技感）靠拢。① 新增依赖 thinking-orbs@0.3.2（MIT，© Jakub Antalik，许可文件 licenses/thinking-orbs-MIT.txt），仅用其独立导出的纯几何引擎层（无 React 运行时）；② 新增 client/scene/thinking-orb.mjs 封装：assistant-state 映射为九种光球动画（思考=轨道粒子、合成语音=彩带起伏、执行=色带咬合、聆听=纬线波形、空闲=呼吸），灰玫双色 tint（亮底 #A07882 / 暗底 #C9A3AD），明暗自适应，「减少动态效果」时光球静置；③ HUD：字幕上方新增 64px 主光球（思考/合成/执行/识别时显示），状态行 3px 圆点升级为 20px 迷你光球；设置页新增「思考光球」开关，默认开启；④ esbuild 本地打包（--global-name=MuYanOrbEngine）产物 14.2KB 无远程引用，满足 CSP；⑤ 版本 0.9.11 / build 37。
+- 遇到的难题：① 测试假 DOM 无 classList.contains，applyThinkingOrb 过早调用导致六个既有测试崩；② npm 安装写入 ^0.3.2 与测试期望字面值不一致；③ 光球创建后未启动绘制循环，canvas 首帧空白。
+- 处理方式：① classList 读取移到实例空检查之后并用可选链；② 测试改断言 ^0.3.2；③ 封装尾部 ensureLoop() 初始进入绘制循环。
+- 验证结果：npm test 201 项全部通过（含新增 thinking-orb.test.mjs 六项）；构建签名通过，Plist 读回沐言/0.9.11/37；产物已入 Resources/hud。浏览器静态目视未单独验证，随真机验收。
+- 遗留问题：build 37 待用户退出沐言后安装——真机验收光球动画、状态切换、开关行为；UI 向点阵球体风格进一步靠拢（背景装饰、卡片质感）未在本批次，待光球验收后再迭代；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261110-007] thinking orbs integration for state animation`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-006 图标按规范重制为矢量简洁版 + 应用名全面中文化（build 36）
 
 - 北京时间：2026-11-10 13:56:54 +08:00。

@@ -64,6 +64,33 @@ function applyLiquidGlass(on) {
   if (on && !document.body.classList.contains('reduce-motion') && glass.glassSupported()) glass.enableGlass();
   else glass.disableGlass();
 }
+// 思考光球（SC-20261110-007）：状态指示动画球，主球随状态切换动画，迷你球常驻状态行。
+const ORB_BUSY = ['thinking', 'synthesizing', 'executing', 'transcribing'];
+let orbMain = null, orbMini = null, orbEnabled = true;
+function applyThinkingOrb(on) {
+  orbEnabled = !!on;
+  const host = $('orb-stage');
+  if (!orbMain || !orbMini) { if (host) host.hidden = true; return; }
+  const rm = document.body.classList?.contains?.('reduce-motion');
+  orbMain.setPaused(!!rm); orbMini.setPaused(!!rm);
+  orbMain.setActive(orbEnabled); orbMini.setActive(orbEnabled);
+  $('orb-stage').hidden = !orbEnabled || !ORB_BUSY.includes($('core-stage').dataset.state);
+  $('orb-mini').style.display = orbEnabled ? '' : 'none';
+  $('state-dot').style.display = orbEnabled ? 'none' : '';
+}
+function initThinkingOrb() {
+  const engine = window.MuYanOrbEngine; if (!engine || !$('orb-main')) return;
+  const bg = getComputedStyle(document.body).backgroundColor;
+  const [r, g, b] = (bg.match(/\d+/g) || ['0', '0', '0']).slice(0, 3).map(Number);
+  orbMain = engine.createThinkingOrb($('orb-main'), { size: 64 });
+  orbMini = engine.createThinkingOrb($('orb-mini'), { size: 20 });
+  const dark = r * 0.299 + g * 0.587 + b * 0.114 < 128;
+  orbMain.setDark(dark); orbMini.setDark(dark);
+  document.addEventListener('assistant-state', e => {
+    orbMain.setState(e.detail); orbMini.setState(e.detail);
+    $('orb-stage').hidden = !orbEnabled || !ORB_BUSY.includes(e.detail);
+  });
+}
 function configure(config, gateway, deepseek, fish) {
   settings = config; $('assistant-name').replaceChildren(document.createTextNode(config.name)); const suffix = document.createElement('span'); suffix.textContent = ' / PERSONAL ASSISTANT'; $('assistant-name').append(suffix);
   $('wake-word').textContent = config.wakeWord;
@@ -73,6 +100,7 @@ function configure(config, gateway, deepseek, fish) {
   $('gateway-key').value = ''; $('remove-gateway').checked = false;
   document.body.classList.toggle('reduce-motion', config.reducedMotion);
   applyLiquidGlass(config.liquidGlass);
+  applyThinkingOrb(config.thinkingOrb !== false);
   $('deepseek-status').textContent = deepseek ? '本地已加密保存' : '待填写 API Key';
   $('chat-setup').hidden = gateway;
   $('deepseek-key').placeholder = deepseek ? '已保存 · 留空不修改' : '输入 DeepSeek API Key'; $('fish-key').placeholder = fish ? '已保存 · 留空不修改' : '输入 Fish Audio API Key';
@@ -223,4 +251,4 @@ $('history-older').onclick = () => bridge('historyPage', { before: historyBefore
 $('fullscreen').onclick = () => bridge('fullscreen');
 $('keyboard-toggle').onclick = () => { $('composer-panel').hidden = !$('composer-panel').hidden; if (!$('composer-panel').hidden) $('input').focus(); };
 $('keyboard-close').onclick = () => { if (!window.mossNavigate) $('composer-panel').hidden = true; };
-clock(); setInterval(clock, 1000); bridge('ready');
+clock(); setInterval(clock, 1000); initThinkingOrb(); bridge('ready');
