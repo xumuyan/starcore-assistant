@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-006 播放归属与 Rust 听写明确拒绝
+
+- 北京时间：2026-11-11 16:18:30 +08:00（完整回归、原生构建与 release 沙箱复验后现场读取）。
+- 修改或新增：页面和样式冻结，默认 Node、版本与已安装副本保持不变。Rust Session 在聊天 active 之外增加播放占用，speak 携带 playbackId；只接受匹配当前播放的 playbackEnded，过期/重复/无编号回调不能解除新占用或覆盖新聊天状态；cancel/clear/sleep/configure、下一条 text 和 listen=false 清理播放归属，关闭监听同时使在途回复失效。Swift 新增 AssistantPlayback，以实际 AVSpeechUtterance/AVAudioPlayer 对象归属筛选正常结束、取消、解码失败回调；停止前先失效，旧回调不恢复麦克风、不清新播放器、不发错误的完成通知。播放排队到结束期间通过 playback.isActive 阻止全局听写；空内容、无效音频和播放启动失败通过同一归属路径回报结束；宿主退出时停止声音。Node 无编号事件仍回传原有无编号 playbackEnded。Rust ASR/听写仍未实现，合法请求 ID 的 prepare/chunk/finish 返回 dictationError，区分未启用、助手忙碌和暂不支持；不返回 Ready、不假装接受音频，cancel/无效 ID 无副作用。更新 PLAN 并保留 P3/P4 未勾选；未新增依赖或更改配置默认值。
+- 遇到的难题：Rust 原来不识别 playbackEnded，也没有独立 playing 状态，回复完成不代表声音结束；通用“不支持类型”错误不能让原生听写面板按请求 ID 结束等待。Swift 原 stoppingAudio 只覆盖同步 stop 调用，迟到 delegate 回调可错误恢复麦克风/清空新播放器；isSpeaking 在声音排队时还不一定为真。Rust 尚无听写识别后端，不能把忙闲保护写成听写可用。
+- 处理方式：先新增 9 个沙箱场景，旧实现实测 0/9 通过，再补归属与显式拒绝。聊天/播放占用检查和完成确认复用 Session 锁；Swift 使用独立可执行夹具检查对象身份、停止后旧回调、重复完成、无编号 Node 兼容及失败归属，原生控制器夹具检查排队播放阻止听写、过期 ID 忽略和明确失败不启动录音。进一步补 listen=false 打断慢响应体回归，生命周期总数由 15 增至 25；新增 2 个 Rust 播放占用单元测试与文档守护。全部宿主测试隔离 HOME 和 CODEX_WEIXIN_STATE_DIR，仅合成消息/密钥及本地 HTTP，不调用付费接口或访问真实会话；Swift 夹具不发声、不申请麦克风权限。
+- 验证结果：`npm test` 最终 243/243 通过、0 跳过；`cargo test` 25/25 通过（18 lib、2 memory、2 interop、3 safety）；`cargo clippy --all-targets -- -D warnings` 与 `git diff --check` 通过。`npm run build:mac:check` 通过（RUST_HOST_READY / APP_BUILT，未安装），`codesign --verify --deep --strict dist/MuYan.app` 通过，Rust release 和 Swift 可执行文件均 arm64，bundle runtimeEngine 实读 node。实际 release 二进制运行完整生命周期沙箱 25/25 通过；Swift 播放归属/接线检查及听写控制器夹具通过。未做真实系统声音/Fish 播放、音频设备故障、麦克风恢复或快捷键人声验收；未安装/切换当前应用。提交前 fetch 核对本地与远端均为 3c602de，无分叉和积压。
+- 遗留问题：本批只完成播放协议与未实现听写的失败路径，不代表完整听写互斥、ASR 或语音提醒已实现；完成提醒监听尚未接入，Fish 合成仍明确降级。若原生客户端未回传匹配的完成事件，Rust 保持播放占用直到显式打断/控制或下一条 text，不设置可能在播放中提前释放的超时；真实系统回调与失效设备行为待真机验收。传输取消与旧 worker 资源上限、聊天输入/预算/history/targets/configure、任务/Codex、长历史压测、完整许可证分发及 P4 真实数据往返/回滚仍待完成。夹具/源码接线检查和构建不能替代 AVFoundation 真机效果。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261111-006] track playback ownership and reject unsupported Rust dictation`；最终哈希按 Change-ID 查询。上批 SC-20261111-005 实际提交 3c602de358676f3197adf9df7cbc9fe535acfc7e 已普通推送，本次 fetch 再次核对；本批提交后普通 push 并核对远端，不在本条预写成功。
+
 ## SC-20261111-005 Rust 聊天请求归属与取消提交屏障
 
 - 北京时间：2026-11-11 15:45:40 +08:00（本批自动回归、构建与 release 沙箱复验后现场读取）。

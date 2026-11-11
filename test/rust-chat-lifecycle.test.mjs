@@ -107,7 +107,7 @@ for (const kind of ['success', 'http-error', 'timeout']) {
   });
 }
 
-for (const command of ['cancel', 'clear', 'sleep', 'configure']) {
+for (const command of ['cancel', 'clear', 'sleep', 'configure', 'listen']) {
   test(`${command} during response body suppresses every stale effect and preserves new requests`, { skip }, async t => {
     const h = await harness(t);
     h.send(question('等待慢响应体'));
@@ -116,7 +116,7 @@ for (const command of ['cancel', 'clear', 'sleep', 'configure']) {
     old.res.write('{"output_text":"'); // Headers arrive while JSON body is still incomplete.
     await delay(120);
     const start = h.events.length;
-    h.send(command === 'configure' ? h.configure({ speak: false }) : { type: command }, { type: 'tasks' });
+    h.send(command === 'configure' ? h.configure({ speak: false }) : { type: command, ...(command === 'listen' ? { enabled: false } : {}) }, { type: 'tasks' });
     await h.event(e => e.type === 'tasks', start); // stdin barrier: control command fully processed
     if (command === 'clear') {
       assert.ok(h.events.slice(start).some(e => e.type === 'history' && e.messages.length === 0));
@@ -207,3 +207,102 @@ for (const invalid of ['malformed-json', 'http-error', 'api-error', 'missing-tex
     assert.deepEqual(h.memory().map(m => m.content), ['会失败的合成请求', '失败后的重试', '重试成功']);
   });
 }
+
+const dictationID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+async function barrier(h, ...commands) {
+  const start = h.events.length;
+  h.send(...commands, { type: 'tasks' });
+  await h.event(e => e.type === 'tasks', start);
+  return h.events.slice(start).filter(e => e.type !== 'tasks');
+}
+async function enableDictation(h, settings = {}) {
+  await barrier(h, h.configure({ dictationEnabled: true, ...settings }));
+}
+function assertDictationRejected(events, pattern) {
+  const failure = events.find(e => e.type === 'dictationError');
+  assert.ok(failure, '原生听写面板必须收到带 ID 的失败事件，不等到超时');
+  assert.equal(failure.id, dictationID);
+  assert.match(failure.message, pattern);
+  assert.equal(events.some(e => ['dictationReady', 'dictationResult', 'speak', 'play'].includes(e.type)), false);
+}
+
+test('playback IDs hold the audio gate until a matching completion, never a missing or wrong ID', { skip }, async t => {
+  const h = await harness(t); await enableDictation(h);
+  h.send(question('合成播放请求')); const pending = await h.request(0);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /正在工作/);
+  reply(pending, '合成播放内容');
+  const speech = await h.event(e => e.type === 'speak');
+  assert.equal(typeof speech.playbackId, 'string'); assert.ok(speech.playbackId.length > 0);
+  for (const ended of [{}, { playbackId: 'unknown' }, { playbackId: 42 }]) {
+    assert.deepEqual(await barrier(h, { type: 'playbackEnded', ...ended }), []);
+    assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /正在工作/);
+  }
+  assert.deepEqual(await barrier(h, { type: 'playbackEnded', playbackId: speech.playbackId }), [
+    { type: 'state', name: 'idle', detail: '播放结束' },
+  ]);
+  assert.deepEqual(await barrier(h, { type: 'playbackEnded', playbackId: speech.playbackId }), []);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /暂不支持.*听写/);
+});
+
+test('old playback completion cannot reset a newer chat or its replacement speech', { skip }, async t => {
+  const h = await harness(t); await enableDictation(h);
+  h.send(question('第一轮')); reply(await h.request(0), '第一段声音');
+  const first = await h.event(e => e.type === 'speak');
+  const start = h.events.length;
+  h.send(question('第二轮')); const pending = await h.request(1);
+  assert.equal(h.events[start].type, 'stopAudio');
+  assert.deepEqual(await barrier(h, { type: 'playbackEnded', playbackId: first.playbackId }), []);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /正在工作/);
+  reply(pending, '第二段声音');
+  const second = await h.event(e => e.type === 'speak', start);
+  assert.notEqual(first.playbackId, second.playbackId);
+  assert.deepEqual(await barrier(h, { type: 'playbackEnded', playbackId: first.playbackId }), []);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /正在工作/);
+  await barrier(h, { type: 'playbackEnded', playbackId: second.playbackId });
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /暂不支持.*听写/);
+});
+
+for (const control of ['cancel', 'clear', 'sleep', 'configure', 'listen']) {
+  test(`${control} resets playback ownership and ignores its late completion`, { skip }, async t => {
+    const h = await harness(t); await enableDictation(h);
+    h.send(question('待停止的播放')); reply(await h.request(0), '将被打断');
+    const speech = await h.event(e => e.type === 'speak');
+    const command = control === 'configure' ? h.configure({ dictationEnabled: true }) : { type: control, enabled: false };
+    const stopped = await barrier(h, command);
+    assert.equal(stopped[0].type, 'stopAudio');
+    assert.deepEqual(await barrier(h, { type: 'playbackEnded', playbackId: speech.playbackId }), []);
+    assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /暂不支持.*听写/);
+  });
+}
+
+test('silent replies do not claim playback, while Fish fallback holds the same audio gate', { skip }, async t => {
+  const h = await harness(t); await enableDictation(h, { speak: false });
+  h.send(question('无声回复')); reply(await h.request(0), '只显示');
+  await h.event(e => e.detail === '回复已就绪');
+  assert.equal(h.events.some(e => e.type === 'speak'), false);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /暂不支持.*听写/);
+  await enableDictation(h, { voice: 'fish' });
+  const start = h.events.length;
+  h.send(question('降级回复')); reply(await h.request(1), '用系统声音');
+  const speech = await h.event(e => e.type === 'speak', start);
+  assert.equal(typeof speech.playbackId, 'string');
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /正在工作/);
+  await barrier(h, { type: 'playbackEnded', playbackId: speech.playbackId });
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /暂不支持.*听写/);
+});
+
+test('unsupported Rust dictation fails promptly by ID without capture, cloud calls or fake readiness', { skip }, async t => {
+  const h = await harness(t);
+  assertDictationRejected(await barrier(h, { type: 'dictationPrepare', id: dictationID }), /请先启用/);
+  await enableDictation(h);
+  for (const type of ['dictationPrepare', 'dictationChunk', 'dictationFinish']) {
+    assertDictationRejected(await barrier(h, { type, id: dictationID, audio: 'synthetic-invalid-audio' }), /暂不支持.*听写/);
+  }
+  assert.deepEqual(await barrier(h, { type: 'dictationCancel', id: dictationID }), []);
+  for (const id of [undefined, null, 42, 'bad-id', 'x'.repeat(1000)]) {
+    assert.deepEqual(await barrier(h, { type: 'dictationPrepare', id }), []);
+  }
+  assert.equal(h.requests.length, 0);
+  assert.deepEqual(h.memory(), []);
+  assert.equal(h.events.some(e => ['dictationReady', 'dictationResult', 'speak', 'play', 'capture'].includes(e.type)), false);
+});

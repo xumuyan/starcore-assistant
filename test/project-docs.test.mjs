@@ -89,3 +89,12 @@ test('Rust cancellation evidence distinguishes logical invalidation from transpo
   assert.ok(existsSync(resolve(root, 'test/rust-chat-lifecycle.test.mjs')));
   assert.match(plan, /连续取消下的资源上限尚待补齐/);
 });
+
+
+test('Rust playback groundwork does not claim dictation, reminder or device acceptance', () => {
+  const plan = read('PLAN.md');
+  assert.match(plan, /SC-20261111-006.*playbackId/);
+  assert.match(plan, /无编号 Node 协议保持兼容/);
+  assert.match(plan, /Rust 听写未实现.*dictationError.*不录音/);
+  assert.match(plan, /真实系统声音\/Fish 回调.*仍未验收.*提醒监听尚未接入/);
+});

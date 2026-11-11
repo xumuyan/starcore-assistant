@@ -73,7 +73,17 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
         Some("cancel") => { engine.cancel(); vec![] }
         Some("clear") => { engine.clear(); vec![] }
         Some("sleep") => { engine.sleep(); vec![] }
-        // listen：P2 未实现采集与 ASR，按 node 关闭语义输出 capture=false 并给出明确状态。
+        Some("playbackEnded") => { engine.playback_ended(request.get("playbackId").and_then(Value::as_str)); vec![] }
+        Some(kind @ ("dictationPrepare" | "dictationChunk" | "dictationFinish" | "dictationCancel")) => {
+            engine.reject_dictation(kind, request.get("id").and_then(Value::as_str));
+            vec![]
+        }
+        // Disabling listen is also a cancellation boundary, even before ASR exists.
+        Some("listen") if request.get("enabled").and_then(Value::as_bool) != Some(true) => {
+            engine.cancel();
+            vec![json!({ "type": "capture", "enabled": false })]
+        }
+        // Enabling is still unsupported: never pretend to capture/recognize audio.
         Some("listen") => vec![
             json!({ "type": "state", "name": "error", "detail": "Rust 宿主尚未提供语音监听（P3 提供）" }),
             json!({ "type": "capture", "enabled": false }),

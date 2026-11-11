@@ -3,7 +3,7 @@ import AVFoundation
 
 extension AssistantBridge: DictationControllerHost {
     var dictationAssistantBusy: Bool {
-        launchingListen || synthesizer.isSpeaking || player?.isPlaying == true ||
+        launchingListen || playback.isActive || synthesizer.isSpeaking || player?.isPlaying == true ||
             DictationAssistantActivity.isBusy(assistantActivity)
     }
     func sendDictation(_ event: [String: Any]) { send(event) }

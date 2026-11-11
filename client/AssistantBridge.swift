@@ -42,7 +42,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
     let synthesizer = AVSpeechSynthesizer()
     var wantsListen = false
     var launchingListen = false
-    var stoppingAudio = false
+    var playback = AssistantPlayback()
     var micObserver: NSObjectProtocol?
     var watchdog = AssistantWatchdog()
     var watchdogTimer: Timer?
@@ -139,7 +139,7 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         process.terminationHandler = { [weak self] _ in
             stdout.fileHandleForReading.readabilityHandler = nil
             DispatchQueue.main.async { [weak self] in
-                guard let self else { return }; self.wantsListen = false; self.dictation.shutdown(); self.microphone.stop(); self.launchingListen = false
+                guard let self else { return }; self.wantsListen = false; self.dictation.shutdown(); self.microphone.stop(); self.stopAudio(); self.launchingListen = false
                 self.emit(["type": "microphone", "enabled": false]); self.error("助理进程已停止，请重新打开客户端；微信后台不受影响")
             }
         }
@@ -225,16 +225,29 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         case "error": launchingListen = false; reminderBanner.showNotice(event["message"] as? String ?? ""); emit(event)
         case "notice": reminderBanner.showNotice(event["message"] as? String ?? ""); emit(event)
         case "speak":
-            guard let text = event["text"] as? String else { return }
-            stopAudio(); microphone.suspend(true); emit(["type": "state", "name": "speaking", "detail": "正在用 Mac 系统声音回复 · 点击打断可继续说"])
-            let utterance = AVSpeechUtterance(string: text); utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN"); utterance.rate = 0.48
+            stopAudio()
+            let utterance = AVSpeechUtterance(string: event["text"] as? String ?? "")
+            playback.begin(utterance, playbackID: event["playbackId"] as? String)
+            guard let text = event["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                self.error("语音内容为空，未播放"); finishedAudio(utterance); return
+            }
+            microphone.suspend(true); emit(["type": "state", "name": "speaking", "detail": "正在用 Mac 系统声音回复 · 点击打断可继续说"])
+            utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN"); utterance.rate = 0.48
             synthesizer.speak(utterance)
         case "play":
-            guard let base64 = event["audio"] as? String, let data = Data(base64Encoded: base64) else { return }
             stopAudio()
+            // A sentinel also lets decode/start failures acknowledge this exact ID.
+            let attempt = NSObject()
+            playback.begin(attempt, playbackID: event["playbackId"] as? String)
             do {
-                player = try AVAudioPlayer(data: data); player?.delegate = self; player?.isMeteringEnabled = true; microphone.suspend(true)
-                guard player?.play() == true else { throw NSError(domain: "AssistantAudio", code: 1) }
+                guard let base64 = event["audio"] as? String, let data = Data(base64Encoded: base64) else {
+                    throw NSError(domain: "AssistantAudio", code: 2)
+                }
+                let audio = try AVAudioPlayer(data: data)
+                player = audio; audio.delegate = self; audio.isMeteringEnabled = true
+                playback.begin(audio, playbackID: event["playbackId"] as? String)
+                microphone.suspend(true)
+                guard audio.play() else { throw NSError(domain: "AssistantAudio", code: 1) }
                 meteringTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
                     guard let self, let playing = self.player, playing.isPlaying else { return }
                     playing.updateMeters()
@@ -242,7 +255,10 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
                     self.emit(["type": "outputLevel", "value": min(1.0, rms * 3.0)])
                 }
                 emit(["type": "state", "name": "speaking", "detail": "正在用 Fish Audio 回复 · 点击打断可继续说"])
-            } catch { self.error("语音播放失败"); microphone.suspend(false); send(["type": "playbackEnded"]) }
+            } catch {
+                self.error("语音播放失败")
+                if let player { finishedAudio(player) } else { finishedAudio(attempt) }
+            }
         case "stopAudio": stopAudio()
         case "codexReminder":
             reminderBanner.show(project: event["project"] as? String ?? "", summary: event["summary"] as? String ?? "")
@@ -251,14 +267,23 @@ final class AssistantBridge: NSObject, WKScriptMessageHandler, WKNavigationDeleg
         }
     }
     func stopAudio() {
+        // Invalidate before stopping: even synchronous or delayed delegate callbacks
+        // from the old player must not resume the mic or finish a newer playback.
+        playback.stop()
         meteringTimer?.invalidate(); meteringTimer = nil; emit(["type": "outputLevel", "value": 0])
-        stoppingAudio = true; player?.stop(); player = nil; synthesizer.stopSpeaking(at: .immediate); stoppingAudio = false
+        player?.stop(); player = nil; synthesizer.stopSpeaking(at: .immediate)
         microphone.suspend(false)
     }
-    func finishedAudio() { meteringTimer?.invalidate(); meteringTimer = nil; emit(["type": "outputLevel", "value": 0]); microphone.suspend(false); send(["type": "playbackEnded"]) }
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { self.player = nil; finishedAudio() }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finishedAudio() }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { if !stoppingAudio && !synthesizer.isSpeaking { microphone.suspend(false) } }
+    func finishedAudio(_ object: AnyObject) {
+        guard let event = playback.finish(object) else { return }
+        player = nil
+        meteringTimer?.invalidate(); meteringTimer = nil; emit(["type": "outputLevel", "value": 0])
+        microphone.suspend(false); send(event)
+    }
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { finishedAudio(player) }
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) { finishedAudio(player) }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finishedAudio(utterance) }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { finishedAudio(utterance) }
     func setListen(_ enabled: Bool, persist: Bool = true) {
         dictation.cancel()
         if enabled && (microphone.running || launchingListen) { return }

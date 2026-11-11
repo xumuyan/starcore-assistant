@@ -2,7 +2,12 @@ import AppKit
 import AVFoundation
 
 final class Host: DictationControllerHost {
-    var dictationAssistantBusy = false
+    var busy = false
+    var playback = AssistantPlayback()
+    var dictationAssistantBusy: Bool {
+        get { busy || playback.isActive }
+        set { busy = newValue }
+    }
     var shouldRestore = true
     var pauses = 0
     var restores: [Bool] = []
@@ -110,9 +115,20 @@ enum ControllerChecks {
         controller.toggle()
         precondition(controller.requestID == nil && host.pauses == count)
         host.dictationAssistantBusy = false
-        controller.toggle(); let third = controller.requestID!
-        controller.handle(["type": "dictationError", "id": third, "message": "fixture failure"])
+        // A queued native utterance owns the gate before AV reports isSpeaking.
+        let queuedSpeech = NSObject()
+        host.playback.begin(queuedSpeech, playbackID: "rust-fixture")
+        controller.toggle()
         precondition(controller.requestID == nil && !capture.running)
+        _ = host.playback.finish(queuedSpeech)
+        controller.toggle(); let third = controller.requestID!
+        let startsBeforeRejection = capture.starts
+        controller.handle(["type": "dictationError", "id": "stale-id", "message": "ignored"])
+        precondition(controller.requestID == third)
+        controller.handle(["type": "dictationError", "id": third, "message": "Rust 宿主暂不支持全局听写，请切换回 node 引擎"])
+        precondition(controller.requestID == nil && !capture.running && capture.starts == startsBeforeRejection)
+        precondition(panel.title == "语音输入未完成" && panel.detail.contains("暂不支持"))
+        precondition(host.sent.last?["type"] as? String == "dictationCancel")
         controller.toggle(); let fourth = controller.requestID!
         controller.handle(["type": "dictationReady", "id": fourth]); controller.toggle()
         controller.handle(["type": "dictationResult", "id": fourth, "text": "需要手动复制的识别预览"])

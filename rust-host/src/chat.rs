@@ -22,12 +22,28 @@ struct Session {
     keys: Value,
     generation: u64,
     active: Option<u64>,
+    playback: Option<String>,
 }
 
 impl Session {
     fn invalidate(&mut self) {
         self.generation += 1;
         self.active = None;
+        self.playback = None;
+    }
+
+    fn audio_busy(&self) -> bool { self.active.is_some() || self.playback.is_some() }
+
+    fn start_playback(&mut self) -> String {
+        let id = format!("rust-{}", self.generation);
+        self.playback = Some(id.clone());
+        id
+    }
+
+    fn end_playback(&mut self, id: Option<&str>) -> bool {
+        if self.playback.is_none() || self.playback.as_deref() != id { return false; }
+        self.playback = None;
+        true
     }
 
     fn claim(&mut self) -> Option<u64> {
@@ -139,6 +155,30 @@ impl ChatEngine {
 
     pub fn sleep(&self) { self.stop("已休眠，唤醒词或按键可再次开始"); }
 
+    pub fn playback_ended(&self, id: Option<&str>) {
+        let mut session = self.session.lock().unwrap();
+        // Rust emits tagged speech; missing/late/duplicate acknowledgements must
+        // never release a replacement's gate or overwrite its thinking state.
+        if !session.end_playback(id) { return; }
+        self.emit(&json!({ "type": "state", "name": "idle", "detail": "播放结束" }));
+    }
+
+    pub fn reject_dictation(&self, kind: &str, id: Option<&str>) {
+        let Some(id) = id else { return; };
+        let uuid = Regex::new(r"(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$").unwrap();
+        if !uuid.is_match(id) || kind == "dictationCancel" { return; }
+        let session = self.session.lock().unwrap();
+        let message = if kind == "dictationPrepare" && session.settings.get("dictationEnabled").and_then(Value::as_bool) != Some(true) {
+            "请先启用全局听写"
+        } else if session.audio_busy() {
+            "助手正在工作，请稍后听写"
+        } else {
+            "Rust 宿主暂不支持全局听写，请切换回 node 引擎"
+        };
+        // Never acknowledge readiness or accept audio without a real ASR backend.
+        self.emit(&json!({ "type": "dictationError", "id": id, "message": message }));
+    }
+
     pub fn clear(&self) {
         let mut session = self.session.lock().unwrap();
         session.invalidate();
@@ -159,6 +199,7 @@ impl ChatEngine {
             self.emit(&json!({ "type": "error", "message": "正在回复，可先点击「打断」再提交" }));
             return None;
         }
+        session.playback = None;
         self.emit(&json!({ "type": "stopAudio" }));
         let sleep_re = Regex::new(r"^(?:结束对话|休眠|退下吧)[。！!\s]*$").unwrap();
         if sleep_re.is_match(text) {
@@ -253,7 +294,7 @@ impl ChatEngine {
                     self.emit(&json!({ "type": "usage", "input": usage.get("input_tokens").cloned().unwrap_or(Value::Null), "output": usage.get("output_tokens").cloned().unwrap_or(Value::Null) }));
                 }
                 self.answer(&text, true);
-                self.speak_if_enabled(&text, &session);
+                self.speak_if_enabled(&text, &mut session);
             }
             Err(message) => self.fail(&message),
         }
@@ -271,7 +312,7 @@ impl ChatEngine {
     }
 
     /// speak 对齐：node 版系统声音由 Swift 端播报；Fish 合成未实现，诚实降级为系统声音。
-    fn speak_if_enabled(&self, content: &str, session: &Session) {
+    fn speak_if_enabled(&self, content: &str, session: &mut Session) {
         let speak = session.settings.get("speak").and_then(Value::as_bool).unwrap_or(false);
         if !speak { return; }
         let voice = str_field(&session.settings, "voice", "system");
@@ -282,7 +323,8 @@ impl ChatEngine {
                 self.emit(&json!({ "type": "error", "message": "Rust 宿主暂不支持 Fish 合成，本次使用系统声音" }));
             }
         }
-        self.emit(&json!({ "type": "speak", "text": speech_text(content) }));
+        let playback_id = session.start_playback();
+        self.emit(&json!({ "type": "speak", "text": speech_text(content), "playbackId": playback_id }));
     }
 }
 
@@ -360,4 +402,42 @@ mod tests {
             assert!(session.owns(current));
         }
     }
+
+    #[test]
+    fn playback_gate_is_independent_of_completed_chat() {
+        let mut session = Session::default();
+        assert!(!session.audio_busy());
+        let generation = session.claim().unwrap();
+        assert!(session.audio_busy());
+        assert!(session.finish(generation));
+        assert!(!session.audio_busy());
+        let playback = session.start_playback();
+        assert!(session.audio_busy());
+        assert!(!session.end_playback(None));
+        assert!(!session.end_playback(Some("unknown")));
+        assert!(session.audio_busy());
+        assert!(session.end_playback(Some(&playback)));
+        assert!(!session.audio_busy());
+        assert!(!session.end_playback(Some(&playback)));
+    }
+
+    #[test]
+    fn late_playback_ack_cannot_release_replacement_or_chat() {
+        let mut session = Session::default();
+        let first = session.claim().unwrap();
+        session.finish(first);
+        let old = session.start_playback();
+        session.invalidate();
+        assert!(!session.audio_busy());
+        let next = session.claim().unwrap();
+        assert!(!session.end_playback(Some(&old)));
+        assert!(session.owns(next));
+        session.finish(next);
+        let current = session.start_playback();
+        assert_ne!(old, current);
+        assert!(!session.end_playback(Some(&old)));
+        assert!(session.audio_busy());
+        assert!(session.end_playback(Some(&current)));
+    }
+
 }
