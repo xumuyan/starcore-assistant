@@ -7,6 +7,7 @@ use std::io::Write;
 use std::sync::{Arc, Mutex};
 
 use crate::memory::ConversationStore;
+use crate::reminder::{self, Action, CompletionReminder};
 use crate::vault::Vault;
 use std::time::Duration;
 
@@ -23,6 +24,8 @@ struct Session {
     generation: u64,
     active: Option<u64>,
     playback: Option<String>,
+    playback_sequence: u64,
+    reminder: Option<CompletionReminder>,
 }
 
 impl Session {
@@ -35,7 +38,10 @@ impl Session {
     fn audio_busy(&self) -> bool { self.active.is_some() || self.playback.is_some() }
 
     fn start_playback(&mut self) -> String {
-        let id = format!("rust-{}", self.generation);
+        // Reminders do not claim a chat generation. Every speech still needs its
+        // own ID, including consecutive reminders without a chat between them.
+        self.playback_sequence += 1;
+        let id = format!("rust-{}", self.playback_sequence);
         self.playback = Some(id.clone());
         id
     }
@@ -96,7 +102,10 @@ impl ChatEngine {
     pub fn new() -> Result<Self, String> {
         let (vault, store) = Self::open_state()?;
         Ok(Self {
-            session: Mutex::new(Session::default()),
+            session: Mutex::new(Session {
+                reminder: Some(CompletionReminder::new(crate::status::state_dir().join("events"))),
+                ..Session::default()
+            }),
             vault,
             store,
             out: Mutex::new(std::io::stdout()),
@@ -136,6 +145,9 @@ impl ChatEngine {
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "语音监听未开启" }));
         session.settings = settings;
         session.keys = keys;
+        if session.settings.get("codexVoiceReminder").and_then(Value::as_bool) != Some(true) {
+            if let Some(reminder) = session.reminder.as_mut() { reminder.disable(); }
+        }
         self.emit(&json!({
             "type": "configured", "settings": session.settings,
             "hasGateway": !str_field(&session.keys, "yunqiao", "").is_empty(),
@@ -161,6 +173,28 @@ impl ChatEngine {
         // never release a replacement's gate or overwrite its thinking state.
         if !session.end_playback(id) { return; }
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "播放结束" }));
+    }
+
+    pub fn reminder_tick(&self) {
+        let mut session = self.session.lock().unwrap();
+        let enabled = session.settings.get("codexVoiceReminder").and_then(Value::as_bool) == Some(true);
+        // Rust rejects dictation before Ready/recording. When ASR is added, its
+        // ownership must join this same gate before any reminder can be enabled.
+        let busy = session.audio_busy();
+        let action = session.reminder.as_mut().and_then(|watcher| watcher.tick(enabled, busy, std::time::Instant::now()));
+        match action {
+            Some(Action::Announce(event)) => {
+                self.emit(&json!({ "type": "codexReminder", "project": reminder::project(&event),
+                    "threadId": event.get("threadId").and_then(Value::as_str).unwrap_or(""),
+                    "summary": reminder::summary(&event) }));
+                // Explicit opt-in is independent of the chat speak switch. No
+                // record()/answer(), model request, Codex dispatch or target change.
+                self.speak(&reminder::speech(&event), &mut session);
+            }
+            Some(Action::Dropped(event)) => self.emit(&json!({ "type": "notice", "message":
+                format!("「{}」的 Codex 完成提醒未播报：当时助理正忙", reminder::project(&event)) })),
+            None => {}
+        }
     }
 
     pub fn reject_dictation(&self, kind: &str, id: Option<&str>) {
@@ -315,6 +349,10 @@ impl ChatEngine {
     fn speak_if_enabled(&self, content: &str, session: &mut Session) {
         let speak = session.settings.get("speak").and_then(Value::as_bool).unwrap_or(false);
         if !speak { return; }
+        self.speak(content, session);
+    }
+
+    fn speak(&self, content: &str, session: &mut Session) {
         let voice = str_field(&session.settings, "voice", "system");
         if voice == "fish" {
             if str_field(&session.keys, "fish", "").is_empty() {
@@ -438,6 +476,18 @@ mod tests {
         assert!(!session.end_playback(Some(&old)));
         assert!(session.audio_busy());
         assert!(session.end_playback(Some(&current)));
+    }
+
+    #[test]
+    fn consecutive_reminders_get_unique_playback_ids_without_chat_claims() {
+        let mut session = Session::default();
+        let first = session.start_playback();
+        assert!(session.end_playback(Some(&first)));
+        let second = session.start_playback();
+        assert_ne!(first, second);
+        assert!(!session.end_playback(Some(&first)));
+        assert!(session.audio_busy());
+        assert_eq!(session.generation, 0);
     }
 
 }

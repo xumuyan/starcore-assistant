@@ -91,10 +91,20 @@ test('Rust cancellation evidence distinguishes logical invalidation from transpo
 });
 
 
-test('Rust playback groundwork does not claim dictation, reminder or device acceptance', () => {
+test('Rust playback groundwork does not claim dictation or device acceptance', () => {
   const plan = read('PLAN.md');
   assert.match(plan, /SC-20261111-006.*playbackId/);
   assert.match(plan, /无编号 Node 协议保持兼容/);
   assert.match(plan, /Rust 听写未实现.*dictationError.*不录音/);
-  assert.match(plan, /真实系统声音\/Fish 回调.*仍未验收.*提醒监听尚未接入/);
+  assert.match(plan, /真实系统声音\/Fish 回调.*仍未验收.*实际提醒\/听写共存仍待/);
+});
+
+
+test('Rust reminder evidence keeps opt-in, resource and device acceptance boundaries explicit', () => {
+  const plan = read('PLAN.md');
+  assert.match(plan, /SC-20261111-007.*codexVoiceReminder=true.*独立于 speak/);
+  assert.match(plan, /120 秒逻辑时钟与队列单测/);
+  assert.match(plan, /真实 Codex 事件→Rust 声音.*未验收.*不能套用 Node/);
+  assert.match(plan, /超大目录与长运行 seen 集合资源上限待压测/);
+  assert.ok(existsSync(resolve(root, 'test/rust-reminder.test.mjs')));
 });

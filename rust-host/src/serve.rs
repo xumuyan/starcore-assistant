@@ -95,6 +95,15 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
 
 pub fn run() -> Result<(), String> {
     let engine = Arc::new(ChatEngine::new()?);
+    // A single periodic worker (not one per event) keeps reminders responsive
+    // while stdin is idle. Disconnect wakes it immediately on EOF; join before exit.
+    let (stop, stopped) = std::sync::mpsc::channel::<()>();
+    let reminder_engine = engine.clone();
+    let reminder_worker = std::thread::Builder::new().name("moss-reminder".into()).spawn(move || {
+        while let Err(std::sync::mpsc::RecvTimeoutError::Timeout) = stopped.recv_timeout(Duration::from_secs(1)) {
+            reminder_engine.reminder_tick();
+        }
+    }).map_err(|_| "无法启动完成提醒监听线程".to_string())?;
     let stdin = std::io::stdin();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { break };
@@ -107,5 +116,7 @@ pub fn run() -> Result<(), String> {
         };
         for event in events { engine.emit(&event); }
     }
+    drop(stop);
+    reminder_worker.join().map_err(|_| "完成提醒监听线程异常退出".to_string())?;
     Ok(())
 }
