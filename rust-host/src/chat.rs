@@ -6,6 +6,10 @@ use serde_json::{json, Value};
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+
+use crate::memory::ConversationStore;
+use crate::vault::Vault;
+use std::path::PathBuf;
 use std::time::Duration;
 
 const DEFAULT_CHAT_BASE: &str = "https://api.yunqiao.me/v1";
@@ -14,7 +18,8 @@ const DEFAULT_CHAT_MODEL: &str = "gpt-6-astra";
 pub struct ChatEngine {
     pub settings: Mutex<Value>,
     pub keys: Mutex<Value>,
-    pub history: Mutex<Vec<(String, String)>>,
+    pub vault: Vault,
+    pub store: ConversationStore,
     pub busy: AtomicBool,
     pub generation: Mutex<u64>,
     pub aborted: Arc<AtomicBool>,
@@ -26,11 +31,23 @@ fn str_field<'a>(value: &'a Value, field: &str, default: &'a str) -> &'a str {
 }
 
 impl ChatEngine {
+    /// 状态目录与 node 版同路径（HOME 下的 .codex-weixin-notifier），供测试以 HOME 沙箱隔离。
+    pub fn open_state() -> (Vault, ConversationStore) {
+        let root = std::env::var("HOME").map(|h| PathBuf::from(h).join(".codex-weixin-notifier")).unwrap_or_else(|_| PathBuf::from(".codex-weixin-notifier"));
+        let vault = Vault::open(&root).expect("金库初始化失败");
+        let store = ConversationStore::open(&root).expect("会话库初始化失败");
+        (vault, store)
+    }
+
+    // ChatEngine 构造需要 HOME 沙箱状态目录，Default 语义不适用。
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
+        let (vault, store) = Self::open_state();
         Self {
             settings: Mutex::new(json!({})),
             keys: Mutex::new(json!({})),
-            history: Mutex::new(Vec::new()),
+            vault,
+            store,
             busy: AtomicBool::new(false),
             generation: Mutex::new(0),
             aborted: Arc::new(AtomicBool::new(false)),
@@ -56,17 +73,22 @@ impl ChatEngine {
     }
 
     fn context(&self, limit: usize, budget: usize) -> Vec<Value> {
-        let history = self.history.lock().unwrap();
-        let start = history.len().saturating_sub(limit);
+        let Ok(rows) = self.store.context(&self.vault, limit) else { return Vec::new() };
         let mut result = Vec::new();
         let mut budget = budget;
-        for (role, content) in &history[start..] {
+        for (role, content) in rows {
             if budget == 0 { break; }
             let cut = content.char_indices().nth(budget).map(|(i, _)| i).unwrap_or(content.len());
             budget -= content[..cut].chars().count();
             result.push(json!({ "role": role, "content": &content[..cut] }));
         }
         result
+    }
+
+    fn record(&self, role: &str, content: &str, source: &str) {
+        if let Err(error) = self.store.append(&self.vault, role, content, source) {
+            self.emit(&json!({ "type": "error", "message": format!("对话保存失败：{error}") }));
+        }
     }
 
     pub fn cancel(&self) -> bool {
@@ -76,11 +98,13 @@ impl ChatEngine {
     }
 
     pub fn clear(&self) {
-        self.history.lock().unwrap().clear();
+        if let Err(error) = self.store.clear() {
+            self.emit(&json!({ "type": "error", "message": format!("对话清空失败：{error}") }));
+        }
     }
 
     /// 闲聊主路径；返回 Ok(()) 时事件已按序发出。Codex 派发不在本模块。
-    pub fn text(&self, text: &str, mode: &str, timeout: Duration) {
+    pub fn text(&self, text: &str, mode: &str, source: &str, timeout: Duration) {
         if self.busy.load(Ordering::SeqCst) {
             self.emit(&json!({ "type": "error", "message": "正在回复，可先点击「打断」再提交" }));
             return;
@@ -108,8 +132,9 @@ impl ChatEngine {
             self.answer("本地语音已能识别。请打开设置，填写云桥 API Key 后，我就可以和你连续对话。也可以直接点击「交给 Codex」发送开发要求。", false);
             return;
         };
+
         self.emit(&json!({ "type": "message", "role": "user", "content": text }));
-        self.history.lock().unwrap().push(("user".into(), text.into()));
+        self.record("user", text, source);
         let generation = { let mut g = self.generation.lock().unwrap(); *g += 1; *g };
         self.busy.store(true, Ordering::SeqCst);
         self.aborted.store(false, Ordering::SeqCst);
@@ -172,7 +197,7 @@ impl ChatEngine {
     }
 
     fn answer(&self, content: &str, save: bool) {
-        if save { self.history.lock().unwrap().push(("assistant".into(), content.into())); }
+        if save { self.record("assistant", content, "chat"); }
         self.emit(&json!({ "type": "message", "role": "assistant", "content": content }));
         self.busy.store(false, Ordering::SeqCst);
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "回复已就绪" }));
@@ -206,7 +231,7 @@ pub fn speech_text(text: &str) -> String {
 }
 
 /// 从请求线程调用的聊天入口：独立线程保证 serve 主循环在 HTTP 期间仍能读 cancel。
-pub fn spawn_text(engine: Arc<ChatEngine>, text: String, mode: String, timeout: Duration) {
-    std::thread::spawn(move || engine.text(&text, &mode, timeout));
+pub fn spawn_text(engine: Arc<ChatEngine>, text: String, mode: String, source: String, timeout: Duration) {
+    std::thread::spawn(move || engine.text(&text, &mode, &source, timeout));
 }
 

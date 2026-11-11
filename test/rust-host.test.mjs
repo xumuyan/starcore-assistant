@@ -231,7 +231,9 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}/v1`;
-  const proc = spawn(mossHost, ['serve'], { env: { ...process.env, MOSS_CHAT_TIMEOUT_MS: '4000' } });
+  // HOME 指向沙箱：rust 宿主把金库与会话库写到沙箱，测试末尾用 node 版开封互读。
+  const sandbox = mkdtempSync(join(tmpdir(), 'moss-host-chat-'));
+  const proc = spawn(mossHost, ['serve'], { env: { ...process.env, HOME: sandbox, MOSS_CHAT_TIMEOUT_MS: '4000' } });
   try {
     const lines = [];
     let buffer = '';
@@ -291,6 +293,21 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     await new Promise(r => setTimeout(r, 4600));
     const assistantAfter = parseAll().slice(cancelAt + 1).filter(e => e.type === 'message' && e.role === 'assistant');
     assert.deepEqual(assistantAfter, []);
+    // 端到端互操作：rust 写入的 sealed_messages 必须能被 node 版金库开封（引擎切换互读）。
+    const { DatabaseSync } = await import('node:sqlite');
+    const { LocalVault } = await import(join(root, 'src/assistant-vault.mjs'));
+    const db = new DatabaseSync(join(sandbox, '.codex-weixin-notifier/conversations.sqlite'), { readOnly: true });
+    const rows = db.prepare('SELECT id, data FROM sealed_messages ORDER BY id').all();
+    assert.ok(rows.length >= 3, `rust 宿主应已落盘至少 3 条消息，实际 ${rows.length}`);
+    const vault = new LocalVault(join(sandbox, '.codex-weixin-notifier'));
+    const opened = rows.map(row => JSON.parse(vault.open(row.data, `message/${row.id}`).toString('utf8')));
+    assert.equal(opened[0].role, 'user');
+    assert.equal(opened[0].content, '你好，介绍一下自己');
+    assert.equal(opened[0].source, 'chat');
+    assert.match(opened[0].time, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.equal(opened[1].role, 'assistant');
+    assert.match(opened[1].content, /好的/);
+    assert.ok(opened.every(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string'));
   } finally {
     proc.kill();
     server?.close();

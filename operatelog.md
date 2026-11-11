@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-003 Rust 宿主 P3 会话落盘与引擎互读
+
+- 北京时间：2026-11-11 12:10:30 +08:00（开发自 2026-11-11 上午开始）。
+- 修改或新增：完成 Rust 引擎阶段三第三模块（PLAN P3 对话持久化）。① 新增 rust-host/src/memory.rs：与 src/assistant-memory.mjs 共享同一 `~/.codex-weixin-notifier/conversations.sqlite`（secure_delete=ON、sealed_messages+metadata 表、0600）；append 单事务「预留 id+加密回填」（purpose=message/{id}）；context 取最新 limit 条开封为 (role, content) 正序；clear 清空并 VACUUM。② chat.rs 移除内存会话改用落盘存储：text 成功路径落盘 user（source 取请求字段缺省 chat）与 assistant 消息、上下文改为从密文库读取、clear 直达密文库；时间戳复用 serve 的 UTC RFC3339。③ 测试：cargo 集成测试新增 memory_store（往返、跨打开持久化、limit 生效、清空）；node 端 rust-host chat 测试改为 HOME 沙箱运行（不触碰真实数据），末尾用 node:sqlite + node 版 LocalVault 开封 rust 宿主写入的 sealed_messages——证明 node<->rust 引擎切换时对话互读。
+- 遇到的难题：无重大阻塞；一处 clippy 提示（new_without_default 与 unnecessary to_string）位置放错后修正。
+- 处理方式：clippy::new_without_default 以注释说明 Default 语义不适用（构造依赖 HOME 状态目录）。
+- 验证结果：cargo test 17 项全部通过（13 lib+2 vault+2 memory）；npm test 207 项全部通过（含 node 开封 rust 落盘的端到端互操作断言）；cargo build/clippy 零警告。真机引擎切换往返（node 写→rust 读、rust 写→node 读）属 P4 灰度验收，未验收。
+- 遗留问题：P3 剩余本地 ASR/听写、语音提醒、Fish 合成模块；P4 灰度切换与回滚演练；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261111-003] rust host conversation persistence and cross-engine read`；最终哈希按 Change-ID 查询。
+
 ## SC-20261111-002 Rust 宿主 P3 金库模块对齐
 
 - 北京时间：2026-11-11 12:05:10 +08:00（开发自 2026-11-11 上午开始）。

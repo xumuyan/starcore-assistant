@@ -17,7 +17,7 @@ fn chat_timeout() -> Duration {
         .unwrap_or(Duration::from_secs(60))
 }
 
-fn utc_now_rfc3339() -> String {
+pub fn utc_now_rfc3339() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -74,7 +74,8 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
         Some("text") => {
             let text = request.get("text").and_then(Value::as_str).unwrap_or("").to_string();
             let mode = request.get("mode").and_then(Value::as_str).unwrap_or("chat").to_string();
-            spawn_text(engine.clone(), text, mode, chat_timeout());
+            let source = request.get("source").and_then(Value::as_str).unwrap_or("chat").to_string();
+            spawn_text(engine.clone(), text, mode, source, chat_timeout());
             vec![]
         }
         // cancel：打断进行中的回复；clear：清空内存会话；sleep：休眠。
