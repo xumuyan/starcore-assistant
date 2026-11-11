@@ -4,8 +4,7 @@
 // 未提供的能力以显式 error/capture=false 呈现，不静默假装成功。
 use crate::chat::{spawn_text, ChatEngine};
 use serde_json::{json, Value};
-use std::io::{BufRead, Write};
-use std::sync::atomic::Ordering;
+use std::io::BufRead;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -55,21 +54,13 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
         })],
         // configure：回显形状与 assistant-service emit 的 configured 一致；快照供聊天模块使用。
         Some("configure") => {
-            let keys = request.get("keys").cloned().unwrap_or(Value::Null);
-            let has = |field: &str| {
-                keys.get(field).and_then(Value::as_str).map(|s| !s.is_empty()).unwrap_or(false)
-            };
-            let flags = [has("yunqiao"), has("deepseek"), has("fish")];
-            *engine.settings.lock().unwrap() = request.get("settings").cloned().unwrap_or(json!({}));
-            *engine.keys.lock().unwrap() = keys;
-            vec![json!({
-                "type": "configured",
-                "settings": request.get("settings").cloned().unwrap_or(json!({})),
-                "hasGateway": flags[0],
-                "hasDeepSeek": flags[1],
-                "hasFish": flags[2]
-            })]
+            engine.configure(
+                request.get("settings").cloned().unwrap_or(json!({})),
+                request.get("keys").cloned().unwrap_or(Value::Null),
+            );
+            vec![]
         }
+
         // text：闲聊路径（P3 第一模块）；HTTP 在独立线程，主循环保持可响应 cancel。
         Some("text") => {
             let text = request.get("text").and_then(Value::as_str).unwrap_or("").to_string();
@@ -78,19 +69,10 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
             spawn_text(engine.clone(), text, mode, source, chat_timeout());
             vec![]
         }
-        // cancel：打断进行中的回复；clear：清空内存会话；sleep：休眠。
-        Some("cancel") => {
-            if engine.cancel() {
-                *engine.generation.lock().unwrap() += 1;
-                engine.busy.store(false, Ordering::SeqCst);
-                vec![json!({ "type": "state", "name": "idle", "detail": "已打断" })]
-            } else { vec![] }
-        }
-        Some("clear") => {
-            engine.clear();
-            vec![json!({ "type": "state", "name": "idle", "detail": "对话已清空" })]
-        }
-        Some("sleep") => vec![json!({ "type": "state", "name": "idle", "detail": "已休眠，唤醒词或按键可再次开始" })],
+        // All controls invalidate pending replies and stop native playback, even when idle.
+        Some("cancel") => { engine.cancel(); vec![] }
+        Some("clear") => { engine.clear(); vec![] }
+        Some("sleep") => { engine.sleep(); vec![] }
         // listen：P2 未实现采集与 ASR，按 node 关闭语义输出 capture=false 并给出明确状态。
         Some("listen") => vec![
             json!({ "type": "state", "name": "error", "detail": "Rust 宿主尚未提供语音监听（P3 提供）" }),
@@ -104,7 +86,6 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
 pub fn run() -> Result<(), String> {
     let engine = Arc::new(ChatEngine::new()?);
     let stdin = std::io::stdin();
-    let stdout = std::io::stdout();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { break };
         if line.trim().is_empty() {
@@ -114,12 +95,7 @@ pub fn run() -> Result<(), String> {
             Ok(request) => handle(&request, &engine),
             Err(_) => vec![err_event("rust host serve: 无法解析的 JSON 行")],
         };
-        let mut out = stdout.lock();
-        for event in events {
-            let _ = serde_json::to_writer(&mut out, &event);
-            let _ = out.write_all(b"\n");
-        }
-        let _ = out.flush();
+        for event in events { engine.emit(&event); }
     }
     Ok(())
 }

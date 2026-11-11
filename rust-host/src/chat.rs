@@ -4,7 +4,6 @@
 use regex::Regex;
 use serde_json::{json, Value};
 use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::memory::ConversationStore;
@@ -14,15 +13,53 @@ use std::time::Duration;
 const DEFAULT_CHAT_BASE: &str = "https://api.yunqiao.me/v1";
 const DEFAULT_CHAT_MODEL: &str = "gpt-6-astra";
 
+// One lock is the linearization point for request ownership, configuration and effects.
+// Never hold it over HTTP/body reads. A control command either follows a committed
+// reply (then stops its audio), or invalidates it before any DB/output effect.
+#[derive(Default)]
+struct Session {
+    settings: Value,
+    keys: Value,
+    generation: u64,
+    active: Option<u64>,
+}
+
+impl Session {
+    fn invalidate(&mut self) {
+        self.generation += 1;
+        self.active = None;
+    }
+
+    fn claim(&mut self) -> Option<u64> {
+        if self.active.is_some() { return None; }
+        self.generation += 1;
+        self.active = Some(self.generation);
+        self.active
+    }
+
+    fn owns(&self, generation: u64) -> bool { self.active == Some(generation) }
+
+    fn finish(&mut self, generation: u64) -> bool {
+        if !self.owns(generation) { return false; }
+        self.active = None;
+        true
+    }
+}
+
+// Immutable snapshot captured in stdin order, before spawning the worker.
+struct ChatRequest {
+    generation: u64,
+    url: String,
+    key: String,
+    body: Value,
+    timeout: Duration,
+}
+
 pub struct ChatEngine {
-    pub settings: Mutex<Value>,
-    pub keys: Mutex<Value>,
-    pub vault: Vault,
-    pub store: ConversationStore,
-    pub busy: AtomicBool,
-    pub generation: Mutex<u64>,
-    pub aborted: Arc<AtomicBool>,
-    pub out: Mutex<std::io::Stdout>,
+    session: Mutex<Session>,
+    vault: Vault,
+    store: ConversationStore,
+    out: Mutex<std::io::Stdout>,
 }
 
 fn str_field<'a>(value: &'a Value, field: &str, default: &'a str) -> &'a str {
@@ -43,13 +80,9 @@ impl ChatEngine {
     pub fn new() -> Result<Self, String> {
         let (vault, store) = Self::open_state()?;
         Ok(Self {
-            settings: Mutex::new(json!({})),
-            keys: Mutex::new(json!({})),
+            session: Mutex::new(Session::default()),
             vault,
             store,
-            busy: AtomicBool::new(false),
-            generation: Mutex::new(0),
-            aborted: Arc::new(AtomicBool::new(false)),
             out: Mutex::new(std::io::stdout()),
         })
     }
@@ -59,16 +92,6 @@ impl ChatEngine {
         let _ = serde_json::to_writer(&mut *out, event);
         let _ = out.write_all(b"\n");
         let _ = out.flush();
-    }
-
-    fn key(&self, field: &str) -> Option<String> {
-        let keys = self.keys.lock().unwrap();
-        keys.get(field).and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from)
-    }
-
-    fn setting(&self, field: &str, default: &str) -> String {
-        let settings = self.settings.lock().unwrap();
-        str_field(&settings, field, default).to_string()
     }
 
     fn context(&self, limit: usize, budget: usize) -> Vec<Value> {
@@ -90,32 +113,62 @@ impl ChatEngine {
         }
     }
 
-    pub fn cancel(&self) -> bool {
-        if !self.busy.load(Ordering::SeqCst) { return false; }
-        self.aborted.store(true, Ordering::SeqCst);
-        true
+    pub fn configure(&self, settings: Value, keys: Value) {
+        let mut session = self.session.lock().unwrap();
+        session.invalidate();
+        self.emit(&json!({ "type": "stopAudio" }));
+        self.emit(&json!({ "type": "state", "name": "idle", "detail": "语音监听未开启" }));
+        session.settings = settings;
+        session.keys = keys;
+        self.emit(&json!({
+            "type": "configured", "settings": session.settings,
+            "hasGateway": !str_field(&session.keys, "yunqiao", "").is_empty(),
+            "hasDeepSeek": !str_field(&session.keys, "deepseek", "").is_empty(),
+            "hasFish": !str_field(&session.keys, "fish", "").is_empty(),
+        }));
     }
+
+    fn stop(&self, detail: &str) {
+        let mut session = self.session.lock().unwrap();
+        session.invalidate();
+        self.emit(&json!({ "type": "stopAudio" }));
+        self.emit(&json!({ "type": "state", "name": "idle", "detail": detail }));
+    }
+
+    pub fn cancel(&self) { self.stop("已打断"); }
+
+    pub fn sleep(&self) { self.stop("已休眠，唤醒词或按键可再次开始"); }
 
     pub fn clear(&self) {
+        let mut session = self.session.lock().unwrap();
+        session.invalidate();
+        self.emit(&json!({ "type": "stopAudio" }));
         if let Err(error) = self.store.clear() {
-            self.emit(&json!({ "type": "error", "message": format!("对话清空失败：{error}") }));
+            self.fail(&format!("对话清空失败：{error}"));
+            return;
         }
+        self.emit(&json!({ "type": "history", "messages": [] }));
+        self.emit(&json!({ "type": "state", "name": "idle", "detail": "对话已清空" }));
     }
 
-    /// 闲聊主路径；返回 Ok(()) 时事件已按序发出。Codex 派发不在本模块。
-    pub fn text(&self, text: &str, mode: &str, source: &str, timeout: Duration) {
-        if self.busy.load(Ordering::SeqCst) {
+    // Synchronous receipt/claim: a queued cancel/clear cannot be overtaken by a
+    // worker that has not yet started. Only network I/O moves to another thread.
+    fn prepare_text(&self, text: &str, mode: &str, source: &str, timeout: Duration) -> Option<ChatRequest> {
+        let mut session = self.session.lock().unwrap();
+        if session.active.is_some() {
             self.emit(&json!({ "type": "error", "message": "正在回复，可先点击「打断」再提交" }));
-            return;
+            return None;
         }
+        self.emit(&json!({ "type": "stopAudio" }));
         let sleep_re = Regex::new(r"^(?:结束对话|休眠|退下吧)[。！!\s]*$").unwrap();
         if sleep_re.is_match(text) {
+            session.invalidate();
             self.emit(&json!({ "type": "state", "name": "idle", "detail": "已休眠，唤醒词或按键可再次开始" }));
-            return;
+            return None;
         }
         if mode == "codex" {
             self.emit(&json!({ "type": "error", "message": "Rust 宿主暂不支持 Codex 派发，请切换回 node 引擎" }));
-            return;
+            return None;
         }
         let codex_re = Regex::new(r"^(?:请\s*)?(?:让|叫|交给|发给|发送给)\s*(?:codex|扣得克斯|代码助手)[，,:：\s]*(.*)$").unwrap();
         let question_re = Regex::new(r"[吗么][。！!\s]*$|[？?][。\s]*$").unwrap();
@@ -124,45 +177,63 @@ impl ChatEngine {
             // node 版先排除疑问语气；疑问句走闲聊，命令句才派发。
             if !question_re.is_match(text) && !(rest.is_empty() && text.contains('？')) {
                 self.emit(&json!({ "type": "error", "message": "Rust 宿主暂不支持 Codex 派发，请切换回 node 引擎" }));
-                return;
+                return None;
             }
         }
-        let Some(key) = self.key("yunqiao") else {
+        let key = str_field(&session.keys, "yunqiao", "").to_string();
+        if key.is_empty() {
             self.answer("本地语音已能识别。请打开设置，填写云桥 API Key 后，我就可以和你连续对话。也可以直接点击「交给 Codex」发送开发要求。", false);
-            return;
+            return None;
         };
 
         self.emit(&json!({ "type": "message", "role": "user", "content": text }));
         self.record("user", text, source);
-        let generation = { let mut g = self.generation.lock().unwrap(); *g += 1; *g };
-        self.busy.store(true, Ordering::SeqCst);
-        self.aborted.store(false, Ordering::SeqCst);
+        let generation = session.claim()?;
         self.emit(&json!({ "type": "state", "name": "thinking", "detail": "云桥聊天正在回复" }));
-        let name = self.setting("name", "沐言");
-        let base = self.setting("chatBaseUrl", DEFAULT_CHAT_BASE);
-        let model = self.setting("chatModel", DEFAULT_CHAT_MODEL);
+        let name = str_field(&session.settings, "name", "沐言");
+        let base = str_field(&session.settings, "chatBaseUrl", DEFAULT_CHAT_BASE);
+        let model = str_field(&session.settings, "chatModel", DEFAULT_CHAT_MODEL);
         let context = self.context(16, 12000);
         let system = format!("你是用户的 Mac 私人助理，名字是{name}。自然简洁地用中文交谈，默认三句话以内。用户的对话完整保存在本机，但本次只携带近期上下文；不知道的旧内容不要假装记得。可以讨论开发问题；实际改文件或跑命令请提示用户说“让 Codex”加具体要求，会连同相关讨论交给选定的原聊天。不得声称已执行未调用的工具，不得虚构电脑状态或联网结果。");
         let mut input = vec![json!({ "role": "system", "content": system }), json!({ "role": "system", "content": "" }), json!({ "role": "user", "content": text })];
         for item in context { input.push(item); }
-        let aborted = self.aborted.clone();
-        let url = format!("{}/responses", base.trim_end_matches('/'));
-        let agent = ureq::AgentBuilder::new().timeout(timeout).build();
-        let result = agent.post(&url)
-            .set("Authorization", &format!("Bearer {key}"))
-            .set("Content-Type", "application/json")
-            .timeout(timeout)
-            .send_json(json!({
+        Some(ChatRequest {
+            generation,
+            url: format!("{}/responses", base.trim_end_matches('/')),
+            key,
+            body: json!({
                 "model": model, "input": input, "max_output_tokens": 800,
                 "reasoning": { "effort": "low" }, "store": false
-            }));
-        if aborted.load(Ordering::SeqCst) || generation != *self.generation.lock().unwrap() {
-            self.busy.store(false, Ordering::SeqCst);
-            return;
-        }
+            }),
+            timeout,
+        })
+    }
+
+    fn perform(&self, request: ChatRequest) {
+        // Avoid starting already-invalidated work. Cancellation during blocking
+        // HTTP remains logical only: the socket is bounded by the request timeout.
+        if !self.session.lock().unwrap().owns(request.generation) { return; }
+        let agent = ureq::AgentBuilder::new().timeout(request.timeout).build();
+        let result = agent.post(&request.url)
+            .set("Authorization", &format!("Bearer {}", request.key))
+            .set("Content-Type", "application/json")
+            .timeout(request.timeout)
+            .send_json(request.body)
+            .map_err(|error| match error {
+                ureq::Error::Status(code, _) => format!("云桥聊天失败（HTTP {code}），请检查密钥分组、模型与额度；未改用 DeepSeek"),
+                _ => "对话已超时或取消".to_string(),
+            })
+            // Read the entire body BEFORE checking ownership, not just headers.
+            .and_then(|response| response.into_json::<Value>().map_err(|_| "云桥响应读取失败或格式异常".to_string()));
+        self.complete(request.generation, result);
+    }
+
+    fn complete(&self, generation: u64, result: Result<Value, String>) {
+        let mut session = self.session.lock().unwrap();
+        // An obsolete worker must neither emit/record nor release a new owner.
+        if !session.finish(generation) { return; }
         match result {
-            Ok(response) => {
-                let data: Value = response.into_json().unwrap_or(Value::Null);
+            Ok(data) => {
                 if data.get("error").is_some() {
                     self.fail("云桥返回接口错误，请检查模型分组与请求状态");
                     return;
@@ -182,15 +253,13 @@ impl ChatEngine {
                     self.emit(&json!({ "type": "usage", "input": usage.get("input_tokens").cloned().unwrap_or(Value::Null), "output": usage.get("output_tokens").cloned().unwrap_or(Value::Null) }));
                 }
                 self.answer(&text, true);
-                self.speak_if_enabled(&text);
+                self.speak_if_enabled(&text, &session);
             }
-            Err(ureq::Error::Status(code, _)) => self.fail(&format!("云桥聊天失败（HTTP {code}），请检查密钥分组、模型与额度；未改用 DeepSeek")),
-            Err(_) => self.fail("对话已超时或取消"),
+            Err(message) => self.fail(&message),
         }
     }
 
     fn fail(&self, message: &str) {
-        self.busy.store(false, Ordering::SeqCst);
         self.emit(&json!({ "type": "error", "message": message }));
         self.emit(&json!({ "type": "state", "name": "error", "detail": "对话未完成" }));
     }
@@ -198,17 +267,16 @@ impl ChatEngine {
     fn answer(&self, content: &str, save: bool) {
         if save { self.record("assistant", content, "chat"); }
         self.emit(&json!({ "type": "message", "role": "assistant", "content": content }));
-        self.busy.store(false, Ordering::SeqCst);
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "回复已就绪" }));
     }
 
     /// speak 对齐：node 版系统声音由 Swift 端播报；Fish 合成未实现，诚实降级为系统声音。
-    fn speak_if_enabled(&self, content: &str) {
-        let speak = self.settings.lock().unwrap().get("speak").and_then(Value::as_bool).unwrap_or(false);
+    fn speak_if_enabled(&self, content: &str, session: &Session) {
+        let speak = session.settings.get("speak").and_then(Value::as_bool).unwrap_or(false);
         if !speak { return; }
-        let voice = self.setting("voice", "system");
+        let voice = str_field(&session.settings, "voice", "system");
         if voice == "fish" {
-            if self.key("fish").is_none() {
+            if str_field(&session.keys, "fish", "").is_empty() {
                 self.emit(&json!({ "type": "error", "message": "Fish API Key 未配置，本次使用系统声音" }));
             } else {
                 self.emit(&json!({ "type": "error", "message": "Rust 宿主暂不支持 Fish 合成，本次使用系统声音" }));
@@ -231,6 +299,65 @@ pub fn speech_text(text: &str) -> String {
 
 /// 从请求线程调用的聊天入口：独立线程保证 serve 主循环在 HTTP 期间仍能读 cancel。
 pub fn spawn_text(engine: Arc<ChatEngine>, text: String, mode: String, source: String, timeout: Duration) {
-    std::thread::spawn(move || engine.text(&text, &mode, &source, timeout));
+    let Some(request) = engine.prepare_text(&text, &mode, &source, timeout) else { return; };
+    let generation = request.generation;
+    let worker = engine.clone();
+    if std::thread::Builder::new().name("moss-chat".into()).spawn(move || worker.perform(request)).is_err() {
+        engine.complete(generation, Err("无法启动聊天请求线程，请稍后重试".into()));
+    }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::Session;
+    use std::sync::{Arc, Barrier, Mutex};
+
+    #[test]
+    fn concurrent_claims_have_exactly_one_owner() {
+        let session = Arc::new(Mutex::new(Session::default()));
+        let barrier = Arc::new(Barrier::new(12));
+        let threads: Vec<_> = (0..12).map(|_| {
+            let session = session.clone();
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                barrier.wait();
+                session.lock().unwrap().claim()
+            })
+        }).collect();
+        let owners: Vec<_> = threads.into_iter().filter_map(|t| t.join().unwrap()).collect();
+        assert_eq!(owners.len(), 1);
+        assert!(session.lock().unwrap().owns(owners[0]));
+    }
+
+    #[test]
+    fn obsolete_completion_never_releases_a_replacement() {
+        let mut session = Session::default();
+        let old = session.claim().unwrap();
+        session.invalidate();
+        let current = session.claim().unwrap();
+        assert_ne!(current, old);
+        assert!(!session.finish(old));
+        assert!(session.owns(current));
+        assert!(session.claim().is_none());
+        assert!(session.finish(current));
+        assert!(!session.finish(current), "a result can only commit once");
+        assert!(session.claim().is_some());
+    }
+
+    #[test]
+    fn repeated_idle_invalidation_cannot_revalidate_any_old_request() {
+        let mut session = Session::default();
+        let mut old = Vec::new();
+        for _ in 0..100 {
+            old.push(session.claim().unwrap());
+            session.invalidate();
+            session.invalidate();
+        }
+        let current = session.claim().unwrap();
+        for generation in old {
+            assert!(!session.owns(generation));
+            assert!(!session.finish(generation));
+            assert!(session.owns(current));
+        }
+    }
+}

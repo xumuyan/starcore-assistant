@@ -163,25 +163,27 @@ test('rust host serve speaks the minimal stdio protocol subset', { skip: !exists
       input, encoding: 'utf8', timeout: 10000,
       env: { HOME: home, CODEX_WEIXIN_STATE_DIR: join(home, '.codex-weixin-notifier') },
     }).trim().split('\n').map(line => JSON.parse(line));
-    assert.equal(events.length, 6);
+    assert.equal(events.length, 8);
     assert.equal(events[0].type, 'tasks');
     assert.equal(events[0].available, false);
     assert.deepEqual(events[0].tasks, []);
     assert.match(events[0].checkedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     assert.match(events[0].error, /P3/);
-    assert.equal(events[1].type, 'configured');
-    assert.equal(events[1].settings.name, '沐言');
-    assert.equal(events[1].hasGateway, true);
-    assert.equal(events[1].hasDeepSeek, true);
-    assert.equal(events[1].hasFish, false);
-    assert.equal(events[2].type, 'state');
-    assert.equal(events[2].name, 'error');
-    assert.match(events[2].detail, /P3/);
-    assert.deepEqual(events[3], { type: 'capture', enabled: false });
-    assert.equal(events[4].type, 'error');
-    assert.match(events[4].message, /不支持的类型/);
-    assert.equal(events[5].type, 'error');
-    assert.match(events[5].message, /无法解析/);
+    assert.deepEqual(events[1], { type: 'stopAudio' });
+    assert.deepEqual(events[2], { type: 'state', name: 'idle', detail: '语音监听未开启' });
+    assert.equal(events[3].type, 'configured');
+    assert.equal(events[3].settings.name, '沐言');
+    assert.equal(events[3].hasGateway, true);
+    assert.equal(events[3].hasDeepSeek, true);
+    assert.equal(events[3].hasFish, false);
+    assert.equal(events[4].type, 'state');
+    assert.equal(events[4].name, 'error');
+    assert.match(events[4].detail, /P3/);
+    assert.deepEqual(events[5], { type: 'capture', enabled: false });
+    assert.equal(events[6].type, 'error');
+    assert.match(events[6].message, /不支持的类型/);
+    assert.equal(events[7].type, 'error');
+    assert.match(events[7].message, /无法解析/);
     assert.ok(existsSync(join(home, '.codex-weixin-notifier/assistant/master.key')));
     assert.equal(existsSync(join(home, '.codex-weixin-notifier/master.key')), false);
   } finally { rmSync(home, { recursive: true, force: true }); }

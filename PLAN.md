@@ -239,17 +239,17 @@
 - [x] P0 工具链与只读状态对齐（SC-20261109-013）：rustup stable 工具链安装；`rust-host` 工程实现 `moss-host status` 只读快照，与 node 版 client-control 逐字段对齐（delivery/serviceRunning/watching/bound/ready/paused/sent/pending/uncertain/remoteEnabled/remoteProject/remoteThreadId/remoteStatus/latest），输出字节级一致。证据：[rust-host 测试](test/rust-host.test.mjs) 同沙箱下两个二进制 stdout 字符串全等 + `cargo test` 单元测试；`npm test` 全量通过。工具链 cargo 1.99.1 安装完成。
 - [x] P1 控制命令对齐（SC-20261109-014，build 32）：`moss-host start/stop` 与 node 版逐调用对齐（Disabled 跳过、已注册跳过、bootstrap/bootout 失败吞掉、start/stop 同样输出快照、stop 硬编码 launchctl 与 node 一致）；build.py 编译 Rust 宿主（cargo 缺失跳过不阻塞、失败中止）但二进制不入包、不接线，默认引擎仍 node。证据：cargo test 13 项通过；[rust-host 测试](test/rust-host.test.mjs) start 场景双二进制 stdout 与 launchctl 调用日志字节级一致；npm test 185 项通过；build.py 两分支实测（有 cargo 出 RUST_HOST_READY、无 cargo 警告跳过）且 --no-install 构建签名通过。
 - [x] P2 宿主 stdio 协议最小子集：tasks/configure/listen 转发与现有 JSON 行协议对齐；Swift 端新增 `runtime-engine` 开关（默认 node，兼容旧配置）。证据：rust-host.test.mjs serve 协议六事件断言 + 开关/白名单源码断言，npm test 205 项全过，npm run build:mac:check 通过（Rust release + Swift 编译）（operatelog SC-20261110-011）；以 rust 引擎真机运行留 P4 灰度。
-- [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。SC-20261111-001/002/003 仅为初版实现与有限自动验证，不代表完整对齐或模块验收完成。SC-20261111-004 修正实际状态路径与金库安全边界，细项如下。
+- [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。SC-20261111-001/002/003 仅为初版实现与有限自动验证，不代表完整对齐或模块验收完成。SC-20261111-004 修正实际状态路径与金库安全边界；SC-20261111-005 补聊天请求归属与取消屏障，细项如下。
 - [ ] P4 灰度切换与回滚演练：默认仍 node，用户显式试开 rust 并验证回滚；全部真机验收记录后才讨论默认值变更。
 - [ ] P5 清理：确认无回退需求后移除 node_modules 分发。前置条件：P4 完成且用户明确确认。
 
-### P3 当前分项与验收缺口（SC-20261111-004）
+### P3 当前分项与验收缺口（SC-20261111-004/005）
 
 页面与样式冻结，功能优先；默认引擎仍为 `node`，不替换当前已安装应用，不自动迁移早期 Rust 错位存储。
 
 - [ ] 数据路径与密钥安全：使用 `(CODEX_WEIXIN_STATE_DIR || HOME/.codex-weixin-notifier)/assistant`，与 Node AssistantService 一致；已有密文缺密钥时拒绝启动，排他原子发布密钥、先验证描述符再读取，异常以协议 error 退出。自动测试见 [金库边界](rust-host/tests/vault_safety.rs) 和 [真实服务路径沙箱互读](test/rust-state.test.mjs)；用户真实数据切换与回滚仍未验收，故不勾选。
 - [ ] 会话完整对齐：双向沙箱互操作覆盖 Node 写→Rust 请求上下文→Rust 写→重开→Node 读；启动逐行认证已有密文，损坏库/错密钥不被当作空会话。历史分页/搜索、最新优先预算、模型输入重复问题、运行中读库错误处理仍待补齐；旧明文表/文件要求先由 Node 迁移。早期 Rust 在状态根目录写出的文件不移动、不合并、不删除，必要时另行备份后人工迁移。
-- [ ] 聊天与取消协议：缺 Key 记录、stopAudio/history/targets、configure 默认合并、cancel→立即重入、clear/sleep 在途回复抑制、HTTP 重定向/取消语义待独立批次，不以已有单请求 mock 通过代替完整对齐。
+- [ ] 聊天与取消协议：SC-20261111-005 在 stdin 收到 text 时同步取得请求归属，以同一锁保护配置、失效与回复提交；cancel→立即重入、clear/sleep/configure 在途抑制、完整响应体后的再次校验、旧成功/失败/超时不得释放新 busy、stopAudio 与清空成功后空 history 已有 [生命周期沙箱测试](test/rust-chat-lifecycle.test.mjs) 和 [并发归属单元测试](rust-host/src/chat.rs)。这是逻辑取消，不会立即中断阻塞 HTTP 连接；旧连接仍等响应或超时，连续取消下的资源上限尚待补齐。缺 Key 记录、输入校验、history/targets、configure 默认合并、HTTP 重定向/真正网络取消仍待独立批次；真机打断和系统声音停止未验收，不以模拟事件代替。
 - [ ] 剩余模块：完成提醒（默认关闭、播放/听写互斥）→Fish 合成→本地 ASR/听写方案确认；任务读取、项目/目标与 Codex 派发按依赖补齐；各模块分别测试、构建及真机验收。
 - [ ] 分发许可：补录 rusqlite/libsqlite3-sys/SQLite 声明；完整依赖许可证随产物分发核对尚未完成，cargo 缓存不等于 app 已携带许可。
 

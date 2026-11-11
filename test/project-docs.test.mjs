@@ -79,3 +79,13 @@ test('Rust P3 remains unaccepted until real switching and protocol gaps are veri
   assert.match(plan, /沙箱自动测试不替代真机验收/);
   assert.match(read('THIRD_PARTY_NOTICES.md'), /rusqlite \/ libsqlite3-sys \/ bundled SQLite/);
 });
+
+
+test('Rust cancellation evidence distinguishes logical invalidation from transport and device acceptance', () => {
+  const plan = read('PLAN.md');
+  assert.match(plan, /SC-20261111-005.*stdin/);
+  assert.match(plan, /逻辑取消.*不会立即中断阻塞 HTTP/);
+  assert.match(plan, /真机打断和系统声音停止未验收/);
+  assert.ok(existsSync(resolve(root, 'test/rust-chat-lifecycle.test.mjs')));
+  assert.match(plan, /连续取消下的资源上限尚待补齐/);
+});

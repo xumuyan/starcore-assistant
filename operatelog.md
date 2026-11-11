@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-005 Rust 聊天请求归属与取消提交屏障
+
+- 北京时间：2026-11-11 15:45:40 +08:00（本批自动回归、构建与 release 沙箱复验后现场读取）。
+- 修改或新增：页面与样式保持冻结，默认 Node 与已安装副本不变。本批仅修 Rust 聊天生命周期：用同一 Session 锁管理配置、请求编号与 active 所有权；text 在 stdin 处理顺序中同步准备/记录并取得归属，再启动阻塞 HTTP worker；完整 JSON 响应体读取后，只有当前所有者可以提交消息、usage、声音、数据库和结束状态。旧请求成功、HTTP 错误、超时均不能释放新请求 busy。cancel、sleep、clear、configure 使旧请求失效且发 stopAudio，空闲时 cancel 也能要求停止原生声音；clear 仅在数据库清空成功后发空 history 和成功状态，失败明确报错。线程创建失败也通过同一归属检查释放请求。serve 统一走带锁的 JSON 行输出。新增 15 项本地 HTTP/stdio 生命周期回归、3 项 Rust 请求归属单元测试，更新 configure 协议断言与验收边界文档守护；未加依赖、未改版本。
+- 遇到的难题：旧实现检查与设置 busy 分离、worker 启动晚于后续控制命令、共用 aborted 状态且过期 worker 无条件清 busy；只在 HTTP 头返回后检查 generation，慢响应体期间取消仍可能写库/播报；clear 失败仍发“对话已清空”。单靠等待自然超时容易漏掉立即重入和迟到响应体竞态。
+- 处理方式：先用受控本地 HTTP 服务复现，初始 10 个场景在旧实现 0/10 通过；进一步把 stopAudio 断言后移后，确认旧成功/失败/超时释放新 busy、慢 body 的迟到结果、批量 stdin 顺序与重复提交问题。改为一个线性化锁保护接收/控制/提交，HTTP 和完整 body 读取均在锁外；控制命令若先取得锁，旧结果被丢弃，回复若先提交，后续 stopAudio 在同一有序输出之后。增加当前 JSON/HTTP/API/缺失文本/超时失败后重试测试、SQLite 合成触发器拒绝 DELETE 的失败测试。所有 HOME 与 CODEX_WEIXIN_STATE_DIR 都指向临时沙箱，使用合成密钥/消息、本地 mock，不请求真实付费接口、不访问真实会话。
+- 验证结果：`npm test` 230/230 通过、0 跳过；`cargo test` 23/23 通过（16 lib、2 memory、2 interop、3 safety）；`cargo clippy --all-targets -- -D warnings` 通过；`npm run build:mac:check` 通过（RUST_HOST_READY / APP_BUILT，未安装）；`codesign --verify --deep --strict dist/MuYan.app` 通过，Rust release 与 Swift 可执行文件均 arm64，bundle runtimeEngine 实读 node。另以实际 release 二进制运行全部 15 项生命周期沙箱用例，15/15 通过；包括取消→立即新请求、旧结果/超时不抢 busy、四类控制命令打断慢响应体、12 批 text/cancel/clear 顺序、错误恢复及 clear 失败保留数据。`git diff --check` 通过。未做真机交互/人声/系统声音停止验收，未安装或切换当前应用。提交前 fetch 核对远端与本地均为 2a5c80f，无分叉或积压。
+- 遗留问题：本批是逻辑取消，阻塞 ureq 连接仍等响应或超时，不承诺立即关闭网络或阻止已发出的请求计费；连续取消下的旧 worker/连接资源上限待补齐。缺 Key 用户记录、输入校验、模型输入重复/最新优先预算、运行中读库错误处理、完整 history/targets/configure 默认合并、HTTP 重定向及真实网络取消仍未对齐。播放结束/playing 状态、听写忙闲互斥须在提醒接入前补齐；提醒/Fish/ASR/任务/Codex、完整许可分发和 P4 用户真实数据往返/回滚未验收。单锁内仍有本地 SQLite 与 stdout 操作，长历史/磁盘阻塞压测未做。P3/P4 保持未勾选。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261111-005] guard Rust chat lifecycle against stale replies`；最终哈希按 Change-ID 查询。上批 SC-20261111-004 实际提交 2a5c80fd8443d90b784e67cb3a9b3c8a6296f35b，已于上一轮普通推送且本次 fetch 再次核对；本批提交后执行普通 push 并核对远端，不在本条预写推送成功。
+
 ## SC-20261111-004 Rust 会话路径纠正与金库失败关闭保护
 
 - 北京时间：2026-11-11 14:58:31 +08:00（本次测试与构建完成后现场读取；不作为此前批次时间的推断）。
