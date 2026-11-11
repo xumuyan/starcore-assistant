@@ -163,7 +163,7 @@ test('rust host serve speaks the minimal stdio protocol subset', { skip: !exists
   proc.stdin.write(JSON.stringify({ type: 'tasks' }) + '\n');
   proc.stdin.write(JSON.stringify({ type: 'configure', settings: { name: '沐言', wakeWord: '沐言' }, keys: { yunqiao: 'k1', deepseek: 'k2', fish: '' } }) + '\n');
   proc.stdin.write(JSON.stringify({ type: 'listen', enabled: true }) + '\n');
-  proc.stdin.write(JSON.stringify({ type: 'text', text: 'hi' }) + '\n');
+  proc.stdin.write(JSON.stringify({ type: 'remind' }) + '\n');
   proc.stdin.write('not-json\n');
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(Error('serve 无响应')), 10000);
@@ -207,4 +207,92 @@ test('bundle client-settings keeps the runtime-engine switch defaulting to node'
   assert.match(bridge, /moss-host"/);
   const app = readFileSync(join(root, 'client/App.swift'), 'utf8');
   assert.match(app, /let runtimeEngine: String\?/, '旧配置缺字段时容错解码');
+});
+
+test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, async () => {
+  execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
+  const { spawn } = await import('node:child_process');
+  const http = await import('node:http');
+  const { once } = await import('node:events');
+  let server = null;
+  let holdServer = null;
+  server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: '**好的**，见[文档](https://x.y)。```js\nx=1\n```' }] }],
+        usage: { input_tokens: 100, output_tokens: 20 },
+      }));
+    });
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const base = `http://127.0.0.1:${server.address().port}/v1`;
+  const proc = spawn(mossHost, ['serve'], { env: { ...process.env, MOSS_CHAT_TIMEOUT_MS: '4000' } });
+  try {
+    const lines = [];
+    let buffer = '';
+    proc.stdout.on('data', chunk => {
+      buffer += chunk.toString('utf8');
+      let end;
+      while ((end = buffer.indexOf('\n')) >= 0) { lines.push(buffer.slice(0, end)); buffer = buffer.slice(end + 1); }
+    });
+    const parseAll = () => lines.map(line => JSON.parse(line));
+    // 按事件内容等待，不依赖绝对行号；返回 [索引, 事件]，避免旧快照索引越界。
+    const waitEvent = (pred, seed = 0, timeoutMs = 10000) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(Error(`等待事件超时（已有 ${lines.length} 行）`)), timeoutMs);
+      const poll = setInterval(() => {
+        const events = parseAll();
+        for (let i = seed; i < events.length; i++) {
+          if (pred(events[i])) { clearInterval(poll); clearTimeout(timer); resolve([i, events[i]]); }
+        }
+      }, 25);
+    });
+    proc.stdin.write(JSON.stringify({ type: 'configure', settings: { chatBaseUrl: base, name: '沐言', speak: true, voice: 'system' }, keys: { yunqiao: 'test-key' } }) + '\n');
+    proc.stdin.write(JSON.stringify({ type: 'text', text: '你好，介绍一下自己', mode: 'chat' }) + '\n');
+    const [userAt] = await waitEvent(e => e.type === 'message' && e.role === 'user' && e.content === '你好，介绍一下自己');
+    {
+      const events = parseAll();
+      assert.equal(events[userAt + 1].type, 'state');
+      assert.equal(events[userAt + 1].name, 'thinking');
+    }
+    const [, usage] = await waitEvent(e => e.type === 'usage', userAt);
+    assert.equal(usage.input, 100);
+    const [answerAt, answer] = await waitEvent(e => e.type === 'message' && e.role === 'assistant', userAt);
+    assert.equal(answer.content, '**好的**，见[文档](https://x.y)。```js\nx=1\n```');
+    // node 版顺序：answer 先发 message+state，随后 speak() 发播报事件。
+    const [idleAt] = await waitEvent(e => e.type === 'state' && e.name === 'idle' && e.detail === '回复已就绪', answerAt);
+    const [, speak] = await waitEvent(e => e.type === 'speak', idleAt);
+    assert.equal(speak.text, '好的，见文档。代码已显示在屏幕上。');
+
+    // sleep 指令与 codex 拒绝
+    proc.stdin.write(JSON.stringify({ type: 'text', text: '退下吧', mode: 'chat' }) + '\n');
+    const [sleepAt] = await waitEvent(e => e.type === 'state' && /休眠/.test(e.detail), idleAt);
+    proc.stdin.write(JSON.stringify({ type: 'text', text: '修一下bug', mode: 'codex' }) + '\n');
+    const [codexAt] = await waitEvent(e => e.type === 'error' && /Codex 派发/.test(e.message), sleepAt);
+
+    // busy 期间第二条 text 被拒（mock 挂起使第一条长时间占用）
+    holdServer = http.createServer((req, res) => { req.on('end', () => { setTimeout(() => { res.writeHead(200); res.end('{}'); }, 8000); }); });
+    holdServer.listen(0, '127.0.0.1');
+    await once(holdServer, 'listening');
+    proc.stdin.write(JSON.stringify({ type: 'configure', settings: { chatBaseUrl: `http://127.0.0.1:${holdServer.address().port}/v1`, speak: false }, keys: { yunqiao: 'test-key' } }) + '\n');
+    const [reconfAt] = await waitEvent(e => e.type === 'configured', codexAt);
+    proc.stdin.write(JSON.stringify({ type: 'text', text: '第一条', mode: 'chat' }) + '\n');
+    await new Promise(r => setTimeout(r, 200));
+    proc.stdin.write(JSON.stringify({ type: 'text', text: '第二条', mode: 'chat' }) + '\n');
+    const [busyAt] = await waitEvent(e => e.type === 'error' && /正在回复/.test(e.message), reconfAt);
+    // cancel 打断：挂起请求未完成，不应产生 assistant 回复
+    proc.stdin.write(JSON.stringify({ type: 'cancel' }) + '\n');
+    const [cancelAt] = await waitEvent(e => e.type === 'state' && /打断/.test(e.detail), busyAt);
+    // 等过挂起请求的自然超时窗口（4s），确认没有 assistant 消息发出
+    await new Promise(r => setTimeout(r, 4600));
+    const assistantAfter = parseAll().slice(cancelAt + 1).filter(e => e.type === 'message' && e.role === 'assistant');
+    assert.deepEqual(assistantAfter, []);
+  } finally {
+    proc.kill();
+    server?.close();
+    holdServer?.close();
+  }
 });

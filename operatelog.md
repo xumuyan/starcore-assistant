@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-001 Rust 宿主 P3 聊天模块对齐
+
+- 北京时间：2026-11-11 11:52:20 +08:00（开发自 2026-11-11 上午开始）。
+- 修改或新增：完成 Rust 引擎阶段三第一模块（PLAN P3 聊天）。① 新增 rust-host/src/chat.rs：闲聊主路径与 src/assistant-service.mjs 逐事件对齐——忙时拒绝、休眠指令、Codex 派发拒绝（显式语句检测）、无云桥 Key 提示、system prompt 同文、memory 上下文（内存 16 条/12000 字预算，加密落盘留金库模块）、云桥 /responses 请求体同参、usage/message/state/speak 事件序列同序、speechText 口播转换、Fish 未实现时诚实降级系统声音；text 处理在独立线程执行，serve 主循环在 HTTP 期间保持可响应 cancel（generation+abort 双保险）；configure 快照与 cancel/clear/sleep 接线。② 新增依赖 ureq 2（rustls，纯 Rust）与 regex 1，零系统库依赖。③ 测试：rust-host.test.mjs 新增「serve chat speaks the relay protocol」——本地 mock 云桥（http server）覆盖主链七事件、sleep、codex 拒绝、busy 拒绝、cancel 打断后无幽灵回复，断言按事件内容匹配不依赖绝对行号。
+- 遇到的难题：① 测试最初用绝对行号断言，事件多行交错时越界误报（单文件过、全量并发挂）；② heredoc 手动调试时 stdin 立即 EOF 会杀掉异步线程，产生「text 无响应」假象误导排查；③ mock server 漏写 req.on('data') 导致背压卡住响应，放大了 ① 的表象。
+- 处理方式：① 重写为 waitEvent 按事件内容匹配并返回 [索引, 事件]（旧快照索引不再越界）；②③ 记录在案，调试脚本修正后确认 rust 侧行为本就正确。
+- 验证结果：npm test 206 项全部通过（新增 1 项）；cargo build 与 cargo clippy 零警告；npm run build:mac:check 本批次未重跑（Rust 侧已由测试内 cargo build 覆盖，Swift 未改动）。真机以 rust 引擎聊天属 P4 灰度验证，未验收。
+- 遗留问题：P3 剩余模块——金库加密落盘（对话持久化）、本地 ASR/听写、语音提醒、Fish 合成；Codex 派发路由；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261111-001] rust host chat module alignment`；最终哈希按 Change-ID 查询。
+
 ## SC-20261110-011 Rust 宿主 P2 stdio 协议子集与 runtime-engine 开关
 
 - 北京时间：2026-11-10 21:09:41 +08:00。
