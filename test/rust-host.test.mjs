@@ -150,52 +150,41 @@ test('rust host stop matches node control output', { skip: !existsSync(cargo) ? 
   } finally { rmSync(home, { recursive: true, force: true }); }
 });
 
-test('rust host serve speaks the minimal stdio protocol subset', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, async () => {
+test('rust host serve speaks the minimal stdio protocol subset', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, () => {
   execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
-  const { spawn } = await import('node:child_process');
-  const proc = spawn(mossHost, ['serve'], { stdio: ['pipe', 'pipe', 'pipe'] });
-  const lines = [];
-  let buffer = '';
-  proc.stdout.on('data', chunk => {
-    buffer += chunk.toString('utf8');
-    let end;
-    while ((end = buffer.indexOf('\n')) >= 0) { lines.push(buffer.slice(0, end)); buffer = buffer.slice(end + 1); }
-  });
-  proc.stdin.write(JSON.stringify({ type: 'tasks' }) + '\n');
-  proc.stdin.write(JSON.stringify({ type: 'configure', settings: { name: '沐言', wakeWord: '沐言' }, keys: { yunqiao: 'k1', deepseek: 'k2', fish: '' } }) + '\n');
-  proc.stdin.write(JSON.stringify({ type: 'listen', enabled: true }) + '\n');
-  proc.stdin.write(JSON.stringify({ type: 'remind' }) + '\n');
-  proc.stdin.write('not-json\n');
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(Error('serve 无响应')), 10000);
-    const poll = setInterval(() => { if (lines.length >= 6) { clearInterval(poll); clearTimeout(timer); resolve(); } }, 50);
-  });
-  proc.stdin.end();
-  proc.kill();
-  const events = lines.map(line => JSON.parse(line));
-  const tasks = events[0];
-  assert.equal(tasks.type, 'tasks');
-  assert.equal(tasks.available, false);
-  assert.deepEqual(tasks.tasks, []);
-  assert.match(tasks.checkedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-  assert.match(tasks.error, /P3/);
-  const configured = events[1];
-  assert.equal(configured.type, 'configured');
-  assert.equal(configured.settings.name, '沐言');
-  assert.equal(configured.hasGateway, true);
-  assert.equal(configured.hasDeepSeek, true);
-  assert.equal(configured.hasFish, false);
-  const state = events[2];
-  assert.equal(state.type, 'state');
-  assert.equal(state.name, 'error');
-  assert.match(state.detail, /P3/);
-  const capture = events[3];
-  assert.equal(capture.type, 'capture');
-  assert.equal(capture.enabled, false);
-  assert.equal(events[4].type, 'error');
-  assert.match(events[4].message, /不支持的类型/);
-  assert.equal(events[5].type, 'error');
-  assert.match(events[5].message, /无法解析/);
+  const home = sandbox();
+  try {
+    const input = [
+      { type: 'tasks' },
+      { type: 'configure', settings: { name: '沐言', wakeWord: '沐言' }, keys: { yunqiao: 'k1', deepseek: 'k2', fish: '' } },
+      { type: 'listen', enabled: true }, { type: 'remind' },
+    ].map(event => JSON.stringify(event)).join('\n') + '\nnot-json\n';
+    const events = execFileSync(mossHost, ['serve'], {
+      input, encoding: 'utf8', timeout: 10000,
+      env: { HOME: home, CODEX_WEIXIN_STATE_DIR: join(home, '.codex-weixin-notifier') },
+    }).trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(events.length, 6);
+    assert.equal(events[0].type, 'tasks');
+    assert.equal(events[0].available, false);
+    assert.deepEqual(events[0].tasks, []);
+    assert.match(events[0].checkedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.match(events[0].error, /P3/);
+    assert.equal(events[1].type, 'configured');
+    assert.equal(events[1].settings.name, '沐言');
+    assert.equal(events[1].hasGateway, true);
+    assert.equal(events[1].hasDeepSeek, true);
+    assert.equal(events[1].hasFish, false);
+    assert.equal(events[2].type, 'state');
+    assert.equal(events[2].name, 'error');
+    assert.match(events[2].detail, /P3/);
+    assert.deepEqual(events[3], { type: 'capture', enabled: false });
+    assert.equal(events[4].type, 'error');
+    assert.match(events[4].message, /不支持的类型/);
+    assert.equal(events[5].type, 'error');
+    assert.match(events[5].message, /无法解析/);
+    assert.ok(existsSync(join(home, '.codex-weixin-notifier/assistant/master.key')));
+    assert.equal(existsSync(join(home, '.codex-weixin-notifier/master.key')), false);
+  } finally { rmSync(home, { recursive: true, force: true }); }
 });
 
 test('bundle client-settings keeps the runtime-engine switch defaulting to node', () => {
@@ -233,7 +222,7 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
   const base = `http://127.0.0.1:${server.address().port}/v1`;
   // HOME 指向沙箱：rust 宿主把金库与会话库写到沙箱，测试末尾用 node 版开封互读。
   const sandbox = mkdtempSync(join(tmpdir(), 'moss-host-chat-'));
-  const proc = spawn(mossHost, ['serve'], { env: { ...process.env, HOME: sandbox, MOSS_CHAT_TIMEOUT_MS: '4000' } });
+  const proc = spawn(mossHost, ['serve'], { env: { HOME: sandbox, CODEX_WEIXIN_STATE_DIR: join(sandbox, '.codex-weixin-notifier'), MOSS_CHAT_TIMEOUT_MS: '4000' } });
   try {
     const lines = [];
     let buffer = '';
@@ -245,7 +234,7 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     const parseAll = () => lines.map(line => JSON.parse(line));
     // 按事件内容等待，不依赖绝对行号；返回 [索引, 事件]，避免旧快照索引越界。
     const waitEvent = (pred, seed = 0, timeoutMs = 10000) => new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(Error(`等待事件超时（已有 ${lines.length} 行）`)), timeoutMs);
+      const timer = setTimeout(() => { clearInterval(poll); reject(Error(`等待事件超时（已有 ${lines.length} 行）`)); }, timeoutMs);
       const poll = setInterval(() => {
         const events = parseAll();
         for (let i = seed; i < events.length; i++) {
@@ -277,7 +266,7 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     const [codexAt] = await waitEvent(e => e.type === 'error' && /Codex 派发/.test(e.message), sleepAt);
 
     // busy 期间第二条 text 被拒（mock 挂起使第一条长时间占用）
-    holdServer = http.createServer((req, res) => { req.on('end', () => { setTimeout(() => { res.writeHead(200); res.end('{}'); }, 8000); }); });
+    holdServer = http.createServer(req => req.resume()); // deliberately no response: Rust must time out
     holdServer.listen(0, '127.0.0.1');
     await once(holdServer, 'listening');
     proc.stdin.write(JSON.stringify({ type: 'configure', settings: { chatBaseUrl: `http://127.0.0.1:${holdServer.address().port}/v1`, speak: false }, keys: { yunqiao: 'test-key' } }) + '\n');
@@ -296,10 +285,11 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     // 端到端互操作：rust 写入的 sealed_messages 必须能被 node 版金库开封（引擎切换互读）。
     const { DatabaseSync } = await import('node:sqlite');
     const { LocalVault } = await import(join(root, 'src/assistant-vault.mjs'));
-    const db = new DatabaseSync(join(sandbox, '.codex-weixin-notifier/conversations.sqlite'), { readOnly: true });
+    const db = new DatabaseSync(join(sandbox, '.codex-weixin-notifier/assistant/conversations.sqlite'), { readOnly: true });
     const rows = db.prepare('SELECT id, data FROM sealed_messages ORDER BY id').all();
+    db.close();
     assert.ok(rows.length >= 3, `rust 宿主应已落盘至少 3 条消息，实际 ${rows.length}`);
-    const vault = new LocalVault(join(sandbox, '.codex-weixin-notifier'));
+    const vault = new LocalVault(join(sandbox, '.codex-weixin-notifier/assistant'));
     const opened = rows.map(row => JSON.parse(vault.open(row.data, `message/${row.id}`).toString('utf8')));
     assert.equal(opened[0].role, 'user');
     assert.equal(opened[0].content, '你好，介绍一下自己');
@@ -309,9 +299,12 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     assert.match(opened[1].content, /好的/);
     assert.ok(opened.every(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string'));
   } finally {
+    const exited = once(proc, 'exit');
     proc.kill();
-    server?.close();
-    holdServer?.close();
+    await exited;
+    server?.closeAllConnections(); server?.close();
+    holdServer?.closeAllConnections(); holdServer?.close();
+    rmSync(sandbox, { recursive: true, force: true });
   }
 });
 

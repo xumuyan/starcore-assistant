@@ -67,3 +67,15 @@ test('package and native version metadata agree with the current changelog',()=>
   assert.ok(read('CHANGELOG.md').includes('## '+pkg.version+' —'));
   assert.ok(read('CHANGELOG.md').includes('build '+buildNumber));
 });
+
+
+test('Rust P3 remains unaccepted until real switching and protocol gaps are verified', () => {
+  const plan = read('PLAN.md');
+  assert.match(plan, /- \[ \] P3 宿主能力逐模块对齐/);
+  assert.match(plan, /- \[ \] P4 灰度切换与回滚演练/);
+  assert.match(plan, /SC-20261111-001\/002\/003 仅为初版实现/);
+  assert.match(plan, /CODEX_WEIXIN_STATE_DIR.*\/assistant/);
+  assert.match(plan, /页面与样式冻结/);
+  assert.match(plan, /沙箱自动测试不替代真机验收/);
+  assert.match(read('THIRD_PARTY_NOTICES.md'), /rusqlite \/ libsqlite3-sys \/ bundled SQLite/);
+});

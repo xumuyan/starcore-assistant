@@ -1,9 +1,9 @@
 // moss-host 会话存储模块（Rust 阶段三 P3，第三模块）：与 src/assistant-memory.mjs 共享
 // 同一 conversations.sqlite（sealed_messages 密文行 + metadata），加密走 JRV1 金库格式，
-// 保证 node<->rust 引擎切换时对话完整互读。旧明文 history.json/messages 表的迁移由
+// 数据格式互操作由沙箱测试验证，真实引擎切换留待 P4。旧明文 history.json/messages 表的迁移由
 // node 版完成（rust 只读新格式，不重复迁移）。
 use crate::vault::Vault;
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use serde_json::json;
 use std::path::Path;
 use std::sync::Mutex;
@@ -14,14 +14,26 @@ pub struct ConversationStore {
 
 impl ConversationStore {
     pub fn open(root: &Path) -> Result<Self, String> {
-        std::fs::create_dir_all(root).map_err(|e| format!("会话目录创建失败：{e}"))?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(root, std::fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())?;
-        }
+        let _dir = crate::vault::private_directory(root)?;
         let path = root.join("conversations.sqlite");
-        let conn = Connection::open(&path).map_err(|e| format!("会话库打开失败：{e}"))?;
+        match std::fs::symlink_metadata(&path) {
+            Ok(meta) => {
+                use std::os::unix::fs::MetadataExt;
+                if !meta.is_file() || meta.uid() != unsafe { libc::getuid() } {
+                    return Err("会话库文件状态异常".into());
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(format!("会话库检查失败：{e}")),
+        }
+        // Rust 暂不迁移旧明文库：显式要求 Node 完成迁移，避免忽略旧消息。
+        if std::fs::symlink_metadata(root.join("history.json")).is_ok() {
+            return Err("检测到旧会话文件，请先使用 Node 引擎完成迁移".into());
+        }
+        let flags = OpenFlags::default() | OpenFlags::SQLITE_OPEN_NOFOLLOW;
+        let conn = Connection::open_with_flags(&path, flags).map_err(|e| format!("会话库打开失败：{e}"))?;
+        let legacy: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='messages')", [], |r| r.get(0)).map_err(|e| e.to_string())?;
+        if legacy { return Err("检测到旧会话表，请先使用 Node 引擎完成迁移".into()); }
         conn.execute_batch(
             "PRAGMA secure_delete=ON;
              CREATE TABLE IF NOT EXISTS sealed_messages (id INTEGER PRIMARY KEY, data BLOB NOT NULL);
@@ -33,6 +45,23 @@ impl ConversationStore {
             std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
         }
         Ok(Self { conn: Mutex::new(conn) })
+    }
+
+    /// 启动时逐行认证已有密文，不把解密失败当成空历史。
+    pub fn validate(&self, vault: &Vault) -> Result<(), String> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT id,data FROM sealed_messages").map_err(|e| e.to_string())?;
+        let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
+        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+            let id: i64 = row.get(0).map_err(|e| e.to_string())?;
+            let data: Vec<u8> = row.get(1).map_err(|e| e.to_string())?;
+            let plain = vault.open_data(&data, &format!("message/{id}"))?;
+            let value: serde_json::Value = serde_json::from_slice(&plain).map_err(|_| "会话记录格式异常")?;
+            if !matches!(value["role"].as_str(), Some("user" | "assistant")) || !value["content"].is_string() {
+                return Err("会话记录格式异常".into());
+            }
+        }
+        Ok(())
     }
 
     /// 与 node 版 append 对齐：单事务「预留 id + 加密回填」，purpose=message/{id}。

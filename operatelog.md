@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-004 Rust 会话路径纠正与金库失败关闭保护
+
+- 北京时间：2026-11-11 14:58:31 +08:00（本次测试与构建完成后现场读取；不作为此前批次时间的推断）。
+- 修改或新增：本批暂停继续堆叠提醒模块，先修复依赖的数据边界。Rust 改为与 Node AssistantService 同用 `(CODEX_WEIXIN_STATE_DIR || HOME/.codex-weixin-notifier)/assistant`；金库用 O_NOFOLLOW/openat 先验普通文件、属主、长度，再限长读取与描述符 chmod；仅 NotFound 可初始化，已有数据库/凭据/偏好/封存文件而无密钥时拒绝。临时密钥以 0600 排他创建、完整同步后 linkat 无覆盖发布，并发打开共享同一密钥。初始化改 Result→JSON error+exit 1，去除 expect panic；启动逐行认证密文，拒绝错误密钥/损坏记录/数据库链接；旧明文表或 history.json 提示先用 Node 迁移。补 3 项 Rust 金库边界测试、6 项 Node 状态互操作测试和文档守护测试；旧 serve 最小测试改隔离 HOME/状态目录，聊天测试关闭数据库/进程/HTTP 并清理沙箱与超时轮询。补录 rusqlite/libsqlite3-sys/SQLite 许可来源（完整分发许可仍待审计）。页面样式、默认 node、版本及已安装运行副本均不改。
+- 遇到的难题：复核发现前批次根路径少 assistant 子目录，且已有测试仅证明密文格式可读，并未证明真实服务路径双向互读；master.key 任意读取错误都会走重建、写入不排他，悬空链接可被跟随。新失败测试实际复现缺密钥误建与悬空链接问题（2/3 失败）。首次修复编译遇到 rand_core::Error 未实现 StdError，不能直接交给 io::Error::other。
+- 处理方式：先补失败测试再修复；密钥生成与原子发布分离，不截断现有目标；只接受明确不存在，其他 I/O 错误保持失败；随机数错误转为说明字符串。互操作用真实 Node AssistantService 作为起点和终点、中间启动 Rust 本地 mock 云桥，显式隔离两个环境路径；测试错误密钥/损坏库的字节保持、近期窗口外密文认证、FIFO 不阻塞、链接目标不修改、12 线程初始化、默认/覆盖路径与重启。SC-001/002/003 的“逐事件对齐/安全语义同 Node/共享同一路径/模块完成”历史表述过强，本条与 PLAN 当前分项纠正为初版实现；早期 minimal serve 曾继承真实 HOME，其历史影响未调查，不删除或合并任何真实文件。此前三条手填时间无法由本轮核实，不冒充实际验收时间。
+- 验证结果：`npm test` 214/214 通过（0 跳过）；`cargo test` 20/20 通过（13 lib、2 memory、2 interop、3 safety）；`cargo clippy --all-targets -- -D warnings` 通过；`npm run build:mac:check` 通过（Swift 编译、Rust release，APP_BUILT/RUST_HOST_READY）；额外 strict/deep codesign 通过，两个二进制均 arm64，bundle runtimeEngine 读回 node。release 宿主在临时沙箱完成启动/tasks 与删除测试密钥后 JSON 拒绝启动、无替代密钥的实测。`git diff --check` 通过。全部数据测试为合成夹具；未安装、未切换真实引擎，真机语音/听写/P4 未验收。fetch 后远端为 e70650c，本地领先 41 且无远端独有提交；269 个待推历史文本 blob 凭据特征扫描未命中（不宣称完整安全审计）。
+- 遗留问题：P3 聊天取消/重入/clear/sleep、请求输入重复、预算/分页/运行中读库错误、配置与目标/任务/Codex、提醒/Fish/ASR/听写尚未全对齐；P4 真实备份切换/回滚未验收；全库认证的长历史启动耗时未压测；同一 OS 账号的恶意进程不在本地金库隔离保证内。早期 Rust 错位文件保留原位，不自动迁移。完整依赖许可随产物分发待核对。按仓库规则本提交后普通 push（包含既有 41 个积压提交），推送及远端哈希在提交后核对，不在本条预写成功；若失败保留提交并报告恢复步骤。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261111-004] harden Rust vault initialization and align Node state path`；最终哈希按 Change-ID 查询。前批次已知提交 SC-001=f7ddd77、SC-002=2be4bc8、SC-003=92df1fa，未改写历史。
+
 ## SC-20261111-003 Rust 宿主 P3 会话落盘与引擎互读
 
 - 北京时间：2026-11-11 12:10:30 +08:00（开发自 2026-11-11 上午开始）。

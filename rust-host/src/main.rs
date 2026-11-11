@@ -14,7 +14,12 @@ fn main() {
         }
         "status" => println!("{}", status::snapshot_json()),
         // Rust 阶段二（P2）：宿主 stdio JSON 行协议最小子集（tasks/configure/listen 形状对齐）。
-        "serve" => serve::run(),
+        "serve" => {
+            if let Err(message) = serve::run() {
+                println!("{}", serde_json::json!({ "type": "error", "message": format!("Rust 宿主初始化失败：{message}") }));
+                exit(1);
+            }
+        }
         other => {
             eprintln!("Unsupported command: {}", other);
             exit(2);

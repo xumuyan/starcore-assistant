@@ -1,5 +1,5 @@
 // moss-host 聊天模块（Rust 阶段三 P3，第一模块）：与 src/assistant-service.mjs 的
-// 闲聊路径逐事件对齐。会话上下文仅存内存（加密落盘属金库模块，后续批次对齐）；
+// 闲聊路径的初步实现；上下文使用本机加密 SQLite，完整协议对齐尚未验收。
 // Codex 派发与 Fish 合成未实现，以显式 error/降级提示，不静默假装。
 use regex::Regex;
 use serde_json::{json, Value};
@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::memory::ConversationStore;
 use crate::vault::Vault;
-use std::path::PathBuf;
 use std::time::Duration;
 
 const DEFAULT_CHAT_BASE: &str = "https://api.yunqiao.me/v1";
@@ -31,19 +30,19 @@ fn str_field<'a>(value: &'a Value, field: &str, default: &'a str) -> &'a str {
 }
 
 impl ChatEngine {
-    /// 状态目录与 node 版同路径（HOME 下的 .codex-weixin-notifier），供测试以 HOME 沙箱隔离。
-    pub fn open_state() -> (Vault, ConversationStore) {
-        let root = std::env::var("HOME").map(|h| PathBuf::from(h).join(".codex-weixin-notifier")).unwrap_or_else(|_| PathBuf::from(".codex-weixin-notifier"));
-        let vault = Vault::open(&root).expect("金库初始化失败");
-        let store = ConversationStore::open(&root).expect("会话库初始化失败");
-        (vault, store)
+    /// 与 AssistantService(dir).root 一致；显式状态目录优先，测试必须隔离 HOME/状态目录。
+    pub fn open_state() -> Result<(Vault, ConversationStore), String> {
+        let root = crate::status::state_dir().join("assistant");
+        let vault = Vault::open(&root)?;
+        let store = ConversationStore::open(&root)?;
+        // 以现有密钥开封全部行；损坏或密钥不匹配时拒绝启动，不默默开新会话。
+        store.validate(&vault)?;
+        Ok((vault, store))
     }
 
-    // ChatEngine 构造需要 HOME 沙箱状态目录，Default 语义不适用。
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        let (vault, store) = Self::open_state();
-        Self {
+    pub fn new() -> Result<Self, String> {
+        let (vault, store) = Self::open_state()?;
+        Ok(Self {
             settings: Mutex::new(json!({})),
             keys: Mutex::new(json!({})),
             vault,
@@ -52,7 +51,7 @@ impl ChatEngine {
             generation: Mutex::new(0),
             aborted: Arc::new(AtomicBool::new(false)),
             out: Mutex::new(std::io::stdout()),
-        }
+        })
     }
 
     pub fn emit(&self, event: &Value) {

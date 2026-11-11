@@ -101,8 +101,8 @@ fn handle(request: &Value, engine: &Arc<ChatEngine>) -> Vec<Value> {
     }
 }
 
-pub fn run() {
-    let engine = Arc::new(ChatEngine::new());
+pub fn run() -> Result<(), String> {
+    let engine = Arc::new(ChatEngine::new()?);
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     for line in stdin.lock().lines() {
@@ -121,4 +121,5 @@ pub fn run() {
         }
         let _ = out.flush();
     }
+    Ok(())
 }
