@@ -239,7 +239,7 @@
 - [x] P0 工具链与只读状态对齐（SC-20261109-013）：rustup stable 工具链安装；`rust-host` 工程实现 `moss-host status` 只读快照，与 node 版 client-control 逐字段对齐（delivery/serviceRunning/watching/bound/ready/paused/sent/pending/uncertain/remoteEnabled/remoteProject/remoteThreadId/remoteStatus/latest），输出字节级一致。证据：[rust-host 测试](test/rust-host.test.mjs) 同沙箱下两个二进制 stdout 字符串全等 + `cargo test` 单元测试；`npm test` 全量通过。工具链 cargo 1.99.1 安装完成。
 - [x] P1 控制命令对齐（SC-20261109-014，build 32）：`moss-host start/stop` 与 node 版逐调用对齐（Disabled 跳过、已注册跳过、bootstrap/bootout 失败吞掉、start/stop 同样输出快照、stop 硬编码 launchctl 与 node 一致）；build.py 编译 Rust 宿主（cargo 缺失跳过不阻塞、失败中止）但二进制不入包、不接线，默认引擎仍 node。证据：cargo test 13 项通过；[rust-host 测试](test/rust-host.test.mjs) start 场景双二进制 stdout 与 launchctl 调用日志字节级一致；npm test 185 项通过；build.py 两分支实测（有 cargo 出 RUST_HOST_READY、无 cargo 警告跳过）且 --no-install 构建签名通过。
 - [x] P2 宿主 stdio 协议最小子集：tasks/configure/listen 转发与现有 JSON 行协议对齐；Swift 端新增 `runtime-engine` 开关（默认 node，兼容旧配置）。证据：rust-host.test.mjs serve 协议六事件断言 + 开关/白名单源码断言，npm test 205 项全过，npm run build:mac:check 通过（Rust release + Swift 编译）（operatelog SC-20261110-011）；以 rust 引擎真机运行留 P4 灰度。
-- [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。（聊天模块已于 SC-20261111-001 完成，见下方分项）
+- [ ] P3 宿主能力逐模块对齐：聊天、本地 ASR、听写、语音提醒、加密金库读取；每模块独立测试与真机验收后才允许在开关下启用。（聊天与加密金库模块已分别于 SC-20261111-001、SC-20261111-002 完成，见下方分项）
 - [ ] P4 灰度切换与回滚演练：默认仍 node，用户显式试开 rust 并验证回滚；全部真机验收记录后才讨论默认值变更。
 - [ ] P5 清理：确认无回退需求后移除 node_modules 分发。前置条件：P4 完成且用户明确确认。
 

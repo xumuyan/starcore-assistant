@@ -1,0 +1,28 @@
+{
+  "note": "Shared node<->rust interop vectors for the JRV1 vault format (AES-256-GCM). Test-only key.",
+  "keyHex": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+  "cases": [
+    {
+      "purpose": "message/1",
+      "sealedHex": "4a525631dba38bfa08de759c3f8ea1bff9090c5ad7951d2d44134bb7632e035c8d6a30e9e5ccc73121b68803069aecc2f6736b6e009f748b38415f220b4d3403ea59646f56d9b449",
+      "plain": {
+        "role": "user",
+        "content": "你好沐言"
+      }
+    },
+    {
+      "purpose": "message/2",
+      "sealedHex": "4a525631f16155d4adf7bbd34a280ea6000c52c4795730c82bfa1e52a45f440d7f7ade66d481f9744475fefa8ee1615e23cf173ac0c3bac96837f83f40f86eeb4df3866f447b8fa00c898f89f8cd2e4626c405ba9c0312d707b121bfa74f2e9dbf6171947da1d134fbe9f1cc97d3a65e2af1fc8685a950e8aec2",
+      "plain": {
+        "role": "assistant",
+        "content": "代码块```\ntrue\n```",
+        "time": "2026-11-11T03:00:00.000Z"
+      }
+    },
+    {
+      "purpose": "legacy",
+      "sealedHex": "4a525631f6e3ca6c72d9d0264f2d82673abdfc681698c4d04bb6786d282473208439e90476b71485fb251b8aadf919f9fe36aa76ac3ad1dcc0f9d1a7",
+      "plainUtf8": "history.json 旧格式字节"
+    }
+  ]
+}

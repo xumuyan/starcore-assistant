@@ -13,6 +13,7 @@ Dependencies remain subject to their own licenses. Exact npm versions and packag
 | esbuild | Frontend bundling | MIT; build dependency |
 | SpeakMore | Native hotkey and clipboard reference for the opt-in dictation module | MIT; retained in `licenses/SpeakMore-MIT.txt` and copied into the app bundle |
 | thinking-orbs (engine subset) | Thinking-orb state animation for the HUD status line | MIT; retained in `licenses/thinking-orbs-MIT.txt`, bundled locally by `client/build.py` without its React runtime |
+| Rust host crates (moss-host: serde, serde_json, libc, ureq, rustls, regex, aes-gcm, rand_core, getrandom) | Rust assistant host engine dependencies | MIT / Apache-2.0 (rustls additionally ISC); exact versions in `rust-host/Cargo.lock` and each crate's license file shipped by cargo |
 
 Scene and icon artwork was created through image generation during development. Model weights are not included in this repository. Users must obtain compatible model files separately and comply with the applicable model license and service terms.
 

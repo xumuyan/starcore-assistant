@@ -1,7 +1,4 @@
-mod chat;
-mod control;
-mod serve;
-mod status;
+use moss_host::{control, serve, status};
 
 use std::process::exit;
 

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createDecipheriv } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -294,5 +295,20 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     proc.kill();
     server?.close();
     holdServer?.close();
+  }
+});
+
+test('shared vault interop vectors stay decodable by node', () => {
+  const vectors = JSON.parse(readFileSync(join(root, 'test/fixtures/vault-vectors.json'), 'utf8'));
+  const key = Buffer.from(vectors.keyHex, 'hex');
+  for (const c of vectors.cases) {
+    const data = Buffer.from(c.sealedHex, 'hex');
+    assert.equal(data.subarray(0, 4).toString(), 'JRV1');
+    const decipher = createDecipheriv('aes-256-gcm', key, data.subarray(4, 16));
+    decipher.setAAD(Buffer.from(`jarvis/v1/${c.purpose}`));
+    decipher.setAuthTag(data.subarray(-16));
+    const plain = Buffer.concat([decipher.update(data.subarray(16, -16)), decipher.final()]).toString('utf8');
+    if (c.plainUtf8) assert.equal(plain, c.plainUtf8);
+    else assert.deepEqual(JSON.parse(plain), c.plain);
   }
 });

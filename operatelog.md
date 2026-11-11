@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-002 Rust 宿主 P3 金库模块对齐
+
+- 北京时间：2026-11-11 12:05:10 +08:00（开发自 2026-11-11 上午开始）。
+- 修改或新增：完成 Rust 引擎阶段三第二模块（PLAN P3 加密金库）。① 新增 rust-host/src/vault.rs：JRV1 格式与 src/assistant-vault.mjs 逐字段对齐（魔数+12 字节 IV+AES-256-GCM 密文+16 字节 Tag，AAD `jarvis/v1/{purpose}`）；master.key 打开/生成分支与权限语义同 node（0600/0700、拒符号链接、拒非本用户属主）；新增 with_key 供互操作测试。② 重构 moss-host 为 lib+bin（src/lib.rs 导出模块），使 cargo 集成测试可复用实现。③ 新增共享互操作向量 test/fixtures/vault-vectors.json（node 版 AES-256-GCM 加密的三条用例：JSON 消息、含换行与代码块的消息、legacy 字节流，测试专用固定密钥）；cargo 集成测试 vault_interop 验证「node 封→rust 开」、往返一致、purpose（AAD）绑定拒绝、密文篡改拒绝、魔数拒绝；node 测试新增向量守护用例。④ 新增依赖 aes-gcm 0.10、rand_core 0.6（均 RustCrypto 纯 Rust）；THIRD_PARTY_NOTICES.md 补录 Rust host crates 条目（serde/serde_json/libc/ureq/rustls/regex/aes-gcm/rand_core/getrandom，MIT/Apache-2.0 双许可）。
+- 遇到的难题：① 向量生成首版把 JSON 文本与解析后对象混用（含换行消息校验失败），转义层混叠难读；② bin crate 无法被 cargo 集成测试导入；③ aes-gcm 0.10 API（Key::from_slice 所有权、OsRng 移动位置）与旧示例不符；④ 测试里含中文的字节串字面量不被 Rust 允许。
+- 处理方式：① 向量改存 plain 对象（测试 JSON.stringify 比对）与 plainUtf8 双形态并自验证后才落盘；② 拆 lib.rs；③④ 按 0.10 当前 API 与 serde_json 构造载荷修正。
+- 验证结果：cargo test 13 单元+2 互操作全部通过（含 node 封→rust 开）；npm test 207 项全部通过（新增 node 向量守护用例）；cargo build/clippy 零警告；project-docs 文档测试通过。真机金库读写（rust 宿主实际持久化对话）待聊天落盘接入后随 P4 灰度验收，未验收。
+- 遗留问题：聊天模块尚未把会话写入金库（当前内存态）；P3 剩余本地 ASR/听写、语音提醒、Fish 合成模块；P4 灰度切换与回滚演练；远端积压待推送。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261111-002] rust host vault alignment`；最终哈希按 Change-ID 查询。
+
 ## SC-20261111-001 Rust 宿主 P3 聊天模块对齐
 
 - 北京时间：2026-11-11 11:52:20 +08:00（开发自 2026-11-11 上午开始）。
