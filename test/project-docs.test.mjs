@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md'];
+const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -100,6 +100,25 @@ test('confirmed redesign uses reference visuals, browser-only actions and a two-
   assert.match(spec,/不执行脚本、Shell 或其他应用协议/);
   assert.doesNotMatch(spec,/点击打开置顶设置框|先支持常用浏览器\/Safari/);
   for(const name of ['voice-ring','beam','voice','orbs'])assert.ok(spec.includes('https://libraries.dev/'+name));
+});
+
+test('Tauri 2 decision keeps Windows, platform adapters, transition and acceptance explicit',()=>{
+  const spec=read('docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md');
+  const plan=read('PLAN.md');
+  const ui=read('docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md');
+  for(const content of [spec,plan,ui]){
+    assert.match(content,/Tauri 2 \+ Rust/);
+    assert.match(content,/Windows/);
+    assert.ok(content.includes('2026-11-12-tauri2-rust-migration.md') || content===spec);
+  }
+  for(const requirement of [/尚未引入 Tauri 依赖/,/WKWebView/,/WebView2/,/受管 sidecar/,/不能要求用户手动安装 Node.js/,/一个有效写入者\/事件消费者/,/capabilities\/permissions/,/不重置配置/,/Unix 专用/,/真实 Windows 设备/,/CI 构建通过不等于真机验收通过/])assert.match(spec,requirement);
+  for(const id of ['T0','T1','T2','T3','T4']){
+    assert.ok(spec.includes('- '+id+'：'));
+    assert.ok(plan.includes('- [ ] '+id+' '),'migration stages remain unaccepted');
+  }
+  assert.match(ui, /依赖 T0\/T1/);
+  assert.match(ui, /不直接复用 Swift 窗口实现/);
+  assert.match(ui, /Windows 系统托盘/);
 });
 
 test('Rust P3 remains unaccepted until real switching and protocol gaps are verified', () => {
