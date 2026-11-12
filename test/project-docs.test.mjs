@@ -81,6 +81,27 @@ test('voice-first UI redesign stays batched and unaccepted until implementation 
   for(const line of lines)if(line.startsWith('- [x] '))assert.match(line,/证据：\s*\S.{5,}/,'a checked redesign batch needs evidence');
 });
 
+test('confirmed redesign uses reference visuals, browser-only actions and a two-step history/settings menu',()=>{
+  const spec=read('docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md');
+  const plan=read('PLAN.md').split('## 单页语音助理界面重制')[1]?.split('\n## ')[0];
+  assert.ok(plan);
+  for(const content of [spec,plan]){
+    assert.match(content,/完全照参考站/);
+    assert.match(content,/不混用现有 MOSS/);
+    assert.match(content,/先(?:显示|出现)「历史记录 \/ 设置」按钮组/);
+    assert.match(content,/对应.*beam.*置顶窗口/);
+    assert.match(content,/仅(?:限"打开浏览器|浏览器)/);
+    assert.match(content,/系统默认浏览器/);
+    assert.match(content,/HTTP\/HTTPS/);
+    assert.match(content,/默认关闭/);
+    assert.match(content,/加密历史记录|既有加密聊天记录/);
+  }
+  assert.match(spec,/尚未逐项观察参考站、核查资源许可或进行视觉比对/);
+  assert.match(spec,/不执行脚本、Shell 或其他应用协议/);
+  assert.doesNotMatch(spec,/点击打开置顶设置框|先支持常用浏览器\/Safari/);
+  for(const name of ['voice-ring','beam','voice','orbs'])assert.ok(spec.includes('https://libraries.dev/'+name));
+});
+
 test('Rust P3 remains unaccepted until real switching and protocol gaps are verified', () => {
   const plan = read('PLAN.md');
   assert.match(plan, /- \[ \] P3 宿主能力逐模块对齐/);
