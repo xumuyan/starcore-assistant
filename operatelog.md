@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261112-005 直接集成 Libraries.dev 原始前端组件
+
+- 北京时间：2026-11-12 14:35:50 +08:00（专项、离线构建、浏览器检查和完整回归后现场读取）。
+- 修改或新增：延续上次中断留下的 package.json/package-lock.json 改动，核对已安装依赖与四个参考页后，新增 desktop/frontend React 隔离预览、状态/电平适配、中文分词淡入、构建脚本及专项测试。直接引用 voice-ring@0.2.0、border-beam@1.4.1、voice-glow@0.3.0、既有 thinking-orbs@0.3.2；React/React DOM 固定 19.2.0。保留上游 MIT 文本，离线产物包含所有运行时许可；同步 PLAN、两份设计和文档测试。旧客户端、构建入口、已安装应用和真实数据未改变。
+- 遇到的难题：参考页 voice 示例写有 processing 属性，但 npm 0.3.0 类型和实现不支持；README 标注扫动处理态为 Libraries Pro hook。voice 本身提供底部声音光效而非文字入场。恢复后的 shell PATH 没有 Node。中文分词后，原安全测试错误地假设转义标签仍处于单个 span 中。
+- 处理方式：检查实际包接口后移除无效 processing prop，不复制 Pro hook，听写处理态用原版 orbs；文字淡入作为本地补充明确标注未逐像素验收。前端不自行获取麦克风，电平由未来宿主提供，预览仅手动模拟；隐藏直接卸载动画，CSP 禁止网络连接。命令显式使用已有 Node v22.22.0 和 Cargo PATH，不重装依赖；安全测试重组各 span 的转义文本验证，未放宽脚本注入检查。
+- 验证结果：首次恢复后裸 node 命令因 PATH 缺失未运行；路径修正后组件专项通过。中文分词调整后一轮专项出现断言失败，修正测试后最终组件+文档专项 16/16；npm run build:desktop:preview 通过；隔离临时 Chromium 本地页面状态切换/中文/原组件 DOM/Esc 卸载通过，零外部请求、零控制台错误；观察合成对话与听写截图，无私人数据，截图仅在临时目录。最终 npm test 265/265、0 失败、0 跳过；git diff --check 通过。未修改原生源码，未运行 build:mac:check；未构建/安装 Tauri，未做 WKWebView/WebView2、全局热键、真人语音、透明非激活、多屏全屏或逐帧参考对照验收。
+- 遗留问题：本批仅完成参考组件预备，不勾选 T0～T4 或 B1～B8；下一批先做 T0 最小 Tauri 壳及窗口焦点/托盘/热键可行性，再做受限 IPC 和业务接线。voice Pro 扫动处理态不在本次许可与实现内；不能将本地文字入场或 Chromium 冒烟结果写成参考效果已完全还原。上一批 service 偶发超时根因仍未解决，本批完整回归未复现。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261112-005] integrate upstream voice effects in isolated preview`。上批 SC-20261112-004 为 1ac026f6211615e13c4a4dfa06d7bf004488b067；提交前 fetch 核对 feat/global-dictation 与 origin 无领先/落后，本批提交后普通 push 并核对远端，不预写成功。
+
 ## SC-20261112-004 确定 Tauri 2 + Rust 与 Windows 适配目标
 
 - 北京时间：2026-11-12 13:29:25 +08:00（专项和完整回归复跑后现场读取）。

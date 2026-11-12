@@ -1,10 +1,10 @@
 # Tauri 2 + Rust 桌面架构迁移决策
 
-状态：用户已确认采用 Tauri 2 + Rust，未来需要适配 Windows；仅完成技术选型与迁移规划，尚未引入 Tauri 依赖、创建壳工程或修改运行架构。SC-20261112-004。
+状态：用户已确认采用 Tauri 2 + Rust，未来需要适配 Windows；仅完成技术选型与迁移规划，尚未引入 Tauri 依赖、创建壳工程或修改运行架构。SC-20261112-004；SC-20261112-005 新增独立 React 原组件预览与离线构建，未接入壳。
 
 ## 目标与现状
 
-- 目标架构：Tauri 2 桌面壳 + Rust 业务核心 + 本地 HTML/CSS/JavaScript 视觉层。前端框架不在本次选型中额外指定，允许复用现有前端代码。
+- 目标架构：Tauri 2 桌面壳 + Rust 业务核心 + 本地 HTML/CSS/JavaScript 视觉层。新隔离视觉层采用 React 以直接引用 Libraries.dev 原组件，现有前端代码仍允许复用。
 - macOS 使用系统 WKWebView，Windows 使用 WebView2；相同页面需分别验证字体、透明背景、Canvas/WebGL、动画性能和缩放，不承诺跨平台逐像素自动一致。
 - macOS 先迁移和验收，Windows 从架构阶段纳入约束，后续独立完成构建和真机验收；采用 Tauri 并不等于 Windows 客户端已经可用。
 - 当前默认仍是 Swift/AppKit 客户端 + Node.js 服务；现有 Rust 宿主仅部分能力对齐，包含 Unix 专用实现，不能视作已跨平台。
