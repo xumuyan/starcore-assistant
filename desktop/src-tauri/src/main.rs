@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod check;
 mod model;
 use model::{ControlMode, Demo, Page, Snapshot};
 use std::sync::Mutex;
@@ -110,10 +111,15 @@ fn window(
     overlay: bool,
 ) -> tauri::Result<()> {
     let standard = app.state::<ControlMode>().standard_window(overlay);
+    let query = if app.state::<check::Check>().enabled {
+        "&selfCheck=1"
+    } else {
+        ""
+    };
     let window = tauri::WebviewWindowBuilder::new(
         app,
         label,
-        tauri::WebviewUrl::App(format!("index.html?view={label}").into()),
+        tauri::WebviewUrl::App(format!("index.html?view={label}{query}").into()),
     )
     .title(if standard {
         format!("MOSS T0 · {label} · diagnostic")
@@ -141,8 +147,14 @@ fn window(
 }
 fn main() {
     let controls = ControlMode::from_args(std::env::args());
+    let self_check = std::env::args().any(|arg| arg == "--self-check");
+    if self_check && (controls.diagnostic || std::env::args().any(|arg| arg == "--show-chooser")) {
+        eprintln!("T0 self-check requires default hidden window mode");
+        std::process::exit(2);
+    }
     tauri::Builder::default()
         .manage(controls)
+        .manage(check::Check::new(self_check))
         .manage(Probe(Mutex::new(Snapshot::default())))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -173,7 +185,11 @@ fn main() {
             probe_demo,
             probe_hide,
             probe_hotkey,
-            probe_quit
+            probe_quit,
+            check::probe_check_ready,
+            check::probe_check_rendered,
+            check::probe_check,
+            check::probe_check_finish
         ])
         .setup(move |app| {
             #[cfg(target_os = "macos")]
@@ -225,6 +241,15 @@ fn main() {
                     chooser.show()?;
                     chooser.set_focus()?;
                 }
+            }
+            if self_check {
+                // Bounded watchdog; no file/report payload or OS input injection.
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(20));
+                    eprintln!("T0_SELF_CHECK TIMEOUT");
+                    handle.exit(1);
+                });
             }
             Ok(())
         })

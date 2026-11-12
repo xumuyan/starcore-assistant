@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-check-ready"
+description = "Enables the probe_check_ready command without any pre-configured scope."
+commands.allow = ["probe_check_ready"]
+
+[[permission]]
+identifier = "deny-probe-check-ready"
+description = "Denies the probe_check_ready command without any pre-configured scope."
+commands.deny = ["probe_check_ready"]

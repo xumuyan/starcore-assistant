@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-check-rendered"
+description = "Enables the probe_check_rendered command without any pre-configured scope."
+commands.allow = ["probe_check_rendered"]
+
+[[permission]]
+identifier = "deny-probe-check-rendered"
+description = "Denies the probe_check_rendered command without any pre-configured scope."
+commands.deny = ["probe_check_rendered"]

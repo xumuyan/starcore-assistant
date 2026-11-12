@@ -17,7 +17,8 @@
     "build:desktop:preview": "node desktop/build-frontend.mjs",
     "build:desktop:probe": "node desktop/build-frontend.mjs --probe",
     "desktop:probe": "cd desktop && tauri dev",
-    "build:desktop:check": "cd desktop && tauri build --debug --no-bundle"
+    "build:desktop:check": "cd desktop && tauri build --debug --no-bundle",
+    "check:desktop:native": "node desktop/check-native.mjs"
   },
   "dependencies": {
     "@phosphor-icons/core": "2.1.1",

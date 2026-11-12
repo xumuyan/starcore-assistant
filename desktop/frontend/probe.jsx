@@ -3,10 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { BeamCard, ConversationEffect, DictationEffect } from './effects.jsx';
+import { runSelfCheck, renderedDemo } from './self-check.mjs';
 import './style.css';
 import './probe.css';
 
-const view = new URLSearchParams(location.search).get('view');
+const params = new URLSearchParams(location.search);
+const view = params.get('view');
+const selfCheck = params.get('selfCheck') === '1';
 function Probe() {
   const [state, setState] = useState({ demo: null, hotkeyEnabled: false });
   const [error, setError] = useState('');
@@ -20,11 +23,23 @@ function Probe() {
     subscription.then(async () => {
       const snapshot = await invoke('probe_snapshot');
       if (!disposed) setState(snapshot);
+      if (selfCheck && !disposed) {
+        await invoke('probe_check_ready');
+        if (view === 'chooser') runSelfCheck(invoke).catch(() => invoke('probe_check_finish', { passed: false }).catch(() => {}));
+      }
     }).catch(() => { if (!disposed) setError('无法读取验证壳状态'); });
     const cancel = event => { if (event.key === 'Escape') command('probe_hide'); };
     window.addEventListener('keydown', cancel);
     return () => { disposed = true; subscription.then(unlisten => unlisten()).catch(() => {}); window.removeEventListener('keydown', cancel); };
   }, []);
+  useEffect(() => {
+    if (!selfCheck || view !== 'overlay') return;
+    // Observe committed React DOM, including unmount on hide; not animation parity.
+    // Hidden WKWebViews may suspend animation frames; effects run after DOM commit.
+    if (renderedDemo(document, state.demo)) {
+      invoke('probe_check_rendered', { demo: state.demo }).catch(() => {});
+    }
+  }, [state.demo]);
   if (view === 'overlay') {
     const phase = state.demo === 'dictation' ? 'processing' : state.demo || 'hidden';
     const Effect = state.demo === 'dictation' ? DictationEffect : ConversationEffect;

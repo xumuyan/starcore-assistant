@@ -185,3 +185,24 @@ test('T0 diagnostic controls retain an explicit opt-in and separate acceptance e
   assert.match(report, /诊断模式成功不能替代/);
   assert.match(read('PLAN.md'), /- \[ \] T0 .*SC-20261112-007/);
 });
+
+
+test('native synthetic self-check evidence stays separate from desktop and service acceptance', () => {
+  const report = read('docs/verification/2026-11-12-tauri-t0.md');
+  const readme = read('desktop/README.md');
+  for (const content of [report, readme]) {
+    assert.match(content, /check:desktop:native/);
+    assert.match(content, /--self-check/);
+    assert.match(content, /T0.*仍未验收/);
+    assert.match(content, /T1.*未接入/);
+    assert.match(content, /不注入|不包含键盘\/鼠标注入/);
+    assert.match(content, /20 秒/);
+    assert.match(content, /30 秒/);
+  }
+  assert.match(report, /首次原生运行.*失败/);
+  assert.match(report, /注册表状态不能代表物理 Esc/);
+  assert.match(read('PLAN.md'), /- \[ \] T0 .*SC-20261112-008/);
+  const pkg = JSON.parse(read('package.json'));
+  assert.equal(pkg.scripts['check:desktop:native'], 'node desktop/check-native.mjs');
+  assert.equal(pkg.scripts.test, 'node --test');
+});

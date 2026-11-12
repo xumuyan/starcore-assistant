@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-check-finish"
+description = "Enables the probe_check_finish command without any pre-configured scope."
+commands.allow = ["probe_check_finish"]
+
+[[permission]]
+identifier = "deny-probe-check-finish"
+description = "Denies the probe_check_finish command without any pre-configured scope."
+commands.deny = ["probe_check_finish"]

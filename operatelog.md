@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261112-008 增加并实际运行原生合成 IPC 自检
+
+- 北京时间：2026-11-12 16:17:42 +08:00（专项、完整回归、原生自检重复执行和两类构建后现场读取）。
+- 修改或新增：新增显式 --self-check、四个后端受启动参数/真实调用窗口身份限制的自检命令、顺序检查状态与 20 秒 watchdog；四窗本地订阅/snapshot 就绪后，由 chooser 驱动既有合成命令并由 overlay 在 React 提交后确认自身 DOM/Canvas 和隐藏卸载。新增 desktop/check-native.mjs 与 check:desktop:native，runner 要求九点顺序、成功标记和退出码 0，30 秒/64 KiB 上限，不打印原始进程日志。新增 Rust/Node 测试与生成 ACL，更新 README、PLAN、迁移规格和验证记录。正常启动不运行自检，自检帮助命令默认拒绝；不可混用普通诊断窗口/show-chooser。旧客户端入口、安装、真实配置/加密历史与权限未改变。
+- 遇到的难题：首轮实际 WKWebView 已通过 Boot 至 Dictation，但 Hidden 检查失败；渲染确认放在 requestAnimationFrame，隐藏 WebView 可能暂停动画帧，无法据此等待卸载。首次新增静态测试忽略 cargo fmt 对条件换行，导致断言不匹配。必须区分实际原生 IPC 成功和仍被桌面焦点保护阻止的点击/输入验收。
+- 处理方式：改为 React useEffect 在 DOM 提交后检查自身组件与 Canvas，隐藏必须确认节点已卸载；增加不依赖动画帧的测试，未延长超时或跳过隐藏检查。静态条件检查允许格式化换行后重跑。以实际 Tauri 注入窗口身份限制确认/结束权限，拒绝非法枚举与 chooser 冒充 overlay；检查点不得跳过/重复/提前完成。只显式运行合成集成路径，不注入键盘/鼠标、不操作外部输入框、不绕过桌面安全检查；不启用测试热键、不注册右 Ctrl、不申请权限/调用服务。
+- 验证结果：最终组件/壳/自检/文档专项 29/29；完整 npm test 278/278、0 失败、0 跳过；Rust 测试 6/6，cargo fmt --check 与 cargo clippy --all-targets --locked -- -D warnings 通过；npm run build:desktop:check 与 npm run build:mac:check 通过（后者 RUST_HOST_READY / APP_BUILT，仅检查未安装）；git diff --check 通过。最终实际原生 runner 连续 3 次均九点齐全、T0_SELF_CHECK PASS、退出码 0；--self-check 与两个互斥参数分别以退出码 2 拒绝。原生检查覆盖四窗初始化/隐藏、真实 IPC 参数和调用身份拒绝、历史/设置显隐、四种合成状态事件→React DOM/Canvas、隐藏卸载和 Esc 插件注册表释放；进程已退出并核对无 probe 残留。证据为固定无私人内容标签，见 docs/verification/2026-11-12-tauri-t0.md；未提交桌面截图/原始运行载荷。
+- 遗留问题：T0 仍未验收：本次没有物理按钮点击、输入框键入、外部焦点保持/穿透、物理热键和冲突/Esc 派发、启用热键后的手工退出清理、全屏/多屏/Spaces/睡眠恢复或精确视觉验收。Esc 插件注册表不等于 OS 输入行为已证明，合成 Canvas 存在不证明像素/GPU/帧率。稳定桌面焦点环境或手工反馈仍是解除条件；Windows、签名/许可审计、参考动效差异和历史 service 偶发超时根因保持原状态，本次未复现 service 超时。T1～T4 未推进，未接真实语音/模型/微信或数据宿主。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261112-008] verify synthetic IPC in native Tauri WebViews`。上批 SC-20261112-007 已知提交为 1f09bcf7a791f28ec06cf9500cc1e304ea224b3b；提交前 fetch 核对 feat/global-dictation 与 origin 无领先/落后，本批普通 push 后核对远端，不预写线上成功。
+
 ## SC-20261112-007 增加显式普通控制窗口诊断模式
 
 - 北京时间：2026-11-12 15:58:30 +08:00（专项、完整回归、两类构建完成后现场读取）。

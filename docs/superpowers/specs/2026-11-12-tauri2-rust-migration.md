@@ -48,3 +48,8 @@ T0 已有隔离工程与 macOS debug 构建，仍未验收；T1～T4 未实施�
 锁定 Tauri 2.12.5、tauri-build 2.7.4、global-shortcut 2.4.1，npm CLI/API 2.12.4；本批最低 Rust 1.90。macOS 透明背景已确认需要 `macos-private-api` 与 `macOSPrivateApi`，不是 App Store 兼容性或签名/公证已通过。Windows 工具链和 WebView2 仍未验证，完整原生依赖许可证分发审计未完成。
 
 macOS debug 编译通过、Rust 状态测试与前端隔离测试是工程证据，不是焦点/热键验收。区域截图观察到原生按钮组，但桌面工具未列出该窗口并停止了无法确认焦点的输入；未绕过安全校验。其余实测保留未通过，详见 [T0 验证记录](../../verification/2026-11-12-tauri-t0.md)。
+
+
+### T0 合成集成证据补充（SC-20261112-008）
+
+新增显式原生自检（四个调用窗口校验/枚举或布尔参数命令，不接业务）及 `npm run check:desktop:native`；实际 macOS WKWebView 合成 IPC、窗口显隐、四种状态事件/React DOM/Canvas、隐藏卸载和 Esc 插件注册表检查通过。全程不注入键盘/鼠标，不读真实数据，不启用 Cmd/Ctrl+Shift+F8，不申请权限；不能替代菜单点击、输入框、外部焦点/穿透、物理热键、动画精确视觉、多屏/睡眠与 Windows 验收。T0 仍未完成，T1～T4 依赖顺序保持不变；具体命令和有限证据见 [T0 验证记录](../../verification/2026-11-12-tauri-t0.md#sc-20261112-008-原生合成-ipc-自检)。
