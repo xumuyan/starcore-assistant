@@ -6,15 +6,15 @@
 
 当前最新决策：采用 **Tauri 2 + Rust**，macOS 先迁移，未来适配 Windows；新界面在跨平台壳上实现，不再新增整套 Mac 专用 Swift 界面。原有听写/语音等保持回归要求，页面与 Codex 界面范围按下方最新用户确认执行。详见 [架构迁移决策](docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md) 与 [界面重制设计](docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md)。
 
-目前仍为 Swift/AppKit + Node.js 默认运行链路，Rust 宿主仅部分对齐；Tauri 依赖/壳尚未引入，Windows 客户端尚不可打包验收。SC-20261112-005 已引入 React 与四个上游参考组件的隔离离线预览，尚未接入运行中的助理。本轮不改变已安装应用或运行配置；历史版本/验收记录保留，不作为当前安装版本的新核实结论。原听写设计见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
+目前仍为 Swift/AppKit + Node.js 默认运行链路，Rust 宿主仅部分对齐；SC-20261112-006 已引入独立 Tauri 2 验证壳，仍未切换产品架构；Windows 客户端尚不可打包验收。SC-20261112-005 已引入 React 与四个上游参考组件的隔离离线预览，尚未接入运行中的助理。本轮不改变已安装应用或运行配置；历史版本/验收记录保留，不作为当前安装版本的新核实结论。原听写设计见 [全局语音输入设计](docs/superpowers/specs/2026-11-01-global-dictation-design.md)。
 
-## Tauri 2 + Rust 迁移（壳尚未实施，参考组件预览已接入）
+## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 
 Node.js 可作为受管 sidecar 过渡，Rust 能力补齐并验收后才移除；不以切换桌面壳代表后端迁移完成。现有 P3/P4 未完成状态保持；各平台系统适配、加密数据兼容、单消费者与回滚独立验证。
 
 参考组件预备证据：SC-20261112-005，`npm run build:desktop:preview` 离线构建；上游 MIT 原组件及许可证打包、隔离 Chromium 状态/中文/Esc/零外部请求检查通过。`voice-glow@0.3.0` 无参考页示例中的 `processing` 属性，Pro 扫动处理态未引入；文字分词淡入为本地补充，不能视作逐像素还原。T0～T4、B1～B8 仍未验收。详见 [预览与许可说明](desktop/README.md)。
 
-- [ ] T0 最小 Tauri 2 壳，验证透明置顶/非激活浮层、托盘与热键等跨平台关键能力。
+- [ ] T0 最小 Tauri 2 壳，验证透明置顶/非激活浮层、托盘与热键等跨平台关键能力。 SC-20261112-006 已有 macOS debug 构建、受限合成 IPC 与默认关闭的临时热键；桌面区域观察到按钮组，但自动化无法确认目标窗口/焦点，未继续点击。托盘点击、焦点、Esc、全屏/多屏仍待受控实测，解除条件为可确认窗口/焦点的验收环境或用户手工验收。详见 [T0 验证记录](docs/verification/2026-11-12-tauri-t0.md)。
 - [ ] T1 Rust/IPC 与平台适配接口、Node.js 受管 sidecar 过渡、单实例/单消费者及数据安全。
 - [ ] T2 新壳实现 B1～B7，保留现有业务回归范围，不再围绕 Swift/AppKit 新建整套界面。
 - [ ] T3 macOS 构建签名、隔离安装/真人语音验收、数据兼容和回滚。

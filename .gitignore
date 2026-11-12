@@ -45,3 +45,7 @@ dist/
 
 # Rust 宿主构建产物（Cargo）
 rust-host/target/
+
+# Isolated Tauri feasibility probe build products
+/desktop/src-tauri/target/
+/desktop/src-tauri/gen/

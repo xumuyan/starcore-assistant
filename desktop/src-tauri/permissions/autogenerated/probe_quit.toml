@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-quit"
+description = "Enables the probe_quit command without any pre-configured scope."
+commands.allow = ["probe_quit"]
+
+[[permission]]
+identifier = "deny-probe-quit"
+description = "Denies the probe_quit command without any pre-configured scope."
+commands.deny = ["probe_quit"]

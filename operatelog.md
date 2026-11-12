@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261112-006 建立隔离 Tauri 2 可行性验证壳
+
+- 北京时间：2026-11-12 15:14:35 +08:00（最终专项、完整回归、两类构建与进程清理后现场读取）。
+- 修改或新增：新增 desktop/src-tauri，锁定 Tauri 2.12.5、tauri-build 2.7.4、global-shortcut 2.4.1，npm CLI/API 2.12.4；新增合成 React probe 页面、隐藏透明置顶窗口、独立菜单栏图标与两步按钮组、临时默认关闭测试热键、可见期间 Esc 和退出；六个枚举/布尔参数命令纳入 AppManifest ACL，无通用 Shell/FS/HTTP 插件。接入既有四个原组件与 API MIT 通知，新增 Rust/Node 测试、T0 验证记录，同步 PLAN、架构设计、桌面 README、许可清单和构建脚本。旧产品入口与运行数据不变，未替换已安装应用。
+- 遇到的难题：Cargo 直接 check 未合并 macOS 配置导致 feature 校验失败；首次 CLI 编译缺默认图标。透明 WKWebView 要求 macos-private-api，不能承诺 App Store 兼容。直接 shell 子进程未在工具会话间持续，临时 bundle 启动后区域可见按钮组，但窗口未在桌面工具列表中出现，不能稳定确认窗口/焦点。新增测试首次发现鼠标穿透声明漏接。
+- 处理方式：CLI 自动合并平台配置，独立 Cargo 测试显式传 TAURI_CONFIG；添加原创简单 RGBA 图标。明确私有 API 和分发审计未验收；临时目录 bundle 仅用于本机观察，不安装/公证。桌面工具停止无法确认焦点的点击后不绕过保护、不使用额外输入注入；补接 set_ignore_cursor_events 后重跑测试与构建。热键不注册右 Ctrl、不持久化、不录音，测试后关闭临时进程并核对无残留。
+- 验证结果：组件/壳/文档专项 20/20；完整 npm test 269/269、0 失败、0 跳过；Rust 状态测试 2/2，cargo fmt --check 通过；npm run build:desktop:check 最终 debug 构建通过；npm run build:mac:check 通过（RUST_HOST_READY / APP_BUILT，仅 dist 检查构建未安装）；git diff --check 通过。区域截图观察到原生按钮组与透明留白，仅证明该画面显示，不证明入口点击或非激活行为；最终鼠标穿透修改后仅构建/测试，未新增桌面行为验收。未调用真实模型、微信、麦克风/声音，不读取真实历史、凭据或配置；未修改系统权限。证据见 docs/verification/2026-11-12-tauri-t0.md。
+- 遗留问题：T0 保持未勾选：托盘实际点击、IPC 端到端、键盘输入/非激活焦点、热键/Esc、全屏/多屏/Spaces、退出资源行为仍需可确认窗口/焦点的环境或用户手工验收；Windows 工具链/WebView2、签名公证、完整原生许可证分发审计未完成。T1 sidecar/业务 IPC/单实例与数据单消费者均未实现，不能以合成命令替代。参考 Pro 动效/精确视觉差异、既有 service 偶发超时根因继续保留，本批未复现超时。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261112-006] add isolated Tauri 2 feasibility probe`。上批 SC-20261112-005 为 631adca；提交前 fetch 核对 feat/global-dictation 与 origin 无领先/落后，本批完成后普通 push 并核对远端，不预写线上成功。
+
 ## SC-20261112-005 直接集成 Libraries.dev 原始前端组件
 
 - 北京时间：2026-11-12 14:35:50 +08:00（专项、离线构建、浏览器检查和完整回归后现场读取）。

@@ -1,6 +1,6 @@
 # Tauri 2 + Rust 桌面架构迁移决策
 
-状态：用户已确认采用 Tauri 2 + Rust，未来需要适配 Windows；仅完成技术选型与迁移规划，尚未引入 Tauri 依赖、创建壳工程或修改运行架构。SC-20261112-004；SC-20261112-005 新增独立 React 原组件预览与离线构建，未接入壳。
+状态：用户已确认采用 Tauri 2 + Rust，未来需要适配 Windows；SC-20261112-004 完成技术选型与迁移规划，SC-20261112-005 新增独立 React 原组件预览与离线构建。SC-20261112-006 已引入 Tauri 2 依赖、创建隔离 T0 壳工程并接入合成效果；未修改默认运行架构，T0 关键行为尚未验收完成。
 
 ## 目标与现状
 
@@ -31,7 +31,7 @@ Tauri capabilities/permissions 按窗口最小授权，IPC 参数后端校验；
 
 ## 实施顺序与验收门槛
 
-以下阶段均未实施，依赖按顺序推进；与 [界面重制设计](2026-11-12-voice-first-ui-redesign.md) 的 B1～B8 配合，不再按 Mac 专用 Swift 窗口新增整套新界面。
+T0 已有隔离工程与 macOS debug 构建，仍未验收；T1～T4 未实施，依赖按顺序推进；与 [界面重制设计](2026-11-12-voice-first-ui-redesign.md) 的 B1～B8 配合，不再按 Mac 专用 Swift 窗口新增整套新界面。
 
 - T0：最小 Tauri 2 壳及平台能力验证。先验证透明置顶/不抢焦点、托盘按钮组、热键和 Esc；明确 Windows 构建环境、WebView2、原生依赖、分发限制。无法满足时记录阻碍与方案，不跳过关键行为。
 - T1：定义 Rust 业务接口与受限 IPC、平台适配边界、受管 sidecar 过渡和单实例/单消费者策略。现有 Rust P3/P4 缺口继续跟踪，不能仅通过桥接就视作已完成 Rust 迁移。
@@ -40,3 +40,11 @@ Tauri capabilities/permissions 按窗口最小授权，IPC 参数后端校验；
 - T4：Windows 原生 runner/开发机构建与 CI、安装包、真实 Windows 设备端到端验收：唤醒/连续对话、听写/写入/复制回退/Esc、历史/设置、托盘、浏览器、通知、焦点、多屏/DPI、音频和重启恢复。支持的 Windows 版本与 CPU 架构需在实际构建矩阵中声明，不由本决策臆定。
 
 每阶段至少有相关测试与完整 npm test；涉及原生代码继续运行现有 npm run build:mac:check，并增加 Tauri/Rust 专项构建和测试。Mac 构建通过不等于 Windows 构建通过，CI 构建通过不等于真机验收通过；没有 Windows runner/设备时明确受阻，解除条件是可用的 Windows 工具链与真实设备验证。最终安装格式、签名证书及更新机制在分发阶段核实，不在本轮承诺已具备。
+
+## T0 工程证据与限制（SC-20261112-006）
+
+独立标识 `dev.starcore.moss.t0-probe`，不替换 MOSS、不读写真实配置/加密历史。四个隐藏窗口：chooser、history、settings、overlay；前两类入口可激活输入，overlay 声明透明置顶、不可聚焦和鼠标穿透。托盘左键设计为先显示按钮组，再由受限枚举选择页面。六个合成 IPC 命令参与 AppManifest ACL，未加入 Shell/FS/HTTP/opener 插件。临时 Cmd/Ctrl+Shift+F8 默认关闭、不持久化，Esc 仅在效果显示时注册；不注册既有右 Ctrl。
+
+锁定 Tauri 2.12.5、tauri-build 2.7.4、global-shortcut 2.4.1，npm CLI/API 2.12.4；本批最低 Rust 1.90。macOS 透明背景已确认需要 `macos-private-api` 与 `macOSPrivateApi`，不是 App Store 兼容性或签名/公证已通过。Windows 工具链和 WebView2 仍未验证，完整原生依赖许可证分发审计未完成。
+
+macOS debug 编译通过、Rust 状态测试与前端隔离测试是工程证据，不是焦点/热键验收。区域截图观察到原生按钮组，但桌面工具未列出该窗口并停止了无法确认焦点的输入；未绕过安全校验。其余实测保留未通过，详见 [T0 验证记录](../../verification/2026-11-12-tauri-t0.md)。

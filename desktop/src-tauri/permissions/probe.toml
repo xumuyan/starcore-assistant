@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-probe-commands"
+description = "Synthetic T0 state, bounded page selection, opt-in test hotkey and hiding only. No files, services, shell, audio or secrets."
+commands.allow = ["probe_snapshot", "probe_open", "probe_demo", "probe_hide", "probe_hotkey", "probe_quit"]

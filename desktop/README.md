@@ -39,3 +39,30 @@ React / React DOM 19.2.0 与 scheduler 为 MIT，许可证一并保留。thinkin
 本批另以隔离临时 Chromium 执行本地页面冒烟检查：状态切换、中文显示、原组件 DOM、Esc 卸载、零外部请求和零控制台错误；合成截图只保存在临时目录，未提交。此检查不等于原生 WebView 或真机语音验收。
 
 后续依赖顺序不变：T0 验证 Tauri 透明置顶/非激活/托盘/热键，T1 实现受限 IPC 和宿主适配，再接业务。不要将当前预览误作为产品入口发布。
+
+## T0 隔离 Tauri 验证壳（SC-20261112-006）
+
+上文无 IPC 的承诺适用于 **browser preview**。新增 probe 是独立入口，仅接本地合成 IPC，**仍不是可用的新助理**。
+
+```sh
+# 使用现有依赖；首次全新检出才需要 npm ci。需要 Rust >=1.90 / Xcode。
+npm run desktop:probe          # 常规启动隐藏，只显示临时菜单栏图标
+# 如工具无法点菜单栏，可显式展示按钮组（不代表托盘已验收）：
+npm run desktop:probe -- -- --show-chooser
+npm run build:desktop:check    # debug 可执行文件，不打包、不安装
+# 仅检查 probe 前端离线构建：
+npm run build:desktop:probe
+# macOS 直接运行 Cargo 测试需传平台配置（CLI 构建会自动合并）：
+cd desktop/src-tauri
+TAURI_CONFIG='{"app":{"macOSPrivateApi":true}}' cargo test --locked
+```
+
+CLI/API、Rust crates 精确版本见两个 lock 文件。Rust 2.12.5 与 JS 2.12.4 属同一 Tauri 2 系列，不采用搜索结果中的 3 alpha。前端构建 API MIT 通知一起复制；完整原生分发许可审计、Windows 构建与签名/公证尚未完成。`macos-private-api` 是透明窗口所需特性，当前不承诺 App Store 发布。
+
+- 历史页面仅有未接入说明，不是读取失败或清空真实历史。
+- 设置页只有效果演示、临时测试热键、输入验证框和退出，无真实产品配置。
+- Cmd/Ctrl+Shift+F8 必须手动启用，状态仅内存保存；退出自动释放。不注册右 Ctrl，不启动第二个麦克风，不启动新旧业务宿主。
+- 全局 Esc 仅效果可见期间尝试注册，隐藏时注销；注册失败显示错误，不声称可用。非激活/鼠标穿透为窗口配置，必须实测确认。
+- 正常启动所有窗口隐藏；`--show-chooser` 仅是开发入口。图标点击后按钮组暂居中，不是最终菜单栏锚点定位。
+
+本机 debug 构建与区域截图观察到原生按钮组，但桌面工具不能确认该窗口/焦点，已停止自动输入。焦点、热键、Esc、菜单栏点击、多屏/全屏和最终精确视觉仍未验收。见 [T0 验证记录](../docs/verification/2026-11-12-tauri-t0.md)。

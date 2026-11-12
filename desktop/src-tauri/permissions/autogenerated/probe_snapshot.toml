@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-snapshot"
+description = "Enables the probe_snapshot command without any pre-configured scope."
+commands.allow = ["probe_snapshot"]
+
+[[permission]]
+identifier = "deny-probe-snapshot"
+description = "Denies the probe_snapshot command without any pre-configured scope."
+commands.deny = ["probe_snapshot"]

@@ -111,7 +111,7 @@ test('Tauri 2 decision keeps Windows, platform adapters, transition and acceptan
     assert.match(content,/Windows/);
     assert.ok(content.includes('2026-11-12-tauri2-rust-migration.md') || content===spec);
   }
-  for(const requirement of [/尚未引入 Tauri 依赖/,/WKWebView/,/WebView2/,/受管 sidecar/,/不能要求用户手动安装 Node.js/,/一个有效写入者\/事件消费者/,/capabilities\/permissions/,/不重置配置/,/Unix 专用/,/真实 Windows 设备/,/CI 构建通过不等于真机验收通过/])assert.match(spec,requirement);
+  for(const requirement of [/已引入 Tauri 2 依赖/,/WKWebView/,/WebView2/,/受管 sidecar/,/不能要求用户手动安装 Node.js/,/一个有效写入者\/事件消费者/,/capabilities\/permissions/,/不重置配置/,/Unix 专用/,/真实 Windows 设备/,/CI 构建通过不等于真机验收通过/])assert.match(spec,requirement);
   for(const id of ['T0','T1','T2','T3','T4']){
     assert.ok(spec.includes('- '+id+'：'));
     assert.ok(plan.includes('- [ ] '+id+' '),'migration stages remain unaccepted');
@@ -159,4 +159,13 @@ test('Rust reminder evidence keeps opt-in, resource and device acceptance bounda
   assert.match(plan, /真实 Codex 事件→Rust 声音.*未验收.*不能套用 Node/);
   assert.match(plan, /超大目录与长运行 seen 集合资源上限待压测/);
   assert.ok(existsSync(resolve(root, 'test/rust-reminder.test.mjs')));
+});
+
+
+test('T0 engineering evidence never substitutes for native focus or voice acceptance', () => {
+  const report = read('docs/verification/2026-11-12-tauri-t0.md');
+  const plan = read('PLAN.md');
+  for (const phrase of [/macos-private-api/, /窗口\/焦点/, /未验收/, /Windows/, /未替换/, /npm test/]) assert.match(report, phrase);
+  assert.match(plan, /- \[ \] T0 /);
+  assert.match(report, /不绕过/);
 });

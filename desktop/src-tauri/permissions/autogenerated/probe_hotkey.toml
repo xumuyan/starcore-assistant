@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-hotkey"
+description = "Enables the probe_hotkey command without any pre-configured scope."
+commands.allow = ["probe_hotkey"]
+
+[[permission]]
+identifier = "deny-probe-hotkey"
+description = "Denies the probe_hotkey command without any pre-configured scope."
+commands.deny = ["probe_hotkey"]

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MOSS T0 Probe",
+  "version": "0.1.0",
+  "identifier": "dev.starcore.moss.t0-probe",
+  "build": {
+    "beforeBuildCommand": "npm run build:desktop:probe",
+    "beforeDevCommand": "npm run build:desktop:probe",
+    "frontendDist": "../../dist/desktop-probe"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "capabilities": ["probe"],
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    }
+  },
+  "bundle": { "active": false }
+}

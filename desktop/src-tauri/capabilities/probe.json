@@ -1,0 +1,6 @@
+{
+  "identifier": "probe",
+  "description": "Only the local T0 probe page can invoke its bounded synthetic commands and receive state events.",
+  "windows": ["chooser", "history", "settings", "overlay"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "allow-probe-commands"]
+}
