@@ -169,3 +169,19 @@ test('T0 engineering evidence never substitutes for native focus or voice accept
   assert.match(plan, /- \[ \] T0 /);
   assert.match(report, /不绕过/);
 });
+
+
+test('T0 diagnostic controls retain an explicit opt-in and separate acceptance evidence', () => {
+  const readme = read('desktop/README.md');
+  const report = read('docs/verification/2026-11-12-tauri-t0.md');
+  for (const content of [readme, report]) {
+    assert.match(content, /--diagnostic-controls/);
+    assert.match(content, /layer 5/);
+    assert.match(content, /overlay/);
+    assert.match(content, /不持久化/);
+    assert.match(content, /T0.*未(?:验收|完成)/);
+  }
+  assert.match(report, /结果待反馈/);
+  assert.match(report, /诊断模式成功不能替代/);
+  assert.match(read('PLAN.md'), /- \[ \] T0 .*SC-20261112-007/);
+});

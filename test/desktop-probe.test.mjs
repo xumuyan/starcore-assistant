@@ -29,7 +29,7 @@ test('T0 native declarations preserve focus separation and transient Escape regi
   assert.match(source, /visible\(false\)/);
   assert.match(source, /focused\(false\)/);
   assert.match(source, /focusable\(!overlay\)/);
-  assert.match(source, /always_on_top\(true\)/);
+  assert.match(source, /always_on_top\(!standard\)/);
   assert.match(source, /set_ignore_cursor_events\(true\)/);
   assert.match(source, /unregister\("Escape"\)/);
   assert.match(source, /--show-chooser/);
@@ -58,4 +58,18 @@ test('T0 page bundles original visuals and IPC offline, keeping browser preview 
     assert.match(page, /不是清空后的历史/);
     assert.match(page, /unlisten\(\)/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+
+test('diagnostic control mode is explicit, normal-level and leaves overlay semantics intact', () => {
+  const native = read('desktop/src-tauri/src/main.rs');
+  const model = read('desktop/src-tauri/src/model.rs');
+  assert.match(model, /arg == "--diagnostic-controls"/);
+  assert.match(model, /self\.diagnostic && !overlay/);
+  assert.match(native, /standard_window\(overlay\)/);
+  assert.match(native, /decorations\(standard\)/);
+  assert.match(native, /transparent\(!standard\)/);
+  assert.match(native, /focusable\(!overlay\)/);
+  assert.match(native, /ActivationPolicy::Regular/);
+  assert.match(native, /ActivationPolicy::Accessory/);
 });

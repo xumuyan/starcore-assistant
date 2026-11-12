@@ -1,5 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+// Explicit diagnostic controls are regular windows; the overlay is never altered.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ControlMode {
+    pub diagnostic: bool,
+}
+impl ControlMode {
+    pub fn from_args(args: impl IntoIterator<Item = String>) -> Self {
+        Self {
+            diagnostic: args.into_iter().any(|arg| arg == "--diagnostic-controls"),
+        }
+    }
+    pub fn standard_window(self, overlay: bool) -> bool {
+        self.diagnostic && !overlay
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Page {
@@ -36,6 +52,16 @@ impl Snapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn diagnostic_mode_is_explicit_and_never_changes_overlay() {
+        let normal = ControlMode::from_args(["--show-chooser".into()]);
+        assert_eq!(normal, ControlMode::default());
+        assert!(!normal.standard_window(false));
+        let diagnostic = ControlMode::from_args(["--diagnostic-controls".into()]);
+        assert!(diagnostic.standard_window(false));
+        assert!(!diagnostic.standard_window(true));
+        assert!(!ControlMode::from_args(["--diagnostic-controls=true".into()]).diagnostic);
+    }
     #[test]
     fn starts_invisible_without_hotkeys() {
         assert_eq!(Snapshot::default().demo, None);
