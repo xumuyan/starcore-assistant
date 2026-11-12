@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
+const files=['docs/verification/2026-11-12-tauri-t0-manual.md','README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -205,4 +205,23 @@ test('native synthetic self-check evidence stays separate from desktop and servi
   const pkg = JSON.parse(read('package.json'));
   assert.equal(pkg.scripts['check:desktop:native'], 'node desktop/check-native.mjs');
   assert.equal(pkg.scripts.test, 'node --test');
+});
+
+
+test('manual T0 handoff stays pending, mode-separated and safe with a next action', () => {
+  const sheet = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  assert.match(sheet, /T0 仍未验收，T1 未启动/);
+  assert.match(sheet, /npm run desktop:probe -- -- --diagnostic-controls/);
+  assert.match(sheet, /```sh\nnpm run desktop:probe\n```/);
+  for (const id of ['D01', 'D02', 'P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08']) {
+    assert.match(sheet, new RegExp(`\\| ${id} \\| .* \\| 未测 \\|`));
+    assert.ok(sheet.includes(`${id}：未测`) || sheet.includes(`${id} 双屏：未测`));
+  }
+  for (const requirement of [/不能替代默认透明置顶模式验收/, /Ctrl\+C/, /不为本次测试授权新权限/,
+    /不在真实发送\/删除按钮上试/, /未测/, /临时热键默认关闭/, /有失败先/, /精确视觉/,
+    /没有发送点击\/键盘输入/, /不是界面“退出”功能验收/, /Windows 仍需独立/]) assert.match(sheet, requirement);
+  for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
+    assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
+  }
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261112-009）/);
 });
