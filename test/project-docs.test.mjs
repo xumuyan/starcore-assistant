@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md'];
+const files=['README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -68,6 +68,18 @@ test('package and native version metadata agree with the current changelog',()=>
   assert.ok(read('CHANGELOG.md').includes('build '+buildNumber));
 });
 
+
+test('voice-first UI redesign stays batched and unaccepted until implementation evidence exists',()=>{
+  const spec=read('docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md');
+  for(const requirement of [/未写任何实现代码/,/voice-ring/,/beam/,/voice 文字/,/orbs/,/退下\/退出/,/默认关闭/,/旧场景资源保留/,/离线复刻/])assert.match(spec,requirement);
+  for(const batch of ['B1','B2','B3','B4','B5','B6','B7','B8'])assert.ok(spec.includes('- '+batch+' '));
+  const plan=read('PLAN.md');
+  const section=plan.split('## 单页语音助理界面重制')[1]?.split('\n## ')[0];
+  assert.ok(section,'keep the redesign section');
+  const lines=section.split('\n').filter(line=>/^- \[[ x]\] B\d/.test(line));
+  assert.equal(lines.length,8,'keep eight implementation batches');
+  for(const line of lines)if(line.startsWith('- [x] '))assert.match(line,/证据：\s*\S.{5,}/,'a checked redesign batch needs evidence');
+});
 
 test('Rust P3 remains unaccepted until real switching and protocol gaps are verified', () => {
   const plan = read('PLAN.md');

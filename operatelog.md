@@ -12,7 +12,18 @@
 - 遗留问题：本批仅登记方向，不代表任何界面功能已实现或验收；具体批次拆分、视觉细节（各效果的参数与状态映射）待实施时与用户确认。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261112-001] register single-page voice assistant UI redesign direction`；最终哈希按 Change-ID 查询。
 
+## SC-20261112-002 重制方案落成设计与批次拆分
+
+- 北京时间：2026-11-12 13:03:13 +08:00。
+- 修改或新增：仅文档与文档测试。新增 docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md，把用户本轮口述的完整方案固化为状态机与 B1～B8 批次拆分，并登记新补充点：语音指令打开本机应用并进入网址（独立批次、默认关闭、白名单边界），Codex 项目面板砍掉但完成弹框保留、去掉开关默认直接开启并改为 beam 样式置顶。PLAN 重制章节改为引用设计并新增 8 个未勾选批次项；test/project-docs.test.mjs 新增设计守护检查（状态映射、批次完整、勾选必须带证据）并把新设计文档纳入链接/隐私扫描。
+- 遇到的难题：用户描述的四个 libraries.dev 效果只能作视觉参考，不能在线加载；语音打开应用的意图与安全边界若不加约束会变成任意命令执行。
+- 处理方式：设计中明确效果离线复刻、不联网；语音指令限定“打开应用+打开网址”，默认关闭，白名单先行；全部批次保持未勾选，不预写任何验收结论。
+- 验证结果：npm test 260/260、0 跳过，含新增重制守护检查；git diff --check 通过。未写任何界面代码，未构建、未安装。
+- 遗留问题：B1～B8 全部未实施；voice-ring/beam/voice/orbs 的具体动画参数、语音指令白名单应用清单、旧全屏页下线后历史聊天记录是否需要入口，待实施批次中与用户确认。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261112-002] split voice-first UI redesign into batches`；上批 SC-20261112-001 提交042f9c8已推送，本批提交后普通 push 并核对远端。
+
 ## SC-20261111-008 Rust Fish Audio 合成接入与完成提醒 Fish 播报
+
 
 - 北京时间：2026-11-12 12:33:48 +08:00（本批专项测试、完整回归、原生构建与 release 沙箱复验后现场读取）。
 - 修改或新增：页面/样式、版本、默认 Node 与已安装副本不变；无新增依赖。新增 `rust-host/src/fish.rs`：端点、Bearer/model 头、`{text, format, reference_id}` 请求体、45 秒超时、20 MiB 上限、RFC 4648 base64 编码均对齐 Node `assistant-service.mjs` speak；`MOSS_FISH_URL`/`MOSS_FISH_TIMEOUT_MS` 仅作沙箱覆盖，生产默认不变。`chat.rs` 完成路径重构：文本提交后按 speak/voice 决定系统声音或 Fish，Fish 任务在锁外由独立线程执行，播放占用在合成前登记（与降级路径同一 gate），结果回锁内按 playback 编号和 generation 归属复核后发 `play` 或降级 `speak`，取消/clear/sleep/configure/新 text 使在途合成结果静默丢弃；合成期间聊天保持占用（与 Node busy 语义一致），完成提醒在 Fish 播放结束后才播报，`reminder_tick` 改为锁外派发合成。缺 Fish Key 诚实降级并提示，不发起请求。新增 9 场景宿主沙箱 `test/rust-fish.test.mjs`（合成播放与确认释放、fishModel/voiceId 请求字段、HTTP 500/空/超限降级精确文案、缺 Key 不请求、取消静默、打断后可继续、提醒等待合成、超时降级释放、合成期间听写拒绝）与 3 项 Rust 单测（base64 RFC 4648 向量含中文多字节、生产默认值不被覆盖泄漏、合成归属随失效/换播放失效）。更新 PLAN 剩余模块分项。
