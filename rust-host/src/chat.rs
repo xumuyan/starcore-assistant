@@ -1,11 +1,13 @@
 // moss-host 聊天模块（Rust 阶段三 P3，第一模块）：与 src/assistant-service.mjs 的
 // 闲聊路径的初步实现；上下文使用本机加密 SQLite，完整协议对齐尚未验收。
-// Codex 派发与 Fish 合成未实现，以显式 error/降级提示，不静默假装。
+// Codex 派发未实现，以显式 error 提示；Fish 合成由 fish.rs 在锁外完成，失败按
+// node 语义明确降级系统声音，取消/失效时静默丢弃，不静默假装成功。
 use regex::Regex;
 use serde_json::{json, Value};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
+use crate::fish::{self, FishJob};
 use crate::memory::ConversationStore;
 use crate::reminder::{self, Action, CompletionReminder};
 use crate::vault::Vault;
@@ -175,26 +177,32 @@ impl ChatEngine {
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "播放结束" }));
     }
 
-    pub fn reminder_tick(&self) {
-        let mut session = self.session.lock().unwrap();
-        let enabled = session.settings.get("codexVoiceReminder").and_then(Value::as_bool) == Some(true);
-        // Rust rejects dictation before Ready/recording. When ASR is added, its
-        // ownership must join this same gate before any reminder can be enabled.
-        let busy = session.audio_busy();
-        let action = session.reminder.as_mut().and_then(|watcher| watcher.tick(enabled, busy, std::time::Instant::now()));
-        match action {
-            Some(Action::Announce(event)) => {
-                self.emit(&json!({ "type": "codexReminder", "project": reminder::project(&event),
-                    "threadId": event.get("threadId").and_then(Value::as_str).unwrap_or(""),
-                    "summary": reminder::summary(&event) }));
-                // Explicit opt-in is independent of the chat speak switch. No
-                // record()/answer(), model request, Codex dispatch or target change.
-                self.speak(&reminder::speech(&event), &mut session);
+    pub fn reminder_tick(self: &Arc<Self>) {
+        let job = {
+            let mut session = self.session.lock().unwrap();
+            let enabled = session.settings.get("codexVoiceReminder").and_then(Value::as_bool) == Some(true);
+            // Rust rejects dictation before Ready/recording. When ASR is added, its
+            // ownership must join this same gate before any reminder can be enabled.
+            let busy = session.audio_busy();
+            let action = session.reminder.as_mut().and_then(|watcher| watcher.tick(enabled, busy, std::time::Instant::now()));
+            match action {
+                Some(Action::Announce(event)) => {
+                    self.emit(&json!({ "type": "codexReminder", "project": reminder::project(&event),
+                        "threadId": event.get("threadId").and_then(Value::as_str).unwrap_or(""),
+                        "summary": reminder::summary(&event) }));
+                    // Explicit opt-in is independent of the chat speak switch. No
+                    // record()/answer(), model request, Codex dispatch or target change.
+                    self.speak(&reminder::speech(&event), &mut session, None)
+                }
+                Some(Action::Dropped(event)) => {
+                    self.emit(&json!({ "type": "notice", "message":
+                        format!("「{}」的 Codex 完成提醒未播报：当时助理正忙", reminder::project(&event)) }));
+                    None
+                }
+                None => None,
             }
-            Some(Action::Dropped(event)) => self.emit(&json!({ "type": "notice", "message":
-                format!("「{}」的 Codex 完成提醒未播报：当时助理正忙", reminder::project(&event)) })),
-            None => {}
-        }
+        };
+        if let Some(job) = job { self.spawn_fish(job); }
     }
 
     pub fn reject_dictation(&self, kind: &str, id: Option<&str>) {
@@ -284,7 +292,7 @@ impl ChatEngine {
         })
     }
 
-    fn perform(&self, request: ChatRequest) {
+    fn perform(self: &Arc<Self>, request: ChatRequest) {
         // Avoid starting already-invalidated work. Cancellation during blocking
         // HTTP remains logical only: the socket is bounded by the request timeout.
         if !self.session.lock().unwrap().owns(request.generation) { return; }
@@ -303,35 +311,52 @@ impl ChatEngine {
         self.complete(request.generation, result);
     }
 
-    fn complete(&self, generation: u64, result: Result<Value, String>) {
-        let mut session = self.session.lock().unwrap();
-        // An obsolete worker must neither emit/record nor release a new owner.
-        if !session.finish(generation) { return; }
-        match result {
-            Ok(data) => {
-                if data.get("error").is_some() {
-                    self.fail("云桥返回接口错误，请检查模型分组与请求状态");
-                    return;
+    fn complete(self: &Arc<Self>, generation: u64, result: Result<Value, String>) {
+        let job = {
+            let mut session = self.session.lock().unwrap();
+            // An obsolete worker must neither emit/record nor release a new owner.
+            if !session.owns(generation) { return; }
+            match result {
+                Ok(data) => {
+                    if data.get("error").is_some() {
+                        session.finish(generation);
+                        self.fail("云桥返回接口错误，请检查模型分组与请求状态");
+                        None
+                    } else {
+                        let text = data.get("output").and_then(Value::as_array).map(|items| {
+                            items.iter()
+                                .filter(|x| x.get("type").and_then(Value::as_str) == Some("message") && x.get("role").and_then(Value::as_str) == Some("assistant"))
+                                .flat_map(|x| x.get("content").and_then(Value::as_array).cloned().unwrap_or_default())
+                                .filter(|x| x.get("type").and_then(Value::as_str) == Some("output_text"))
+                                .filter_map(|x| x.get("text").and_then(Value::as_str).map(String::from))
+                                .collect::<Vec<_>>().join("\n")
+                        }).filter(|s: &String| !s.trim().is_empty())
+                          .or_else(|| data.get("output_text").and_then(Value::as_str).map(String::from));
+                        let Some(text) = text else {
+                            session.finish(generation);
+                            self.fail("云桥未返回可显示的文本，未改用其他付费服务");
+                            return;
+                        };
+                        let text = text.trim().to_string();
+                        if let Some(usage) = data.get("usage") {
+                            self.emit(&json!({ "type": "usage", "input": usage.get("input_tokens").cloned().unwrap_or(Value::Null), "output": usage.get("output_tokens").cloned().unwrap_or(Value::Null) }));
+                        }
+                        self.answer(&text, true);
+                        // Fish keeps the generation claimed until play/fallback is
+                        // emitted; every other path releases it here.
+                        self.speak_reply(&text, &mut session, generation)
+                    }
                 }
-                let text = data.get("output").and_then(Value::as_array).map(|items| {
-                    items.iter()
-                        .filter(|x| x.get("type").and_then(Value::as_str) == Some("message") && x.get("role").and_then(Value::as_str) == Some("assistant"))
-                        .flat_map(|x| x.get("content").and_then(Value::as_array).cloned().unwrap_or_default())
-                        .filter(|x| x.get("type").and_then(Value::as_str) == Some("output_text"))
-                        .filter_map(|x| x.get("text").and_then(Value::as_str).map(String::from))
-                        .collect::<Vec<_>>().join("\n")
-                }).filter(|s: &String| !s.trim().is_empty())
-                  .or_else(|| data.get("output_text").and_then(Value::as_str).map(String::from));
-                let Some(text) = text else { self.fail("云桥未返回可显示的文本，未改用其他付费服务"); return; };
-                let text = text.trim().to_string();
-                if let Some(usage) = data.get("usage") {
-                    self.emit(&json!({ "type": "usage", "input": usage.get("input_tokens").cloned().unwrap_or(Value::Null), "output": usage.get("output_tokens").cloned().unwrap_or(Value::Null) }));
+                Err(message) => {
+                    session.finish(generation);
+                    self.fail(&message);
+                    None
                 }
-                self.answer(&text, true);
-                self.speak_if_enabled(&text, &mut session);
             }
-            Err(message) => self.fail(&message),
-        }
+        };
+        // Fish synthesis runs without the lock; a queued control command either
+        // invalidates the job (dropped silently) or follows its committed output.
+        if let Some(job) = job { self.spawn_fish(job); }
     }
 
     fn fail(&self, message: &str) {
@@ -345,24 +370,91 @@ impl ChatEngine {
         self.emit(&json!({ "type": "state", "name": "idle", "detail": "回复已就绪" }));
     }
 
-    /// speak 对齐：node 版系统声音由 Swift 端播报；Fish 合成未实现，诚实降级为系统声音。
-    fn speak_if_enabled(&self, content: &str, session: &mut Session) {
+    /// Chat-reply speech gated by the speak switch. Some(FishJob) means the
+    /// synthesis (and therefore the chat generation) is still pending.
+    fn speak_reply(&self, content: &str, session: &mut Session, generation: u64) -> Option<FishJob> {
         let speak = session.settings.get("speak").and_then(Value::as_bool).unwrap_or(false);
-        if !speak { return; }
-        self.speak(content, session);
+        if !speak {
+            session.finish(generation);
+            return None;
+        }
+        self.speak(content, session, Some(generation))
     }
 
-    fn speak(&self, content: &str, session: &mut Session) {
+    /// Shared speech path: reminders pass None and ignore the speak switch, like
+    /// node announceReminder's ignoreSpeakSwitch. A Fish job is returned for the
+    /// caller to run after releasing the lock; the playback slot is claimed here
+    /// so reminders/dictation wait, and a later invalidation drops the result.
+    fn speak(&self, content: &str, session: &mut Session, generation: Option<u64>) -> Option<FishJob> {
+        let text = speech_text(content);
         let voice = str_field(&session.settings, "voice", "system");
-        if voice == "fish" {
-            if str_field(&session.keys, "fish", "").is_empty() {
-                self.emit(&json!({ "type": "error", "message": "Fish API Key 未配置，本次使用系统声音" }));
-            } else {
-                self.emit(&json!({ "type": "error", "message": "Rust 宿主暂不支持 Fish 合成，本次使用系统声音" }));
+        if voice != "fish" {
+            let id = session.start_playback();
+            if let Some(g) = generation { session.finish(g); }
+            self.emit(&json!({ "type": "speak", "text": text, "playbackId": id }));
+            return None;
+        }
+        if str_field(&session.keys, "fish", "").is_empty() {
+            self.emit(&json!({ "type": "error", "message": "Fish API Key 未配置，本次使用系统声音" }));
+            let id = session.start_playback();
+            if let Some(g) = generation { session.finish(g); }
+            self.emit(&json!({ "type": "speak", "text": text, "playbackId": id }));
+            return None;
+        }
+        let playback = session.start_playback();
+        self.emit(&json!({ "type": "state", "name": "synthesizing", "detail": "正在生成 Fish Audio 语音" }));
+        Some(FishJob {
+            generation,
+            playback,
+            url: fish::endpoint(),
+            key: str_field(&session.keys, "fish", "").to_string(),
+            model: str_field(&session.settings, "fishModel", "s2.1-pro-free").to_string(),
+            voice_id: str_field(&session.settings, "voiceId", "").to_string(),
+            text,
+            timeout: fish::timeout(),
+        })
+    }
+
+    /// Synthesis ownership: the playback slot must still be the claimed one and,
+    /// for chat replies, the generation must still be active. Invalidation via
+    /// cancel/clear/sleep/configure or a replacement playback drops the result.
+    fn fish_claim_alive(session: &Session, job: &FishJob) -> bool {
+        session.playback.as_deref() == Some(job.playback.as_str())
+            && job.generation.map(|g| session.owns(g)).unwrap_or(true)
+    }
+
+    fn spawn_fish(self: &Arc<Self>, job: FishJob) {
+        let worker = self.clone();
+        let attempt = job.clone();
+        let spawned = std::thread::Builder::new().name("moss-fish".into())
+            .spawn(move || worker.perform_fish(attempt));
+        if spawned.is_err() {
+            // No network was started; fail over synchronously under the same rules.
+            let mut session = self.session.lock().unwrap();
+            if Self::fish_claim_alive(&session, &job) {
+                self.emit(&json!({ "type": "error", "message": "无法启动语音合成线程，本次使用系统声音" }));
+                self.emit(&json!({ "type": "speak", "text": job.text, "playbackId": job.playback.clone() }));
+                if let Some(g) = job.generation { session.finish(g); }
             }
         }
-        let playback_id = session.start_playback();
-        self.emit(&json!({ "type": "speak", "text": speech_text(content), "playbackId": playback_id }));
+    }
+
+    fn perform_fish(self: Arc<Self>, job: FishJob) {
+        // HTTP and the body read happen without the Session lock (logical cancel
+        // only: the socket is bounded by the synthesis timeout).
+        let result = job.request();
+        let mut session = self.session.lock().unwrap();
+        if !Self::fish_claim_alive(&session, &job) { return; }
+        match result {
+            Ok(audio) => self.emit(&json!({ "type": "play", "audio": audio, "playbackId": job.playback })),
+            Err(message) => {
+                self.emit(&json!({ "type": "error", "message": format!("{message}，本次使用系统声音") }));
+                self.emit(&json!({ "type": "speak", "text": job.text, "playbackId": job.playback }));
+            }
+        }
+        // Release the chat claim once play/fallback is emitted; the playback slot
+        // stays until the native side acknowledges with the same ID.
+        if let Some(g) = job.generation { session.finish(g); }
     }
 }
 
@@ -389,8 +481,9 @@ pub fn spawn_text(engine: Arc<ChatEngine>, text: String, mode: String, source: S
 
 #[cfg(test)]
 mod tests {
-    use super::Session;
+    use super::{ChatEngine, Session};
     use std::sync::{Arc, Barrier, Mutex};
+    use std::time::Duration;
 
     #[test]
     fn concurrent_claims_have_exactly_one_owner() {
@@ -488,6 +581,30 @@ mod tests {
         assert!(!session.end_playback(Some(&first)));
         assert!(session.audio_busy());
         assert_eq!(session.generation, 0);
+    }
+
+    #[test]
+    fn fish_claims_die_with_invalidation_and_survive_only_for_current_owner() {
+        let mut session = Session::default();
+        let generation = session.claim().unwrap();
+        let playback = session.start_playback();
+        let job = crate::fish::FishJob {
+            generation: Some(generation), playback: playback.clone(),
+            url: String::new(), key: String::new(), model: String::new(),
+            voice_id: String::new(), text: String::new(), timeout: Duration::from_secs(1),
+        };
+        assert!(ChatEngine::fish_claim_alive(&session, &job));
+        session.invalidate();
+        assert!(!ChatEngine::fish_claim_alive(&session, &job));
+        // Reminder synthesis (generation None) only depends on the playback slot.
+        let slot = session.start_playback();
+        let reminder = crate::fish::FishJob { generation: None, playback: slot.clone(), ..job.clone() };
+        assert!(ChatEngine::fish_claim_alive(&session, &reminder));
+        let next = session.start_playback();
+        assert_ne!(slot, next);
+        assert!(!ChatEngine::fish_claim_alive(&session, &reminder));
+        let replacement = crate::fish::FishJob { generation: None, playback: next, ..reminder.clone() };
+        assert!(ChatEngine::fish_claim_alive(&session, &replacement));
     }
 
 }

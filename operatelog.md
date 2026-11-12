@@ -2,6 +2,16 @@
 
 时间口径：北京时间 `Asia/Shanghai`（UTC+08:00）。补记的历史 Git 时间仅代表提交时间。日志只保留改动、难题、解决方式和验证摘要，不记录凭据、私人输入正文或原始抓包载荷。
 
+## SC-20261111-008 Rust Fish Audio 合成接入与完成提醒 Fish 播报
+
+- 北京时间：2026-11-12 12:33:48 +08:00（本批专项测试、完整回归、原生构建与 release 沙箱复验后现场读取）。
+- 修改或新增：页面/样式、版本、默认 Node 与已安装副本不变；无新增依赖。新增 `rust-host/src/fish.rs`：端点、Bearer/model 头、`{text, format, reference_id}` 请求体、45 秒超时、20 MiB 上限、RFC 4648 base64 编码均对齐 Node `assistant-service.mjs` speak；`MOSS_FISH_URL`/`MOSS_FISH_TIMEOUT_MS` 仅作沙箱覆盖，生产默认不变。`chat.rs` 完成路径重构：文本提交后按 speak/voice 决定系统声音或 Fish，Fish 任务在锁外由独立线程执行，播放占用在合成前登记（与降级路径同一 gate），结果回锁内按 playback 编号和 generation 归属复核后发 `play` 或降级 `speak`，取消/clear/sleep/configure/新 text 使在途合成结果静默丢弃；合成期间聊天保持占用（与 Node busy 语义一致），完成提醒在 Fish 播放结束后才播报，`reminder_tick` 改为锁外派发合成。缺 Fish Key 诚实降级并提示，不发起请求。新增 9 场景宿主沙箱 `test/rust-fish.test.mjs`（合成播放与确认释放、fishModel/voiceId 请求字段、HTTP 500/空/超限降级精确文案、缺 Key 不请求、取消静默、打断后可继续、提醒等待合成、超时降级释放、合成期间听写拒绝）与 3 项 Rust 单测（base64 RFC 4648 向量含中文多字节、生产默认值不被覆盖泄漏、合成归属随失效/换播放失效）。更新 PLAN 剩余模块分项。
+- 遇到的难题：测试 harness 一次只持有一个 Fish mock 处理器，取消/打断后的重试请求仍被挂起处理器拦住导致超时；首轮实现把 configure 的 idle 状态计入断言序列；测试编写的 base64 中文向量与 RFC/Node 实际值不符。
+- 处理方式：重试前恢复默认 fish 响应器并核对 mock URL 精确区分 `/v1/responses` 与 Fish；状态断言改为仅检查发送 text 之后的事件；以 Node `Buffer.toString('base64')` 实测值修正测试向量。实现遵循测试先行：修正后旧实现基线 1/9，实现后 9/9。
+- 验证结果：相关 `test/rust-fish.test.mjs` 9/9；最终 `npm test` 259/259、0 跳过；`cargo test` 34/34（27 lib、2 memory、2 interop、3 safety）、`cargo test --release` 通过；`cargo clippy --all-targets -- -D warnings` 与 `git diff --check` 通过。`npm run build:mac:check` 通过（RUST_HOST_READY / APP_BUILT，未安装，strict 签名通过）。实际 release 二进制生命周期沙箱 25/25。全部宿主测试隔离 HOME 与 `CODEX_WEIXIN_STATE_DIR`，仅本地 HTTP mock 与合成音频，不调用真实 Fish 付费接口、不发声。未做真实 Fish 音频播放、真实网络超时与设备回调验收；未安装或切换当前应用。
+- 遗留问题：Rust 侧真实 Fish 声音、超时/降级的真机表现未验收；传输级取消仍未实现（合成线程最多等待自身超时）；`fishModel`/`voiceId` 合法值域未校验。听写/ASR 未实现，合成占用期间听写拒绝仍为"暂不支持"文案而非互斥成功。P3 其余缺口、P4 灰度与回滚、许可证分发不变。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261111-008] synthesize chat and reminder speech via Fish Audio in Rust host`；最终哈希按 Change-ID 查询。上批 SC-20261111-007 提交已普通推送，本批提交后普通 push 并核对远端，不预写成功。
+
 ## SC-20261111-007 Rust Codex 完成提醒事件消费与播放接线
 
 - 北京时间：2026-11-11 17:36:19 +08:00（本批完整回归、构建与 release 沙箱复验后现场读取）。
