@@ -148,3 +148,18 @@ test('conversation reserves caption space and distinguishes silent processing fr
   assert.match(source, /<VoiceRing[^>]*level=\{phase === 'processing' \? 0 : normalizeLevel\(level\)\}/);
   assert.match(read('desktop/frontend/style.css'), /\.conversation-caption-slot[^}]*height: 112px;[^}]*flex: 0 0 112px/);
 });
+
+
+test('preview exposes actual overlay dimensions without resizing native windows', () => {
+  const source = read('desktop/frontend/preview.jsx');
+  assert.match(source, /useState\('desktop'\)/);
+  assert.match(source, /画布尺寸/);
+  assert.match(source, /data-size=\{canvasSize\}/);
+  const css = read('desktop/frontend/style.css');
+  assert.match(css, /\.preview-stage[^}]*width: min\(620px, 100%\); height: 440px/);
+  assert.match(css, /data-size='narrow'[^}]*width: min\(320px, 100%\)/);
+  const browser = read('desktop/check-effects-browser.mjs');
+  assert.match(browser, /\[620, 390, 320\]/);
+  assert.match(browser, /\['16px', '32px'\]/);
+  assert.match(browser, /document.documentElement.scrollWidth <= innerWidth/);
+});

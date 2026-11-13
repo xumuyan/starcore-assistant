@@ -12,6 +12,7 @@ function Preview() {
   const [text, setText] = useState('');
   const [playing, setPlaying] = useState(false);
   const [run, setRun] = useState(0);
+  const [canvasSize, setCanvasSize] = useState('desktop');
   function stop() { setPlaying(false); setPhase('hidden'); setLevel(0); setText(''); }
   useEffect(() => {
     const cancel = event => { if (event.key === 'Escape') stop(); };
@@ -48,9 +49,12 @@ function Preview() {
       </select></label>
       <label>手动模拟电平<input disabled={playing} type="range" min="0" max="1" step="0.01" value={level} onChange={e => setLevel(Number(e.target.value))} /></label>
       <label>示例文字<input disabled={playing} value={text} maxLength={8000} onChange={e => setText(e.target.value)} /></label>
+      <label>画布尺寸<select value={canvasSize} onChange={e => setCanvasSize(e.target.value)}>
+        <option value="desktop">桌面浮层 620 × 440</option><option value="narrow">窄屏 320 × 440</option>
+      </select></label>
       <button onClick={stop}>隐藏（Esc）</button>
     </header>
-    <div className="preview-stage"><Effect phase={phase} level={level} text={text} /></div>
+    <div className="preview-stage" data-size={canvasSize}><Effect phase={phase} level={level} text={text} /></div>
   </main>;
 }
 createRoot(document.getElementById('root')).render(<Preview />);

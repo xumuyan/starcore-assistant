@@ -89,10 +89,58 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(2600);
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
+  await page.setViewportSize({ width: 320, height: 720 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320);
+  await page.setViewportSize({ width: 960, height: 720 });
+  assert.equal((await page.locator('.preview-stage').boundingBox()).width, 620);
+  assert.equal((await page.locator('.preview-stage').boundingBox()).height, 440);
+  await page.getByLabel('画布尺寸').selectOption('narrow');
+  assert.equal((await page.locator('.preview-stage').boundingBox()).width, 320);
+  await page.getByLabel('画布尺寸').selectOption('desktop');
+  // Reuse the production overlay CSS in a browser-sized viewport, not just the
+  // roomy preview stage. This tests layout bounds, not native window behavior.
+  await page.addStyleTag({ content: await readFile(resolve(import.meta.dirname, 'frontend/probe.css'), 'utf8') });
+  await page.addStyleTag({ content: '.preview-controls { display: none; }' });
+  await page.locator('.preview-stage').evaluate(e => { e.className = 'probe-overlay'; });
+  async function inside(selector, width, height) {
+    const rect = await page.locator(selector).boundingBox();
+    assert.ok(rect && rect.x >= -1 && rect.y >= -1 && rect.x + rect.width <= width + 1 && rect.y + rect.height <= height + 1,
+      `${selector} outside ${width}x${height}: ${JSON.stringify(rect)}`);
+  }
+  for (const width of [620, 390, 320]) {
+    await page.setViewportSize({ width, height: 440 });
+    for (const fontSize of ['16px', '32px']) {
+      await page.addStyleTag({ content: `body { font-size: ${fontSize}; }` });
+      for (const selectedMode of ['conversation', 'dictation']) {
+        // Hidden controls remain usable through DOM events without desktop input.
+        await mode.evaluate((e, value) => { e.value = value; e.dispatchEvent(new Event('change', { bubbles: true })); }, selectedMode);
+        for (const selectedPhase of ['listening', 'processing', ...(selectedMode === 'conversation' ? ['speaking'] : [])]) {
+          await phase.evaluate((e, value) => { e.value = value; e.dispatchEvent(new Event('change', { bubbles: true })); }, selectedPhase);
+          for (const content of ['', '无空格长串'.repeat(60)]) {
+            // Use the native input setter so React observes the synthetic text change.
+            await text.evaluate((e, value) => {
+              Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, value);
+              e.dispatchEvent(new Event('input', { bubbles: true }));
+            }, content);
+            assert.equal(await text.inputValue(), content);
+            if (content) assert.equal(await page.locator('.transcript').innerText(), content);
+            const effect = selectedMode === 'conversation' ? '.conversation-effect' : '.dictation-effect';
+            await inside(effect, width, 440);
+            if (selectedMode === 'conversation') await inside('.voice-ring-slot', width, 440);
+            if (content || selectedPhase !== 'listening') {
+              await inside(selectedMode === 'conversation' ? '.beam-card' : '.dictation-strip', width, 440);
+            }
+            assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `horizontal overflow at ${width}/${fontSize}/${selectedMode}/${selectedPhase}`);
+          }
+        }
+      }
+    }
+  }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, offline');
+  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
+  server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
 }
