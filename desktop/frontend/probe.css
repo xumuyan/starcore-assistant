@@ -1,11 +1,29 @@
 html, body, #root { background: transparent; }
 .probe-overlay { width: 100vw; height: 100vh; display: grid; place-items: center; padding: 24px; pointer-events: none; }
-.probe-chooser { padding: 10px; }
-.probe-chooser .beam-card { padding: 16px; display: flex; justify-content: space-around; min-width: 0; }
-.probe-page { padding: 14px; }
-.probe-page .beam-card { padding: 22px; }
-.probe-page h1 { font-size: 18px; margin: 0 0 12px; }
-.probe-page p, .probe-page label { font-size: 13px; line-height: 1.7; }
-.probe-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-.probe-page button { cursor: pointer; }
-.probe-page label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+/* Frameless menu-bar entry: floating pills, no card or border around them. */
+.probe-chooser { padding: 10px; display: flex; gap: 8px; align-items: center; }
+.probe-chooser .beui-btn {
+  background: rgba(24, 24, 26, 0.78);
+  border-color: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.probe-chooser p[role='alert'] { margin: 0 0 0 8px; font-size: 12px; color: #ff9f0a; }
+.probe-page { padding: 16px; }
+/* Plain glass panel; intentionally no BorderBeam frame on pages. */
+.probe-panel {
+  border-radius: 18px;
+  background: rgba(22, 22, 24, 0.82);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.probe-panel h1 { font-size: 18px; margin: 0; }
+.probe-panel p { margin: 0; font-size: 13px; line-height: 1.7; color: #bbb; }
+.probe-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.probe-panel p[role='alert'] { margin: 0; font-size: 12px; color: #ff9f0a; }
+.probe-input { align-self: stretch; }

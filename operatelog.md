@@ -662,3 +662,12 @@
 - 验证结果：人工核对计划与用户本轮范围一致；完整151项回归通过，0失败、0跳过；新增检查确认下一步保持待实施，文档链接/日志字段及git diff --check通过。功能未开发，未进行真实语音播报验收。
 - 遗留问题：播报文案、忙碌时处理及失败提示留待后续实施前确认；自动语音提醒尚未实现。既有权限与扩展真机验收状态不由本次计划记录改变。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261104-001] plan Codex completion voice reminders`；上批设置样式提交cc5371d已推送。
+
+## 2026-11-13 12:47:57 +08:00 · SC-20261113-001 · T0 壳改无边框菜单式弹层并接入 beUI motion 控件
+
+- 修改内容：desktop/src-tauri/src/main.rs 全部窗口（含诊断）decorations(false)+transparent(true)+always_on_top(true)+shadow(false)，诊断参数仅保留标题 `diagnostic` 后缀、Regular 激活策略与自动显示 chooser（删除 40px 标题栏补偿）；chooser 缩为 170×54。新增托盘左键锚定：`TrayIconEvent::Click` 事件矩形物理像素解析（兼容 Position/Size 双变体）→ `available_monitors()` 物理匹配显示器 → `anchored_window_origin` 纯函数（居中+工作区钳制+间隙按缩放）→ `set_position(PhysicalPosition)`；点击“历史记录/设置”先隐藏入口条再开页；chooser/history/settings 失焦 `Focused(false)` 自动收起；CloseRequested 仅隐藏。前端新增 desktop/frontend/beui.jsx+beui.css（本地适配 beUI motion Button/Switch/Input，MIT，© 2026 Saurabh Chauhan，来源 https://beui.dev/components/motion ，仓库 starc007/ui-components；Tailwind 类改本地 CSS，未逐像素复制）；probe.jsx 入口条仅两个 beUI 小按钮、设置/历史页换 beUI 控件并移除 BorderBeam 外框；build-frontend.mjs probe 附带 motion 运行时声明；许可归档 licenses/beui-motion-MIT.txt 并更新 THIRD_PARTY_NOTICES.md；卸载未用 clsx/tailwind-merge。
+- 测试：新增 Rust `chooser_anchors_below_tray_and_stays_inside_the_work_area` 与改写诊断模式用例；test/desktop-probe.test.mjs 新增托盘锚定/无边框/beUI 归档/依赖锁定用例；test/project-docs.test.mjs 更新下一步引用与 beUI 归档断言；手工验收单 D01/P01 按新弹层行为更新。
+- 验证：cargo fmt --check、cargo test --locked 7/7、cargo clippy -D warnings 通过；npm run build:desktop:probe 与 build:desktop:check 构建通过；node desktop/check-native.mjs 九检查点 T0_SELF_CHECK PASS；npm test 280/280；git diff --check 干净。以上均为构建与模拟验证，非真机交互验收。
+- 难题与处理：tauri `TrayIconEvent::Click.rect` 为 Position/Size 枚举（物理/逻辑双变体）、`Monitor::scale_factor()` 返回 f64 非 Result，且 `monitor_from_point` 在 macOS 基于 CGDisplayBounds 逻辑点、与物理托盘矩形单位不一致；改为遍历 available_monitors 按物理像素匹配显示器并全程物理坐标定位，逻辑换算仅用于间隙缩放。工具受保护点击此前被焦点校验阻止，本批未注入输入、未绕过。
+- 遗留问题：入口条真实位置/外观、失焦收起、点击按钮开页、beUI 动效手感、多屏/全屏/Spaces/睡眠属 D01～D02、P01～P08 手测且全部未测；诊断模式成功不能替代默认透明置顶模式验收。T0 仍未验收，T1 未接入业务。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-001] anchor frameless tray popover with beUI controls`；上批交接提交 6cbf7529e8080c102b98cf22d5c21b323d9b2a95 已推送。

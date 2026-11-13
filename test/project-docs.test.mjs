@@ -223,5 +223,8 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261112-009）/);
+  assert.match(read('desktop/README.md'), /beui\.dev/);
+  assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
+  assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
 });

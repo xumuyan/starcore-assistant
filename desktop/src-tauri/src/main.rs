@@ -103,6 +103,74 @@ fn probe_quit(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+/// Pure menu-popover math, physical pixels everywhere: center the window
+/// horizontally under the tray icon, clamp it into the monitor work area, and
+/// place it just below the icon with a small gap scaled by the display.
+fn anchored_window_origin(
+    tray: (f64, f64, f64, f64),
+    window: (f64, f64),
+    work: (f64, f64, f64, f64),
+    scale: f64,
+    gap_logical: f64,
+) -> (f64, f64) {
+    let x = (tray.0 + (tray.2 - window.0) / 2.0)
+        .max(work.0)
+        .min((work.0 + work.2 - window.0).max(work.0));
+    (x, tray.1 + tray.3 + gap_logical * scale)
+}
+
+fn position_under_tray(
+    app: &tauri::AppHandle,
+    chooser: &tauri::WebviewWindow,
+    tray: (f64, f64, f64, f64),
+) {
+    let Ok(size) = chooser.outer_size() else {
+        return;
+    };
+    // Tray rects and monitor bounds are physical pixels; find the display that
+    // contains the icon instead of guessing a unit conversion per platform.
+    let monitor = app.available_monitors().ok().and_then(|monitors| {
+        let center = (tray.0 + tray.2 / 2.0, tray.1 + tray.3 / 2.0);
+        monitors.into_iter().find(|m| {
+            let position = m.position();
+            let size = m.size();
+            let (x, y, width, height) = (
+                position.x as f64,
+                position.y as f64,
+                size.width as f64,
+                size.height as f64,
+            );
+            center.0 >= x && center.0 < x + width && center.1 >= y && center.1 < y + height
+        })
+    });
+    let Some(monitor) = monitor else {
+        return;
+    };
+    let scale = monitor.scale_factor();
+    let work = monitor.work_area();
+    let (x, y) = anchored_window_origin(
+        tray,
+        (size.width as f64, size.height as f64),
+        (
+            work.position.x as f64,
+            work.position.y as f64,
+            work.size.width as f64,
+            work.size.height as f64,
+        ),
+        scale,
+        6.0,
+    );
+    let _ = chooser.set_position(tauri::PhysicalPosition::new(x, y));
+}
+
+fn hide_pages(app: &tauri::AppHandle) {
+    for label in ["history", "settings"] {
+        if let Some(page) = app.get_webview_window(label) {
+            let _ = page.hide();
+        }
+    }
+}
+
 fn window(
     app: &tauri::AppHandle,
     label: &str,
@@ -110,7 +178,7 @@ fn window(
     height: f64,
     overlay: bool,
 ) -> tauri::Result<()> {
-    let standard = app.state::<ControlMode>().standard_window(overlay);
+    let diagnostic = app.state::<ControlMode>().diagnostic;
     let query = if app.state::<check::Check>().enabled {
         "&selfCheck=1"
     } else {
@@ -121,22 +189,23 @@ fn window(
         label,
         tauri::WebviewUrl::App(format!("index.html?view={label}{query}").into()),
     )
-    .title(if standard {
+    .title(if diagnostic {
         format!("MOSS T0 · {label} · diagnostic")
     } else {
         format!("MOSS T0 · {label}")
     })
-    // Extra diagnostic title-bar space is not part of the production layout.
-    .inner_size(width, height + if standard { 40.0 } else { 0.0 })
+    .inner_size(width, height)
     .center()
     .visible(false)
     .focused(false)
     .focusable(!overlay)
-    .decorations(standard)
-    .transparent(!standard)
-    .always_on_top(!standard)
-    .skip_taskbar(!standard)
-    .shadow(standard)
+    // Menu-style popovers stay frameless and translucent in every mode; the
+    // diagnostic flag only changes the title suffix and the activation policy.
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .shadow(false)
     .resizable(false)
     .visible_on_all_workspaces(true)
     .build()?;
@@ -198,7 +267,7 @@ fn main() {
             } else {
                 tauri::ActivationPolicy::Accessory
             });
-            window(app.handle(), "chooser", 280.0, 100.0, false)?;
+            window(app.handle(), "chooser", 170.0, 54.0, false)?;
             window(app.handle(), "history", 540.0, 260.0, false)?;
             window(app.handle(), "settings", 600.0, 420.0, false)?;
             window(app.handle(), "overlay", 620.0, 440.0, true)?;
@@ -218,16 +287,36 @@ fn main() {
                 .tooltip("MOSS T0 验证壳（未录音）")
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        if let Some(chooser) = tray.app_handle().get_webview_window("chooser") {
+                    if let tauri::tray::TrayIconEvent::Click { rect, .. } = event {
+                        let app = tray.app_handle();
+                        if let Some(chooser) = app.get_webview_window("chooser") {
                             if chooser.is_visible().unwrap_or(false) {
                                 let _ = chooser.hide();
                             } else {
+                                hide_pages(app);
+                                // Tauri normalizes the tray rect into logical-or-physical
+                                // enums; resolve both unit variants to physical pixels.
+                                let (rx, ry, rw, rh) = match (rect.position, rect.size) {
+                                    (tauri::Position::Physical(p), tauri::Size::Physical(s)) => {
+                                        (p.x as f64, p.y as f64, s.width as f64, s.height as f64)
+                                    }
+                                    (tauri::Position::Logical(p), tauri::Size::Logical(s)) => {
+                                        let scale = chooser
+                                            .primary_monitor()
+                                            .ok()
+                                            .flatten()
+                                            .map(|m| m.scale_factor())
+                                            .unwrap_or(1.0);
+                                        (
+                                            p.x * scale,
+                                            p.y * scale,
+                                            s.width * scale,
+                                            s.height * scale,
+                                        )
+                                    }
+                                    _ => return,
+                                };
+                                position_under_tray(app, &chooser, (rx, ry, rw, rh));
                                 let _ = chooser.show();
                                 let _ = chooser.set_focus();
                             }
@@ -253,12 +342,47 @@ fn main() {
             }
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Menu-style popovers close themselves when the user clicks elsewhere.
+            tauri::WindowEvent::Focused(false) => {
+                if matches!(window.label(), "chooser" | "history" | "settings") {
+                    let _ = window.hide();
+                }
+            }
+            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("isolated T0 probe failed to start");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::anchored_window_origin;
+
+    #[test]
+    fn chooser_anchors_below_tray_and_stays_inside_the_work_area() {
+        // Tray icon near the right edge: centered below it, 6 logical px gap at 2x.
+        let (x, y) = anchored_window_origin(
+            (1800.0, 0.0, 40.0, 24.0),
+            (170.0, 54.0),
+            (0.0, 0.0, 1920.0, 1055.0),
+            2.0,
+            6.0,
+        );
+        assert_eq!(x, 1800.0 + (40.0 - 170.0) / 2.0);
+        assert_eq!(y, 24.0 + 12.0);
+        // Near the left edge the centered position clamps into the work area.
+        let (x, y) = anchored_window_origin(
+            (10.0, 0.0, 40.0, 24.0),
+            (170.0, 54.0),
+            (0.0, 0.0, 1920.0, 1055.0),
+            2.0,
+            6.0,
+        );
+        assert_eq!((x, y), (0.0, 36.0));
+    }
 }

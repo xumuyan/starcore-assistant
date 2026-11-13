@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { BeamCard, ConversationEffect, DictationEffect } from './effects.jsx';
+import { ConversationEffect, DictationEffect } from './effects.jsx';
+import { Button, Input, Switch } from './beui.jsx';
 import { runSelfCheck, renderedDemo } from './self-check.mjs';
 import './style.css';
 import './probe.css';
+import './beui.css';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view');
@@ -45,26 +47,27 @@ function Probe() {
     const Effect = state.demo === 'dictation' ? DictationEffect : ConversationEffect;
     return <main className="probe-overlay"><Effect phase={phase} level={0.55} text="T0 合成效果 · 未录音 · Esc 隐藏" /></main>;
   }
-  if (view === 'chooser') return <main className="probe-chooser"><BeamCard>
-    <button onClick={() => command('probe_open', { page: 'history' })}>历史记录</button>
-    <button onClick={() => command('probe_open', { page: 'settings' })}>设置</button>
+  // Frameless menu-bar entry: two small pills; opening a page hides this entry.
+  if (view === 'chooser') return <main className="probe-chooser">
+    <Button size="sm" onClick={() => command('probe_open', { page: 'history' })}>历史记录</Button>
+    <Button size="sm" onClick={() => command('probe_open', { page: 'settings' })}>设置</Button>
     {error && <p role="alert">{error}</p>}
-  </BeamCard></main>;
+  </main>;
   if (view !== 'history' && view !== 'settings') return null;
-  return <main className="probe-page"><BeamCard>
+  return <main className="probe-page"><section className="probe-panel">
     <h1>{view === 'history' ? '历史记录' : '设置'} · T0 验证</h1>
     <p>隔离壳：无麦克风、聊天、真实历史或配置读写。</p>
     {view === 'history' ? <p>尚未接入加密历史；这里不是清空后的历史。</p> : <>
       <div className="probe-actions">{[['listening', '收音外观'], ['processing', '思考外观'], ['speaking', '回复外观'], ['dictation', '听写思考']].map(([value, label]) =>
-        <button key={value} onClick={() => command('probe_demo', { value })}>{label}</button>
-      )}<button onClick={() => command('probe_hide')}>隐藏浮层</button></div>
-      <label><input type="checkbox" checked={state.hotkeyEnabled} onChange={event => command('probe_hotkey', { enabled: event.target.checked })} />
-        临时测试热键：Cmd/Ctrl + Shift + F8（退出即释放）</label>
+        <Button key={value} size="sm" onClick={() => command('probe_demo', { value })}>{label}</Button>
+      )}<Button size="sm" variant="ghost" onClick={() => command('probe_hide')}>隐藏浮层</Button></div>
+      <Switch checked={state.hotkeyEnabled} onCheckedChange={enabled => command('probe_hotkey', { enabled })}
+        label="临时测试热键：Cmd/Ctrl + Shift + F8（退出即释放）" />
       <p>不注册右 Ctrl；无输入框写入。Esc 只在浮层可见时注册。非激活、全屏、多屏仍需实测。</p>
-      <label>键盘输入验证<input aria-label="键盘输入验证" placeholder="仅当前页面，不保存" /></label>
+      <Input label="键盘输入验证" placeholder="仅当前页面，不保存" className="probe-input" />
     </>}
     {error && <p role="alert">{error}</p>}
-    <button onClick={() => command('probe_quit')}>退出验证壳</button>
-  </BeamCard></main>;
+    <Button variant="outline" size="sm" onClick={() => command('probe_quit')}>退出验证壳</Button>
+  </section></main>;
 }
 createRoot(document.getElementById('root')).render(<Probe />);

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-// Explicit diagnostic controls are regular windows; the overlay is never altered.
+// Diagnostic controls are an explicit, nonpersistent observation aid. They only
+// change the activation policy, auto-show and the title suffix; every window
+// stays frameless, transparent and topmost in every mode.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ControlMode {
     pub diagnostic: bool,
@@ -10,9 +12,6 @@ impl ControlMode {
         Self {
             diagnostic: args.into_iter().any(|arg| arg == "--diagnostic-controls"),
         }
-    }
-    pub fn standard_window(self, overlay: bool) -> bool {
-        self.diagnostic && !overlay
     }
 }
 
@@ -53,13 +52,12 @@ impl Snapshot {
 mod tests {
     use super::*;
     #[test]
-    fn diagnostic_mode_is_explicit_and_never_changes_overlay() {
+    fn diagnostic_mode_is_explicit_exact_match_and_not_persistent() {
         let normal = ControlMode::from_args(["--show-chooser".into()]);
         assert_eq!(normal, ControlMode::default());
-        assert!(!normal.standard_window(false));
+        assert!(!normal.diagnostic);
         let diagnostic = ControlMode::from_args(["--diagnostic-controls".into()]);
-        assert!(diagnostic.standard_window(false));
-        assert!(!diagnostic.standard_window(true));
+        assert!(diagnostic.diagnostic);
         assert!(!ControlMode::from_args(["--diagnostic-controls=true".into()]).diagnostic);
     }
     #[test]

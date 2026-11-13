@@ -74,7 +74,13 @@ CLI/API、Rust crates 精确版本见两个 lock 文件。Rust 2.12.5 与 JS 2.1
 npm run desktop:probe -- -- --diagnostic-controls
 ```
 
-仅该参数启用时，chooser/history/settings 改为带标题栏、不透明、非置顶的普通窗口；macOS 应用改为 Regular 激活策略，自动显示 chooser。标题含 `diagnostic`，额外 40px 留给诊断标题栏。模式不持久化，下次普通启动恢复隐藏的 accessory 壳；不改变产品默认入口。**overlay 始终保持原有透明、置顶、不可聚焦和鼠标穿透配置**，不会为绕过焦点保护而使浮层可输入。
+仅该参数启用时，macOS 应用改为 Regular 激活策略、自动显示 chooser、窗口标题追加 `diagnostic` 后缀。SC-20261113-001 起**所有窗口（含诊断模式）一律无边框、透明、置顶、无系统标题栏**，不再有带标题栏的普通窗口或 40px 补偿。模式不持久化，下次普通启动恢复隐藏的 accessory 壳；不改变产品默认入口。**overlay 始终保持原有透明、置顶、不可聚焦和鼠标穿透配置**，不会为绕过焦点保护而使浮层可输入。
+
+## 菜单栏入口与页面（SC-20261113-001）
+
+- 左键点击托盘图标：在**托盘图标正下方**弹出无边框入口条，仅两个小按钮“历史记录 / 设置”。位置由 `TrayIconEvent::Click` 事件矩形的物理像素加显示器工作区计算（`anchored_window_origin` 纯函数：居中、工作区钳制、按缩放乘间隙），不做逐平台单位换算。
+- 点击任一按钮：先隐藏入口条，再打开对应无边框玻璃页（设置页为 beUI Switch/Button/Input 控件）；入口条与页面在失去焦点时自动收起（macOS 真机行为待验收）。Esc 只关浮层；CloseRequested 仅隐藏；退出仅经设置页“退出验证壳”。
+- beUI motion 组件为本地适配（MIT，© 2026 Saurabh Chauhan；来源 https://beui.dev/components/motion ，仓库 starc007/ui-components）：Tailwind 类替换为本地 CSS（`desktop/frontend/beui.jsx`/`beui.css`），未逐像素复制，许可文本见 `licenses/beui-motion-MIT.txt` 与 `THIRD_PARTY_NOTICES.md`；运行时不访问 beui.dev，`motion@14.12.0` 精确锁定。BorderBeam 外框仅保留在浮层内部动效中，chooser 与页面不再使用。
 
 只读 CoreGraphics 检查发现默认 chooser 确实在屏、共享可见、浮动层 layer 5，但工具列表不识别；普通诊断模式能列出窗口、单窗截图和观察 Tab 焦点。后续受控输入仍因焦点变化中止，未验收 IPC、页面切换/输入或热键。不能断言 layer 5 是工具故障的唯一原因。停止重复输入；手工步骤见 [T0 验证记录](../docs/verification/2026-11-12-tauri-t0.md#sc-20261112-007-诊断控制窗口与手工验收)。普通诊断页不是目标透明置顶页的视觉/行为验收，T0 仍未完成。
 

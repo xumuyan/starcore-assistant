@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 export const noticePackages = ['react', 'react-dom', 'scheduler', 'voice-ring', 'voice-glow', 'border-beam', 'thinking-orbs'];
+// Package license files that are not named LICENSE.
+const licenseFiles = { '@tauri-apps/api': 'LICENSE-MIT', motion: 'LICENSE.md' };
 export async function buildFrontend(outdir = resolve(root, 'dist/desktop-preview'), { probe = false } = {}) {
   await mkdir(outdir, { recursive: true });
   const result = await build({
@@ -18,10 +20,10 @@ export async function buildFrontend(outdir = resolve(root, 'dist/desktop-preview
   if (probe) html = html.replace(/preview\.(js|css)/g, 'probe.$1').replace(/<meta http-equiv="Content-Security-Policy"[^>]*>\n/, '');
   // Tauri injects the probe CSP from tauri.conf.json; the browser preview stays network-disabled.
   await writeFile(resolve(outdir, 'index.html'), html);
-  const notices = await Promise.all([...noticePackages, ...(probe ? ['@tauri-apps/api'] : [])].map(async name => {
+  const notices = await Promise.all([...noticePackages, ...(probe ? ['@tauri-apps/api', 'motion'] : [])].map(async name => {
     const dir = resolve(root, 'node_modules', name);
     const pkg = JSON.parse(await readFile(resolve(dir, 'package.json'), 'utf8'));
-    const license = await readFile(resolve(dir, name === '@tauri-apps/api' ? 'LICENSE-MIT' : 'LICENSE'), 'utf8');
+    const license = await readFile(resolve(dir, licenseFiles[name] ?? 'LICENSE'), 'utf8');
     return `## ${name}@${pkg.version}\n\n${license}\n`;
   }));
   await writeFile(resolve(outdir, 'THIRD_PARTY_LICENSES.txt'), notices.join('\n'));
