@@ -38,14 +38,19 @@ export function BeamCard({ children, level = 0, text = '' }) {
   </section></BorderBeam>;
 }
 
-export function ConversationEffect({ phase = 'hidden', level = 0, text = '' }) {
+const replyActivities = new Set(['ready', 'synthesizing', 'playing', 'completed', 'muted', 'playback-failed']);
+const activityLabels = Object.freeze({ ready: '回复文字已就绪', synthesizing: '正在生成语音', playing: '正在播放',
+  completed: '播放已结束', muted: '朗读已关闭', 'playback-failed': '语音播放失败 · 文字已保留' });
+
+export function ConversationEffect({ phase = 'hidden', level = 0, text = '', activity = '' }) {
   phase = normalizePhase(phase);
   if (phase === 'hidden') return null; // Unmount canvases: no idle animation while hidden.
-  return <section className="conversation-effect" data-phase={phase} aria-label="语音对话效果">
+  return <section className="conversation-effect" data-phase={phase} data-activity={activity || undefined} aria-label="语音对话效果">
     <div className="voice-ring-slot"><VoiceRing size={240} state={phase} theme="dark" level={phase === 'processing' ? 0 : normalizeLevel(level)} /></div>
     <div className="conversation-caption-slot">
-      {(text || phase !== 'listening') && <div className="conversation-transcript" key={phase === 'speaking' ? 'reply' : 'utterance'}>
+      {(text || phase !== 'listening') && <div className="conversation-transcript" key={replyActivities.has(activity) || phase === 'speaking' ? 'reply' : 'utterance'}>
         <BeamCard text={text} level={phase === 'processing' ? 0 : level}>
+          {activityLabels[activity] && <span className="voice-activity" role="status">{activityLabels[activity]}</span>}
           {text ? <TextReveal text={text} /> : <span role="status">{phase === 'processing' ? '正在思考' : '正在回复'}</span>}
         </BeamCard>
       </div>}

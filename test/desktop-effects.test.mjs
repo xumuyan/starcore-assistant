@@ -86,7 +86,7 @@ test('reference layout keeps the ring square and bounds streaming transcripts', 
   assert.match(css, /\.voice-content\s*\{[^}]*max-height: 112px;[^}]*overflow-y: auto/);
   const source = read('desktop/frontend/effects.jsx');
   assert.match(source, /<BorderBeam[^>]*><section className="beam-card">\s*<VoiceBeam/);
-  assert.match(source, /key=\{phase === 'speaking' \? 'reply' : 'utterance'\}/);
+  assert.match(source, /key=\{replyActivities.has\(activity\) \|\| phase === 'speaking' \? 'reply' : 'utterance'\}/);
   const prefix = transcriptSegments('沐言，请');
   const grown = transcriptSegments('沐言，请打开浏览器。');
   assert.deepEqual(grown.slice(0, prefix.length), prefix);

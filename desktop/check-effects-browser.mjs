@@ -115,6 +115,49 @@ try {
   await page.clock.runFor(6000);
   assert.equal(await page.locator('.event-stage').count(), 0);
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
+  for (const branch of ['played', 'muted', 'failed', 'cancelled']) {
+    await page.getByLabel('播放分支').selectOption(branch);
+    await page.getByRole('button', { name: '测试回复与播放状态（合成）' }).click();
+    await page.clock.runFor(1100);
+    const stage = page.locator('.event-stage');
+    const effect = page.locator('.event-stage .conversation-effect');
+    assert.equal(await stage.getAttribute('data-activity'), 'ready');
+    assert.equal(await effect.getAttribute('data-phase'), 'listening');
+    assert.equal(await stage.getAttribute('data-level'), '0');
+    assert.equal(await page.locator('.voice-activity').innerText(), '回复文字已就绪');
+    await page.locator('.conversation-transcript').evaluate(e => { e.dataset.replyGroup = 'retained'; });
+    const reply = await page.locator('.event-stage .transcript').innerText();
+    await page.clock.runFor(600);
+    assert.equal(await stage.getAttribute('data-activity'), branch === 'muted' ? 'muted' : 'synthesizing');
+    assert.equal(await page.locator('.voice-activity').innerText(), branch === 'muted' ? '朗读已关闭' : '正在生成语音');
+    await page.clock.runFor(1200);
+    if (branch === 'cancelled') {
+      assert.equal(await stage.getAttribute('data-activity'), 'closed');
+      assert.equal(await stage.locator('canvas').count(), 0);
+      assert.equal(await page.locator('.event-status').innerText(), '已忽略 playback-started · 回合 1');
+    } else {
+      const expected = branch === 'played' ? 'playing' : branch === 'failed' ? 'playback-failed' : 'muted';
+      assert.equal(await stage.getAttribute('data-activity'), expected);
+      assert.equal(await effect.getAttribute('data-phase'), branch === 'played' ? 'speaking' : 'listening');
+      assert.equal(await stage.getAttribute('data-level'), branch === 'played' ? '0.65' : '0');
+      assert.equal(await page.locator('.event-stage .transcript').innerText(), reply);
+      assert.equal(await page.locator('.conversation-transcript').getAttribute('data-reply-group'), 'retained');
+      if (branch === 'failed') assert.equal(await page.locator('.voice-activity').innerText(), '语音播放失败 · 文字已保留');
+      await page.clock.runFor(600);
+      assert.equal(await stage.getAttribute('data-activity'), branch === 'played' ? 'completed' : expected);
+      if (branch === 'played') assert.equal(await page.locator('.voice-activity').innerText(), '播放已结束');
+      assert.equal(await stage.getAttribute('data-level'), '0');
+    }
+    await page.clock.runFor(1900);
+    assert.equal(await stage.getAttribute('data-activity'), branch === 'cancelled' ? 'closed' : 'listening');
+    if (branch !== 'cancelled') {
+      assert.equal(await stage.getAttribute('data-run'), '2');
+      assert.equal(await stage.locator('.transcript').count(), 0);
+    }
+    await page.keyboard.press('Escape');
+    await page.clock.runFor(6000);
+    assert.equal(await page.locator('.preview-stage canvas').count(), 0);
+  }
   await page.clock.resume();
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320);
@@ -165,7 +208,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();

@@ -34,3 +34,28 @@
 ## 下一步
 
 补齐“文本就绪 / 合成语音 / 实际播放 / 静音回复 / 连续收音”的独立状态契约及合成测试，不能用 message 推断声音已经播放。真实接线继续受 T0/T1 门槛约束。
+
+## SC-20261113-017：回复与播放生命周期（替代上文 SC-016 reply 规则）
+
+SC-016 的 reply→speaking 仅为上一批合成外观规则，本批已替换；不是两个协议同时生效。新增 `activity` 表示语义，`phase` 仅选择上游原版外观，初始 closed。
+
+| 事件 | 接受条件（均须当前 run/递增 seq） | 新 activity / 外观 |
+| --- | --- | --- |
+| reply(text) | conversation thinking/ready，非空白完整文本，≤8000 UTF-16 code units | ready / listening 零电平；文字到达不代表音频开始 |
+| synthesis-started | ready | synthesizing / processing 零电平 |
+| playback-started | ready/synthesizing；未来必须是播放器真实开始确认，不能只看 speak/play 命令 | playing / speaking；系统朗读可直接 ready→playing |
+| playback-ended | playing | completed / listening 零电平，保留回复 |
+| reply-muted | ready | muted / listening 零电平，保留回复 |
+| playback-failed | ready/synthesizing/playing | playback-failed / listening 零电平，保留回复 |
+
+- listening **外观不代表录音开启**。只有 activity=listening 接受 transcript/input meter，只有 playing 接受 output meter；ready/TTS/muted/failed/completed 不接受任何电平或旧 ASR。process 仅 listening/thinking 接受。
+- 回复字幕组在 ready→TTS→播放→完成之间保持，状态提示在同一限高滚动卡片内。完成/静音/失败不自动开始录音，不自动重试或声称备用声音可用；未来宿主先 end 旧回合，再在输入就绪确认后发新 begin。
+- TTS 开始后不再接受 reply 覆盖；音频分块/流式回复需要独立分段与播放 ID 协议，不能直接套用本模型。旧服务声音回退不变，本批视图失败不替代业务回退。
+- 四种显式合成分支：正常播放、关闭朗读、播放失败、生成中取消；页面不生成或播放音频，只模拟确认。取消分支无新 begin，迟到 playback-started 被拒绝。
+- Node 检查 ready/TTS 不吃电平、只有播放确认才能 speaking、结束清零保留回复、静音/失败不自动录音、各阶段取消、听写拒绝全部播放事件。
+- Chromium 实际 DOM/Canvas 检查四分支 activity/phase/电平、提示、回复文字与字幕组保留，结束后新 run 才清文字、取消不恢复；Esc 清后续帧。原取消/迟到、长文、布局矩阵与离线检查继续通过。
+- 非真实声卡/播放器/麦克风或 WKWebView 验收，未接服务。T0 未验收、T1 未启动。完整回归见操作日志。
+
+### 下一步（SC-017 更新）
+
+将“播放完整语音流程（合成）”统一到已验证的事件状态层，使主流程也覆盖文字就绪与播放确认；保留手动外观检查。真实接线继续受 T0/T1 门槛约束。

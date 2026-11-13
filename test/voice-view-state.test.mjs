@@ -22,7 +22,10 @@ test('conversation snapshots, processing, reply and correct input/output levels'
   assert.equal(state.phase, 'processing'); assert.equal(state.level, 0); assert.equal(state.text, '合成提问');
   assert.equal(reduce(state, event('meter', 4, { source: 'input', level: .7 })), state);
   state = reduce(state, event('reply', 5, { text: '合成回答' }));
-  assert.equal(state.phase, 'speaking'); assert.equal(state.text, '合成回答');
+  assert.equal(state.phase, 'listening'); assert.equal(state.activity, 'ready'); assert.equal(state.text, '合成回答');
+  assert.equal(reduce(state, event('meter', 6, { source: 'output', level: .9 })), state);
+  state = reduce(state, event('playback-started', 6));
+  assert.equal(state.phase, 'speaking');
   assert.equal(reduce(state, event('transcript', 6, { text: 'late ASR' })), state);
   assert.equal(reduce(state, event('meter', 6, { source: 'input', level: .9 })), state);
   state = reduce(state, event('meter', 7, { source: 'output', level: -.5 }));
@@ -94,4 +97,83 @@ test('synthetic rehearsal actually rejects cancelled, stale and competing runs',
   }
   assert.deepEqual(rejected, [['reply', 1], ['reply', 1], ['begin', 3], ['reply', 1]]);
   assert.equal(state.run, 2); assert.equal(state.phase, 'hidden');
+});
+
+test('text readiness and TTS never imply playback or accept audio input/output levels', () => {
+  let state = reduce(begin(), event('process', 1));
+  assert.equal(reduce(state, event('playback-started', 2)), state);
+  assert.equal(reduce(state, event('reply', 2, { text: '  ' })), state);
+  state = reduce(state, event('reply', 2, { text: '合成回复' }));
+  assert.equal(state.activity, 'ready'); assert.notEqual(state.phase, 'speaking');
+  for (const source of ['input', 'output']) assert.equal(reduce(state, event('meter', 3, { source, level: 1 })), state);
+  state = reduce(state, event('synthesis-started', 3));
+  assert.equal(state.activity, 'synthesizing'); assert.equal(state.phase, 'processing'); assert.equal(state.level, 0);
+  for (const source of ['input', 'output']) assert.equal(reduce(state, event('meter', 4, { source, level: 1 })), state);
+  state = reduce(state, event('playback-started', 4));
+  state = reduce(state, event('meter', 5, { source: 'output', level: .7 }));
+  assert.equal(state.level, .7);
+  state = reduce(state, event('playback-ended', 6));
+  assert.equal(state.activity, 'completed'); assert.equal(state.text, '合成回复'); assert.equal(state.level, 0);
+  for (const type of ['transcript', 'playback-started', 'reply-muted', 'process'])
+    assert.equal(reduce(state, event(type, 7, { text: 'late' })), state);
+});
+
+test('muted/failed replies retain text without pretending to record; new input needs fresh run', () => {
+  for (const terminal of ['reply-muted', 'playback-failed']) {
+    let state = reduce(begin(), event('process', 1));
+    state = reduce(state, event('reply', 2, { text: '保留合成文字' }));
+    state = reduce(state, event(terminal, 3));
+    assert.equal(state.activity, terminal === 'reply-muted' ? 'muted' : 'playback-failed');
+    assert.equal(state.text, '保留合成文字'); assert.notEqual(state.phase, 'speaking');
+    for (const type of ['transcript', 'meter', 'playback-started'])
+      assert.equal(reduce(state, event(type, 4, { text: 'late', source: 'input', level: 1 })), state);
+    assert.equal(reduce(state, { type: 'begin', run: 2, seq: 0, mode: 'conversation' }), state);
+    state = reduce(state, event('end', 4));
+    state = reduce(state, { type: 'begin', run: 2, seq: 0, mode: 'conversation' });
+    assert.equal(state.activity, 'listening'); assert.equal(state.text, '');
+    assert.equal(reduce(state, event('playback-started', 99)), state);
+  }
+});
+
+test('cancel while ready, synthesizing or playing rejects all late playback callbacks', () => {
+  for (const stage of ['ready', 'synthesizing', 'playing']) {
+    let state = reduce(reduce(begin(), event('process', 1)), event('reply', 2, { text: '合成回复' }));
+    if (stage === 'synthesizing') state = reduce(state, event('synthesis-started', 3));
+    if (stage === 'playing') state = reduce(state, event('playback-started', 4));
+    state = reduce(state, event('cancel', 5));
+    for (const type of ['synthesis-started', 'playback-started', 'playback-ended', 'playback-failed', 'reply-muted'])
+      assert.equal(reduce(state, event(type, 99)), state);
+    assert.equal(state.phase, 'hidden'); assert.equal(state.text, '');
+  }
+});
+
+test('all playback scenarios separate readiness from play and dictation refuses playback lifecycle', async () => {
+  const { playbackRehearsal } = await import('../desktop/frontend/voice-view-rehearsal.mjs');
+  for (const branch of ['played', 'muted', 'failed', 'cancelled']) {
+    let state = idle;
+    const activities = [];
+    for (const frame of playbackRehearsal(branch)) {
+      state = reduce(state, frame); activities.push(state.activity);
+      if (['ready', 'synthesizing', 'muted', 'playback-failed'].includes(state.activity)) {
+        assert.notEqual(state.phase, 'speaking'); assert.equal(state.level, 0);
+      }
+    }
+    assert.ok(activities.includes('ready'));
+    assert.equal(activities.includes('playing'), branch === 'played');
+    assert.equal(state.activity, branch === 'cancelled' ? 'closed' : 'listening');
+  }
+  const state = reduce(begin('dictation'), event('process', 1));
+  for (const type of ['reply', 'synthesis-started', 'playback-started', 'playback-ended', 'playback-failed', 'reply-muted'])
+    assert.equal(reduce(state, event(type, 2, { text: 'no reply' })), state);
+});
+
+test('failure during synthesis or playback preserves text and rejects late player acknowledgements', () => {
+  for (const source of ['synthesis-started', 'playback-started']) {
+    let state = reduce(reduce(begin(), event('process', 1)), event('reply', 2, { text: '保留回复' }));
+    state = reduce(state, event(source, 3));
+    state = reduce(state, event('playback-failed', 4));
+    assert.equal(state.activity, 'playback-failed'); assert.equal(state.text, '保留回复'); assert.equal(state.level, 0);
+    for (const type of ['synthesis-started', 'playback-started', 'playback-ended', 'reply'])
+      assert.equal(reduce(state, event(type, 5, { text: 'late' })), state);
+  }
 });

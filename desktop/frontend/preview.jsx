@@ -16,6 +16,8 @@ function Preview() {
   const [canvasSize, setCanvasSize] = useState('desktop');
   const [eventRun, setEventRun] = useState(0);
   const [eventsActive, setEventsActive] = useState(false);
+  const [eventScenario, setEventScenario] = useState('cancellation');
+  const [playbackOutcome, setPlaybackOutcome] = useState('played');
   const closeEvents = useCallback(() => setEventsActive(false), []);
   function stop() { setEventsActive(false); setPlaying(false); setPhase('hidden'); setLevel(0); setText(''); }
   useEffect(() => {
@@ -32,7 +34,7 @@ function Preview() {
     return () => timers.forEach(clearTimeout);
   }, [playing, run, mode]);
   function rehearse() { setEventsActive(false); setPlaying(true); setRun(value => value + 1); }
-  function rehearseEvents() { stop(); setEventRun(value => value + 1); setEventsActive(true); }
+  function rehearseEvents(scenario = 'cancellation') { stop(); setEventScenario(scenario); setEventRun(value => value + 1); setEventsActive(true); }
   function changeMode(value) {
     setPlaying(false); setMode(value); setPhase('listening'); setLevel(0.4); setText('');
   }
@@ -42,7 +44,12 @@ function Preview() {
       <h1>libraries.dev · 语音主界面</h1>
       <p>仅视觉样例 · 未录音 · 未连接聊天、历史、设置或 Tauri</p>
       <button onClick={rehearse}>播放完整语音流程（合成）</button>
-      <button onClick={rehearseEvents}>测试取消与迟到事件（合成）</button>
+      <button onClick={() => rehearseEvents()}>测试取消与迟到事件（合成）</button>
+      <label>播放分支<select value={playbackOutcome} onChange={e => setPlaybackOutcome(e.target.value)}>
+        <option value="played">正常播放后恢复收音</option><option value="muted">关闭朗读</option>
+        <option value="failed">播放失败</option><option value="cancelled">生成中取消</option>
+      </select></label>
+      <button onClick={() => rehearseEvents(playbackOutcome)}>测试回复与播放状态（合成）</button>
       <p className="preview-mode-hint">{mode === 'dictation'
         ? '按键听写预览：收音长条 → orbs 思考 → 隐藏；点击播放查看。未绑定右 Ctrl，未写入输入框。'
         : '唤醒对话预览：语音环 → 识别文字 → 思考 → 回复 → 隐藏。'}</p>
@@ -60,7 +67,7 @@ function Preview() {
       </select></label>
       <button onClick={stop}>隐藏（Esc）</button>
     </header>
-    {eventsActive ? <EventRehearsal key={eventRun} onClose={closeEvents} canvasSize={canvasSize} />
+    {eventsActive ? <EventRehearsal key={eventRun} onClose={closeEvents} canvasSize={canvasSize} scenario={eventScenario} />
       : <div className="preview-stage" data-size={canvasSize}><Effect phase={phase} level={level} text={text} /></div>}
   </main>;
 }
