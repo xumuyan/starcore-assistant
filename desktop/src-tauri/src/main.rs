@@ -10,6 +10,11 @@ const TEST_HOTKEY: &str = "CommandOrControl+Shift+F8";
 struct Probe(Mutex<Snapshot>);
 type Result<T> = std::result::Result<T, String>;
 
+/// TrayIcon is reference-counted and its icon disappears when the last handle
+/// drops; keep one handle alive for the whole app lifetime.
+#[expect(dead_code)]
+struct TrayKeepAlive(tauri::tray::TrayIcon<tauri::Wry>);
+
 fn snapshot(app: &tauri::AppHandle) -> Result<Snapshot> {
     app.state::<Probe>()
         .0
@@ -348,6 +353,8 @@ fn main() {
                     chooser.set_focus()?;
                 }
             }
+            // Keep the status item alive after setup returns.
+            app.manage(TrayKeepAlive(tray));
             if self_check {
                 // Bounded watchdog; no file/report payload or OS input injection.
                 let handle = app.handle().clone();

@@ -687,3 +687,11 @@
 - 难题与处理：`.build(app)?` 未绑定导致 `tray` 不在作用域、测试模块 import 缺失，两处修正后通过；无其他难题。
 - 遗留问题：锚定自动显示的真机效果与 D01～P08 手测仍全部未测；T0 仍未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-003] anchor diagnostic auto-show under tray icon`；上批 SC-20261113-002 提交 a45050e658d38f1a81fc523b3b3a86da2ec6f400 已推送。
+
+## 2026-11-13 13:36:00 +08:00 · SC-20261113-004 · 修复托盘图标未持久化
+
+- 修改内容：desktop/src-tauri/src/main.rs 新增 `TrayKeepAlive` 状态（TrayIcon 引用计数，最后一个句柄丢弃即移除图标；SC-006 起返回值被丢弃导致托盘图标从未存在），setup 末尾 `app.manage()` 保活；test/desktop-probe.test.mjs 增加 `TrayKeepAlive` 守护断言；docs/verification/2026-11-12-tauri-t0.md 记录发现与修复。
+- 验证：cargo fmt --check、Rust 8/8、clippy -D warnings 通过；npm test 首跑 279/1（失败明细未留存），复跑两次 280/280；git diff --check 干净。
+- 难题与处理：部署观察发现入口条未出现且托盘图标不存在，读 tauri-2.12.5 源码定位到丢弃返回值即移除状态项，属真缺陷而非观察误差；按引用计数语义用 managed state 保活。
+- 遗留问题：托盘图标修复效果与入口条锚定、失焦收起的真机复测未做；D01～P08 全部未测；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261113-004] keep tray icon alive for app lifetime`；上批 SC-20261113-003 提交 d51af09cad64c63cc651247118bab57371ec1194 已推送。

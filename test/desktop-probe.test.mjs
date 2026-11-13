@@ -81,7 +81,7 @@ test('diagnostic mode is explicit and never relaxes the frameless popover window
 test('menu popover anchors under the tray icon, frameless, closing on blur or page open', () => {
   const native = read('desktop/src-tauri/src/main.rs');
   for (const pattern of [/TrayIconEvent::Click/, /fn anchored_window_origin/, /available_monitors\(\)/,
-    /fn physical_tray_rect/, /tray\.rect\(\)/,
+    /fn physical_tray_rect/, /tray\.rect\(\)/, /TrayKeepAlive/,
     /set_position/, /Focused\(false\)/, /fn hide_pages/, /shadow\(false\)/, /decorations\(false\)/,
     /170\.0, 54\.0/, /"chooser" \| "history" \| "settings"/]) {
     assert.match(native, pattern);
