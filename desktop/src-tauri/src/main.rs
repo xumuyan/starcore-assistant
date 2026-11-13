@@ -119,6 +119,20 @@ fn anchored_window_origin(
     (x, tray.1 + tray.3 + gap_logical * scale)
 }
 
+/// Resolve a tray rect into physical pixels; Tauri normalizes rects into
+/// logical-or-physical enums, and mixed variants are treated as unknown.
+fn physical_tray_rect(rect: tauri::Rect, scale: f64) -> Option<(f64, f64, f64, f64)> {
+    match (rect.position, rect.size) {
+        (tauri::Position::Physical(p), tauri::Size::Physical(s)) => {
+            Some((p.x as f64, p.y as f64, s.width as f64, s.height as f64))
+        }
+        (tauri::Position::Logical(p), tauri::Size::Logical(s)) => {
+            Some((p.x * scale, p.y * scale, s.width * scale, s.height * scale))
+        }
+        _ => None,
+    }
+}
+
 fn position_under_tray(
     app: &tauri::AppHandle,
     chooser: &tauri::WebviewWindow,
@@ -281,7 +295,7 @@ fn main() {
                     }
                 }
             }
-            tauri::tray::TrayIconBuilder::with_id("moss-t0")
+            let tray = tauri::tray::TrayIconBuilder::with_id("moss-t0")
                 .icon(tauri::image::Image::new_owned(rgba, 20, 20))
                 .icon_as_template(true)
                 .tooltip("MOSS T0 验证壳（未录音）")
@@ -295,28 +309,17 @@ fn main() {
                             } else {
                                 hide_pages(app);
                                 // Tauri normalizes the tray rect into logical-or-physical
-                                // enums; resolve both unit variants to physical pixels.
-                                let (rx, ry, rw, rh) = match (rect.position, rect.size) {
-                                    (tauri::Position::Physical(p), tauri::Size::Physical(s)) => {
-                                        (p.x as f64, p.y as f64, s.width as f64, s.height as f64)
-                                    }
-                                    (tauri::Position::Logical(p), tauri::Size::Logical(s)) => {
-                                        let scale = chooser
-                                            .primary_monitor()
-                                            .ok()
-                                            .flatten()
-                                            .map(|m| m.scale_factor())
-                                            .unwrap_or(1.0);
-                                        (
-                                            p.x * scale,
-                                            p.y * scale,
-                                            s.width * scale,
-                                            s.height * scale,
-                                        )
-                                    }
-                                    _ => return,
+                                // enums; resolve it to physical pixels before anchoring.
+                                let scale = chooser
+                                    .primary_monitor()
+                                    .ok()
+                                    .flatten()
+                                    .map(|m| m.scale_factor())
+                                    .unwrap_or(1.0);
+                                let Some(tray_rect) = physical_tray_rect(rect, scale) else {
+                                    return;
                                 };
-                                position_under_tray(app, &chooser, (rx, ry, rw, rh));
+                                position_under_tray(app, &chooser, tray_rect);
                                 let _ = chooser.show();
                                 let _ = chooser.set_focus();
                             }
@@ -327,6 +330,20 @@ fn main() {
             // Explicit development entry only; normal startup stays invisible.
             if controls.diagnostic || std::env::args().any(|arg| arg == "--show-chooser") {
                 if let Some(chooser) = app.get_webview_window("chooser") {
+                    // Anchor the development entry under the tray icon like a real
+                    // click; fall back to the centered default if the icon rect is
+                    // not yet known.
+                    if let Ok(Some(rect)) = tray.rect() {
+                        let scale = chooser
+                            .primary_monitor()
+                            .ok()
+                            .flatten()
+                            .map(|m| m.scale_factor())
+                            .unwrap_or(1.0);
+                        if let Some(tray_rect) = physical_tray_rect(rect, scale) {
+                            position_under_tray(app.handle(), &chooser, tray_rect);
+                        }
+                    }
                     chooser.show()?;
                     chooser.set_focus()?;
                 }
@@ -361,7 +378,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::anchored_window_origin;
+    use super::{anchored_window_origin, physical_tray_rect};
 
     #[test]
     fn chooser_anchors_below_tray_and_stays_inside_the_work_area() {
@@ -384,5 +401,37 @@ mod tests {
             6.0,
         );
         assert_eq!((x, y), (0.0, 36.0));
+    }
+
+    #[test]
+    fn tray_rect_resolves_both_unit_variants_and_rejects_mixed() {
+        use tauri::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, Position, Size};
+        let rect = |position: Position, size: Size| tauri::Rect { position, size };
+        let physical = physical_tray_rect(
+            rect(
+                Position::Physical(PhysicalPosition::new(100, 0)),
+                Size::Physical(PhysicalSize::new(40, 24)),
+            ),
+            2.0,
+        );
+        assert_eq!(physical, Some((100.0, 0.0, 40.0, 24.0)));
+        let logical = physical_tray_rect(
+            rect(
+                Position::Logical(LogicalPosition::new(50.0, 0.0)),
+                Size::Logical(LogicalSize::new(20.0, 12.0)),
+            ),
+            2.0,
+        );
+        assert_eq!(logical, Some((100.0, 0.0, 40.0, 24.0)));
+        assert_eq!(
+            physical_tray_rect(
+                rect(
+                    Position::Physical(PhysicalPosition::new(100, 0)),
+                    Size::Logical(LogicalSize::new(20.0, 12.0)),
+                ),
+                2.0,
+            ),
+            None
+        );
     }
 }

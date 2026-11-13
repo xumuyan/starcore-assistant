@@ -679,3 +679,11 @@
 - 难题与处理：osascript 辅助访问未授权（按规则不新申请权限），改用 screencapture 借用既有录屏授权链路完成视觉核对；桌面事务内 scope=display 截图不可用、仅支持 scope=window，而窗口枚举缺失使该路径终止。
 - 遗留问题：托盘左键重开入口条、点击按钮开页、失焦收起、beUI 动效、外部焦点/穿透、多屏/全屏/Spaces 等仍属 D01～D02、P01～P08 手测且全部未测；T0 仍未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261113-002] record frameless panel tool-enumeration finding`；上批 SC-20261113-001 提交 05b6c65824f613bcb6cba666f40e94a70f7b47d8 已推送。
+
+## 2026-11-13 13:26:51 +08:00 · SC-20261113-003 · 诊断自动显示锚定托盘图标
+
+- 修改内容：desktop/src-tauri/src/main.rs 新增 `physical_tray_rect` 助手（物理/逻辑双变体解析，混合变体返回 None），托盘点击与启动自动显示共用；`--diagnostic-controls`/`--show-chooser` 自动显示入口条优先以 `TrayIcon::rect()` 锚定托盘图标正下方，rect 未知时回退居中；新增 Rust 单测与守护测试断言；desktop/README.md 同步说明。
+- 测试：cargo fmt --check、cargo test --locked 8/8、cargo clippy -D warnings 通过；npm test 280/280；git diff --check 干净。
+- 难题与处理：`.build(app)?` 未绑定导致 `tray` 不在作用域、测试模块 import 缺失，两处修正后通过；无其他难题。
+- 遗留问题：锚定自动显示的真机效果与 D01～P08 手测仍全部未测；T0 仍未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-003] anchor diagnostic auto-show under tray icon`；上批 SC-20261113-002 提交 a45050e658d38f1a81fc523b3b3a86da2ec6f400 已推送。
