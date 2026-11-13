@@ -62,6 +62,14 @@ try {
     await text.fill('合成长文字。'.repeat(250));
     await page.waitForTimeout(100);
     assert.ok(await box.evaluate(e => e.scrollHeight > e.clientHeight));
+    assert.equal(await box.evaluate(e => getComputedStyle(e).scrollbarWidth), 'none');
+    assert.equal(await box.evaluate(e => getComputedStyle(e, '::-webkit-scrollbar').display), 'none');
+    const beforeWheel = await box.evaluate(e => e.scrollTop);
+    await box.hover(); await page.mouse.wheel(0, -200);
+    await page.waitForFunction(({ selector, before }) => document.querySelector(selector).scrollTop < before,
+      { selector, before: beforeWheel });
+    await box.evaluate(e => { e.scrollTop = e.scrollHeight; e.dispatchEvent(new Event('scroll', { bubbles: true })); });
+
     assert.ok(await box.evaluate(e => e.scrollHeight - e.scrollTop - e.clientHeight < 2));
     await box.evaluate(e => { e.scrollTop = 0; e.dispatchEvent(new Event('scroll', { bubbles: true })); });
     await text.fill('合成长文字。'.repeat(260));
@@ -117,6 +125,8 @@ try {
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
   // Deterministic synthetic callback clock, not OS input or a live service.
   await page.clock.install();
+  // Freeze between runFor calls so rendering/wheel checks cannot advance branches.
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000));
   await page.getByRole('button', { name: '测试取消与迟到事件（合成）' }).click();
   await page.clock.runFor(1100);
   assert.equal(await page.locator('.event-stage .conversation-effect').getAttribute('data-phase'), 'processing');
@@ -279,7 +289,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, unified full-flow events/restart/switch/manual return, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, hidden scrollbars with wheel/tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, unified full-flow events/restart/switch/manual return, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();

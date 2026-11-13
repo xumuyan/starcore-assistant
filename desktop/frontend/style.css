@@ -29,3 +29,7 @@ input, select, button { font: inherit; color: inherit; background: #252525; bord
 @media (prefers-reduced-motion: reduce) { .reveal-word, .conversation-transcript, .conversation-effect, .dictation-effect { animation: none; } }
 
 .voice-activity { display: block; font-size: 12px; line-height: 1.5; color: #aaa; margin-bottom: 4px; }
+
+/* Hide only transcript scrollbars; retain bounded scrolling and tail-follow. */
+.voice-content, .dictation-text { scrollbar-width: none; }
+.voice-content::-webkit-scrollbar, .dictation-text::-webkit-scrollbar { display: none; width: 0; height: 0; }

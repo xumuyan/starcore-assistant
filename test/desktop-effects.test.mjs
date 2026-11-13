@@ -175,3 +175,12 @@ test('voice overlay background stays transparent without changing reference card
   assert.match(read('desktop/frontend/probe.css'), /html, body, #root \{ background: transparent; \}/);
   assert.match(read('desktop/src-tauri/src/main.rs'), /\.transparent\(true\)/);
 });
+
+
+test('transcript scrollbars are hidden without disabling bounded text scrolling', () => {
+  const css = read('desktop/frontend/style.css');
+  assert.match(css, /\.voice-content, \.dictation-text \{ scrollbar-width: none; \}/);
+  assert.match(css, /\.voice-content::-webkit-scrollbar, \.dictation-text::-webkit-scrollbar \{ display: none; width: 0; height: 0; \}/);
+  for (const name of ['voice-content', 'dictation-text'])
+    assert.match(css, new RegExp(`\\.${name} \\{[^}]*max-height: 112px;[^}]*overflow-y: auto;`));
+});

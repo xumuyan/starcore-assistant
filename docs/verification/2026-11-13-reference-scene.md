@@ -84,3 +84,8 @@
 原 reference-sequence 改为不可变的事件轨迹；主按钮与其他实验共用 EventRehearsal/reducer，不再保留直接 phase 计时流程。对话回复在 ready 时增量，TTS 之前不进入 speaking；播放完成保留文字清零，旧 run 结束后才显式新 run 收音；听写无 reply/playback，end 不等于插入成功。
 
 Chromium 实际检查主按钮的 thinking→ready→synthesizing→playing（输出电平）→completed→新 run→closed、听写增量/orbs/closed、重播重置与切换实验清旧计时器、返回手动解锁及可用性。透明 alpha、此前长文/布局矩阵/播放分支/离线检查保持通过。主流程结束仍留隐藏演练状态，用户显式返回手动或 Esc 后再手动选择外观；不是自动恢复真实录音。构建、相关单元和完整回归结果见操作日志。原生未部署，真实录音/播放未验收，T0 未验收、T1 未启动。
+
+
+## SC-20261113-020 隐藏字幕滚动条
+
+按用户截图要求隐藏对话/听写文字区滚动条，保留限高滚动及自动跟随。Chromium 实际检查 scrollbarWidth=none、WebKit scrollbar display=none，并发送浏览器滚轮验证 scrollTop 减少；上翻后新增文字不强制拉底，回尾后继续跟随。透明/布局/主流程检查保留。初次浏览器运行在原有四分支定时断言中得到 completed 而非 playing；原脚本时钟 install 后未暂停，可能混入实耗时，本次显式 pauseAt 后通过，不把初次记录为通过。没有改真实音频/输入或原生窗口穿透行为，WKWebView 原生截图效果未验收。

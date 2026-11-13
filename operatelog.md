@@ -833,3 +833,14 @@
 - 验证结果：effects/state 专项23/23，连同文档41/41；preview/probe 离线构建通过。Chromium 检查主对话全过程 activity/level、新 run 清文字、主听写增量/orbs/结束、重播重置、切到取消实验后旧恢复计时不重现、返回手动解锁并可用；透明 alpha、长文/几何矩阵、四分支/取消/离线检查继续通过。完整 npm test 301/301，git diff --check 通过。无原生代码修改，本批未重跑 Mac 原生构建，未安装/替换应用。
 - 遗留问题：本批全部合成，不证明录音/播放确认或输入写入；任意阶段取消（特别播放中）及活动中返回手动的完整浏览器矩阵待下一批。真实服务/原生桌面透底等仍未验收，T0 未验收、T1 未启动；既有 Rust 偶发协议测试问题未改，本批首次全回归未复现。下一步补上述取消矩阵；用户暂不需要操作，可刷新预览看完整流程与透明画布。
 - 对应 Git 提交：本条所在提交，主题 `refactor: [SC-20261113-019] route full voice rehearsal through event state`；前批 6554124233e85912737c5104470a7a224b54218d 已推送。
+
+
+## SC-20261113-020 隐藏文字区滚动条
+
+- 北京时间：2026-11-13 22:56:49 +08:00。
+- 修改或新增：按用户截图反馈隐藏 voice-content/dictation-text 滚动条，使用 scrollbar-width:none 与 WebKit scrollbar display:none/零尺寸；仍保留 112px 限高及 overflow-y:auto，透明画布和原版卡片配色不变。更新专项测试、浏览器滚轮检查、PLAN/README/验证记录。
+- 遇到的难题：直接禁用 overflow 会丢失长文阅读/尾部跟随；首次 Chromium 检查在既有四分支断言得到 completed 而不是 playing，原脚本时钟 install 后未暂停，可能受实耗时影响，不能将该次写为通过。
+- 处理方式：只隐藏两种文字区的滚动条，不影响设置/历史页与网页本身；增加计算样式及真实浏览器滚轮 scrollTop 验证。测试时钟在 install 后显式 pauseAt，确保各 runFor 间不混入渲染实耗时，再重跑完整浏览器脚本通过；不修改业务状态逻辑或原生鼠标穿透。
+- 验证结果：effects 专项11/11，含文档29/29；preview/probe 离线构建通过；Chromium 两文字区的标准/WebKit 隐藏样式、滚轮上翻、增量文字上翻保位及回尾跟随通过，透明 alpha/长文/布局矩阵/全流程与离线检查继续通过。npm test 302/302，git diff --check 通过。无原生代码改动，本批未重跑 Mac 原生构建，未部署/替换应用。
+- 遗留问题：WKWebView 真机隐藏滚动条观感未验收；原生 overlay 仍鼠标穿透，不声称本批实现原生交互滚动。真实录音/播放未连接，T0 未验收、T1 未启动。下一步继续主流程各阶段取消及活动中返回手动的无迟到重现矩阵；用户可刷新预览看变化，暂不需要授权或其他操作。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261113-020] hide transcript scrollbars while retaining scrolling`；前批 fcb4ed2a07788b928e0f5d3f0f4322e29a906522 已推送。
