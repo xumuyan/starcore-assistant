@@ -13,6 +13,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { ensureHostBinary } from '../test-helpers/rust-host-bin.mjs';
 import { randomUUID } from 'node:crypto';
 import { enqueue, prepare } from '../src/store.mjs';
 
@@ -50,6 +51,7 @@ async function harness(t, { settings = {}, keys = {}, chat = null, fish = null, 
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
+  await ensureHostBinary(host);
   const proc = spawn(host, ['serve'], {
     env: {
       HOME: home, CODEX_WEIXIN_STATE_DIR: dir,

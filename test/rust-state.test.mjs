@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { ConversationMemory } from '../src/assistant-memory.mjs';
 import { AssistantService } from '../src/assistant-service.mjs';
+import { ensureHostBinary } from '../test-helpers/rust-host-bin.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cargo = join(homedir(), '.cargo/bin/cargo');
@@ -136,6 +137,7 @@ test('real Node service path roundtrips Node → Rust relay context → Node aft
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
+  await ensureHostBinary(host);
   const proc = spawn(host, ['serve'], { env: h.env });
   let buffer = '';
   const events = [];

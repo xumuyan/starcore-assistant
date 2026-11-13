@@ -8,6 +8,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { ensureHostBinary } from '../test-helpers/rust-host-bin.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { enqueue, prepare } from '../src/store.mjs';
 
@@ -33,6 +34,7 @@ async function harness(t, { initial = {}, setup = () => {} } = {}) {
   const requests = [], events = [];
   const server = createServer((req, res) => { req.resume(); req.on('end', () => requests.push(res)); });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  await ensureHostBinary(host);
   const proc = spawn(host, ['serve'], { env: { HOME: home, CODEX_WEIXIN_STATE_DIR: dir, MOSS_CHAT_TIMEOUT_MS: '15000' } });
   let buffer = '';
   proc.stdout.setEncoding('utf8'); proc.stdout.on('data', chunk => {
@@ -79,6 +81,7 @@ test('Rust consumes history/default-off arrivals without replay; explicit remind
   await waitFor(() => h.proc.exitCode !== null, 'EOF 结束宿主');
   assert.equal(h.proc.exitCode, 0, 'EOF stops the timer instead of keeping serve alive');
   // A new process treats the recreated event as startup history, not a new turn.
+  await ensureHostBinary(host);
   const restarted = spawn(host, ['serve'], { env: { HOME: h.home, CODEX_WEIXIN_STATE_DIR: h.dir } });
   const lines = []; restarted.stdout.on('data', chunk => lines.push(chunk.toString()));
   try {

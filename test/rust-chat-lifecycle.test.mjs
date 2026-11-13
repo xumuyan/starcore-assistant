@@ -8,6 +8,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { ensureHostBinary } from '../test-helpers/rust-host-bin.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { LocalVault } from '../src/assistant-vault.mjs';
 
@@ -40,6 +41,7 @@ async function harness(t) {
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
+  await ensureHostBinary(host);
   const proc = spawn(host, ['serve'], { env: { HOME: home, CODEX_WEIXIN_STATE_DIR: state, MOSS_CHAT_TIMEOUT_MS: '3000' } });
   let buffer = '';
   proc.stdout.setEncoding('utf8');

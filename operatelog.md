@@ -727,3 +727,9 @@
 - 验证结果：cargo fmt --check、Rust 8/8、clippy -D warnings、npm test 280/280、git diff --check 通过；真机截图确认 Dock 粉色玻璃气泡图标与菜单栏白色三竖条模板字形正常，SIGUSR1 锚定/开关不回归；iconutil 产物非提交脚本自动生成步骤已在 README 注明。
 - 遗留问题：AI 原图重绘可待额度恢复后按用户意愿替换；真实 CGEvent 托盘点击与 D01～D02/P01～P08 手工验收仍待反馈；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-008] add app icon and tray template glyph`；上批 SC-20261113-007 提交 4732a59103839801e5d52697d5561b80e3c10c21 已推送。
+
+## 2026-11-13 16:07:32 +08:00 · SC-20261113-009 · 修复并行测试竞争导致的 rust-host spawn 偶发 ENOENT
+
+- 修改内容：新增 test-helpers/rust-host-bin.mjs（ensureHostBinary：二进制缺失时最长等 90 秒）；rust-chat-lifecycle/fish/reminder/state 四个测试文件 spawn moss-host 前先等待，解决 node --test 并行跑多个文件时各自 `cargo build` 重链接窗口期撞 ENOENT 的问题（本日 16:0x 首次 279/1 复现并与 SC-20261113-004 当日现象同因；另因 rust-state 缺 delay 导入曾把 import 漏插，已补齐并单独核对该文件 1.0s 全过）。
+- 验证结果：npm test 连续两次 280/280；lifecycle 单文件 HEAD 版与修补版均为 25 pass；计数确认 281→280 的回落是 node --test 把 test/ 目录下空助手文件计为 1 个 pass，助手移至 test-helpers/ 后恢复准确计数。
+- 遗留问题：无；对应 Git 提交见本条所在提交，主题 `test: [SC-20261113-009] await rust-host binary to deflake parallel spawns`；上批 SC-20261113-008 提交 f51e703e39e48fa18fdd77eb57eef1a22049ce4d 已推送。
