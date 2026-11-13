@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildFrontend, noticePackages, root } from '../desktop/build-frontend.mjs';
+import { transcriptSegments } from '../desktop/frontend/transcript.mjs';
+import { referenceSequence } from '../desktop/frontend/reference-sequence.mjs';
 
 const read = path => readFileSync(resolve(root, path), 'utf8');
 
@@ -55,7 +57,7 @@ test('visual adapters clamp levels, default hidden, render states and escape unt
         const markup = render(mode, { phase, text: '<script>alert(1)</script>', level: 0.5 });
         assert.match(markup, new RegExp(`data-phase="${phase}"`));
         assert.doesNotMatch(markup, /<script>/);
-        const transcript = markup.match(/<p class="transcript">(.*?)<\/p>/s)?.[1].replace(/<[^>]*>/g, '');
+        const transcript = markup.match(/<p class="transcript"[^>]*>(.*?)<\/p>/s)?.[1].replace(/<[^>]*>/g, '');
         assert.equal(transcript, '&lt;script&gt;alert(1)&lt;/script&gt;');
       }
     }
@@ -72,4 +74,34 @@ test('preview never acquires microphone or calls real services, and is opt-in wi
   assert.match(source, /event\.key === 'Escape'/);
   assert.match(source, /未录音/);
   assert.match(read('desktop/frontend/style.css'), /prefers-reduced-motion: reduce/);
+});
+
+test('reference layout keeps the ring square and bounds streaming transcripts', () => {
+  const css = read('desktop/frontend/style.css');
+  assert.doesNotMatch(css, /\.conversation-effect\s*>\s*div\s*\{\s*width:\s*100%/);
+  assert.match(css, /\.voice-ring-slot\s*\{[^}]*width: 240px;[^}]*height: 240px;/);
+  assert.match(css, /\.voice-content\s*\{[^}]*max-height: 112px;[^}]*overflow-y: auto/);
+  const source = read('desktop/frontend/effects.jsx');
+  assert.match(source, /<BorderBeam[^>]*><section className="beam-card">\s*<VoiceBeam/);
+  assert.match(source, /key=\{phase === 'speaking' \? 'reply' : 'utterance'\}/);
+  const prefix = transcriptSegments('沐言，请');
+  const grown = transcriptSegments('沐言，请打开浏览器。');
+  assert.deepEqual(grown.slice(0, prefix.length), prefix);
+  assert.equal(transcriptSegments('🪐你好').map(item => item.word).join(''), '🪐你好');
+  assert.equal(transcriptSegments('x'.repeat(9000)).map(item => item.word).join('').length, 8000);
+  assert.equal(new Set(grown.map(item => `${item.offset}:${item.word}`)).size, grown.length);
+});
+
+test('explicit synthetic rehearsal covers the main reference flow and cancels timers', () => {
+  assert.equal(referenceSequence[0].phase, 'listening');
+  assert.equal(referenceSequence[0].text, '');
+  assert.equal(referenceSequence.at(-1).phase, 'hidden');
+  assert.ok(referenceSequence.some(frame => frame.phase === 'processing' && frame.text));
+  assert.ok(referenceSequence.some(frame => frame.phase === 'speaking' && frame.text));
+  assert.ok(referenceSequence.every((frame, index) => index === 0 || frame.at > referenceSequence[index - 1].at));
+  const source = read('desktop/frontend/preview.jsx');
+  assert.match(source, /useState\(false\)/);
+  assert.match(source, /timers\.forEach\(clearTimeout\)/);
+  assert.match(source, /window\.addEventListener\('keydown', cancel\)/);
+  assert.match(source, /播放完整语音流程（合成）/);
 });

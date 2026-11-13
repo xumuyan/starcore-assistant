@@ -223,8 +223,18 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261112-009）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
+});
+
+
+test('libraries.dev main visual work takes priority without claiming business migration', () => {
+  const plan = read('PLAN.md');
+  assert.match(plan, /优先推进独立视觉层/);
+  assert.match(plan, /不阻塞隔离主视觉开发/);
+  assert.match(plan, /真实服务接线仍依赖 T0\/T1/);
+  assert.ok(existsSync(resolve(root, 'docs/verification/2026-11-13-reference-scene.md')));
+  assert.match(read('desktop/README.md'), /播放完整语音流程（合成）/);
 });

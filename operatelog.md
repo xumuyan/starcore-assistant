@@ -741,3 +741,13 @@
 - 难题与处理：首次全量测试超时两小时级——定位为 rust-state 漏插 import 导致 ensureHostBinary 未定义挂起（SC-20261113-009 已修）并以 stash 对照法逐文件排除；页面截图含用户私有窗口内容，按规则立即删除不留证。
 - 遗留问题：beUI hover/按压与入场动效需人工目验；真实 CGEvent 托盘点击与 D01～D02/P01～P08 仍待反馈；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-010] add --show-page diagnostic flag`；上批 SC-20261113-009 提交 a8425a0 待随本批一同推送。
+
+## SC-20261113-011 libraries.dev 主语音视觉优先与完整流程预览
+
+- 北京时间：2026-11-13 18:04:56 +08:00。
+- 修改或新增：按用户再次明确的方向，将重点从托盘/设置诊断转回 libraries.dev 主语音视觉。effects.jsx 修正原版 240px 环容器、beam/voice 的直接圆角子节点、112px 长文限高，独立 transcript 分词模块保留增量前缀 key、识别/回复分开入场；preview 加默认不播放的完整合成收音→识别→思考→回复→隐藏序列与 timer 清理。同步 PLAN、设计、README、验证记录及相关测试。
+- 遇到的难题：原规则会拉宽环形直接子 div；voice 包裹 beam 时无法直接读取内容圆角；长文使浮层内容超出固定高度；参考 voice processing 示例仍与开源包不一致。更新计划时移除了原手工单链接，文档守护复跑为 281/282。
+- 处理方式：保持上游原版组件/配色/运动参数，修正宿主布局；分词 offset+word key 与回复独立 key，文本始终 React 转义；本地合成流程只接受静态样例，Esc/隐藏/重播/卸载清 timer；未复制 Pro 代码。恢复手工单链接，新增主视觉优先级文档测试。不动真实麦克风/服务/配置/历史/已安装应用，也未重新部署临时 probe。
+- 验证结果：效果专项 5/5；完整回归先 282/282，文档更新后失败一次并修复，最终 283/283（0 fail/skip）；preview/probe 离线构建、Tauri debug 构建、npm run build:mac:check（不安装）通过；隔离 Chromium 两轮实测原版 DOM/Canvas、中文、环 240×240、长文限高、合成识别/思考/回复、Esc 后不重现、听写 orbs、零外部请求/控制台错误。git diff --check 通过。本地预览 HTTP 200，地址 http://127.0.0.1:8765 。详见 docs/verification/2026-11-13-reference-scene.md。
+- 遗留问题：未完成上游逐帧时序/性能对比、WKWebView 本批新布局真机目验、真实语音驱动与业务接线；长文滚动能力不由限高检查代替。T0 人工项继续待反馈，但不阻塞隔离主视觉开发；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-011] prioritize libraries.dev voice scene and flow rehearsal`；前批 51092f248fae5f2d350a61a89bf64e2a0471e912 已核对远端一致。

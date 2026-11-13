@@ -3,6 +3,7 @@ import { VoiceRing } from 'voice-ring';
 import { BorderBeam } from 'border-beam';
 import { VoiceBeam } from 'voice-glow';
 import { ThinkingOrb } from 'thinking-orbs';
+import { transcriptSegments } from './transcript.mjs';
 
 // Visual-only adapter. The host will own microphone/audio/ASR; never open a second mic here.
 export const phases = Object.freeze(['hidden', 'listening', 'processing', 'speaking']);
@@ -12,28 +13,28 @@ export function normalizeLevel(level) {
 }
 
 export function TextReveal({ text = '' }) {
-  // React escapes text; user/assistant content must never be interpreted as HTML.
-  const content = String(text).slice(0, 8000);
-  const words = typeof Intl.Segmenter === 'function'
-    ? Array.from(new Intl.Segmenter('zh', { granularity: 'word' }).segment(content), item => item.segment)
-    : Array.from(content);
-  return <p className="transcript">{words.map((word, index) =>
-    <span className="reveal-word" key={index} style={{ animationDelay: `${Math.min(index, 30) * 35}ms` }}>{word}</span>
+  // React escapes content. Newly appended segments animate, committed prefixes stay.
+  return <p className="transcript" aria-live="polite" aria-atomic="false">{transcriptSegments(text).map(({ word, offset }, index) =>
+    <span className="reveal-word" key={`${offset}:${word}`} style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}>{word}</span>
   )}</p>;
 }
 
-export function BeamCard({ children }) {
-  return <BorderBeam theme="dark"><section className="beam-card">{children}</section></BorderBeam>;
+export function BeamCard({ children, level = 0 }) {
+  // Each upstream wrapper must see the actual rounded card as its first child.
+  // VoiceBeam outside BorderBeam sees a square wrapper instead of the card.
+  return <BorderBeam theme="dark"><section className="beam-card">
+    <VoiceBeam theme="dark" level={normalizeLevel(level)}><div className="voice-content">{children}</div></VoiceBeam>
+  </section></BorderBeam>;
 }
 
 export function ConversationEffect({ phase = 'hidden', level = 0, text = '' }) {
   phase = normalizePhase(phase);
   if (phase === 'hidden') return null; // Unmount canvases: no idle animation while hidden.
   return <section className="conversation-effect" data-phase={phase} aria-label="语音对话效果">
-    <VoiceRing size={240} state={phase} theme="dark" level={normalizeLevel(level)} />
-    {text && <VoiceBeam theme="dark" level={phase === 'processing' ? 0 : normalizeLevel(level)}>
-      <BeamCard><TextReveal text={text} /></BeamCard>
-    </VoiceBeam>}
+    <div className="voice-ring-slot"><VoiceRing size={240} state={phase} theme="dark" level={normalizeLevel(level)} /></div>
+    {text && <div className="conversation-transcript" key={phase === 'speaking' ? 'reply' : 'utterance'}>
+      <BeamCard level={phase === 'processing' ? 0 : level}><TextReveal text={text} /></BeamCard>
+    </div>}
   </section>;
 }
 
