@@ -68,8 +68,9 @@ fn demo(app: &tauri::AppHandle, value: Demo) -> Result<()> {
 fn probe_snapshot(app: tauri::AppHandle) -> Result<Snapshot> {
     snapshot(&app)
 }
-#[tauri::command]
-fn probe_open(app: tauri::AppHandle, page: Page) -> Result<()> {
+/// Production "open page" path shared by the IPC command and the diagnostic
+/// `--show-page` flag: collapse the entry bar, then surface and focus the page.
+fn open_page(app: &tauri::AppHandle, page: Page) -> Result<()> {
     if let Some(chooser) = app.get_webview_window("chooser") {
         chooser.hide().map_err(|e| e.to_string())?;
     }
@@ -78,6 +79,10 @@ fn probe_open(app: tauri::AppHandle, page: Page) -> Result<()> {
         .ok_or("page unavailable")?;
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())
+}
+#[tauri::command]
+fn probe_open(app: tauri::AppHandle, page: Page) -> Result<()> {
+    open_page(&app, page)
 }
 #[tauri::command]
 fn probe_demo(app: tauri::AppHandle, value: Demo) -> Result<()> {
@@ -263,7 +268,11 @@ fn window(
 fn main() {
     let controls = ControlMode::from_args(std::env::args());
     let self_check = std::env::args().any(|arg| arg == "--self-check");
-    if self_check && (controls.diagnostic || std::env::args().any(|arg| arg == "--show-chooser")) {
+    if self_check
+        && (controls.diagnostic
+            || controls.show_page.is_some()
+            || std::env::args().any(|arg| arg == "--show-chooser"))
+    {
         eprintln!("T0 self-check requires default hidden window mode");
         std::process::exit(2);
     }
@@ -340,7 +349,11 @@ fn main() {
                 })
                 .build(app)?;
             // Explicit development entry only; normal startup stays invisible.
-            if controls.diagnostic || std::env::args().any(|arg| arg == "--show-chooser") {
+            // `--show-page` skips the entry bar and opens the page directly via
+            // the exact production path.
+            if controls.show_page.is_none()
+                && (controls.diagnostic || std::env::args().any(|arg| arg == "--show-chooser"))
+            {
                 if let Some(chooser) = app.get_webview_window("chooser") {
                     // Anchor the development entry under the tray icon like a real
                     // click; fall back to the centered default if the icon rect is
@@ -362,6 +375,9 @@ fn main() {
             }
             // Keep the status item alive after setup returns.
             app.manage(TrayKeepAlive(tray));
+            if let Some(page) = controls.show_page {
+                open_page(app.handle(), page)?;
+            }
             if controls.diagnostic {
                 // Explicit development hook only: replay the exact production
                 // tray-click toggle on SIGUSR1; normal runs never install it.

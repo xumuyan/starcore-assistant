@@ -733,3 +733,11 @@
 - 修改内容：新增 test-helpers/rust-host-bin.mjs（ensureHostBinary：二进制缺失时最长等 90 秒）；rust-chat-lifecycle/fish/reminder/state 四个测试文件 spawn moss-host 前先等待，解决 node --test 并行跑多个文件时各自 `cargo build` 重链接窗口期撞 ENOENT 的问题（本日 16:0x 首次 279/1 复现并与 SC-20261113-004 当日现象同因；另因 rust-state 缺 delay 导入曾把 import 漏插，已补齐并单独核对该文件 1.0s 全过）。
 - 验证结果：npm test 连续两次 280/280；lifecycle 单文件 HEAD 版与修补版均为 25 pass；计数确认 281→280 的回落是 node --test 把 test/ 目录下空助手文件计为 1 个 pass，助手移至 test-helpers/ 后恢复准确计数。
 - 遗留问题：无；对应 Git 提交见本条所在提交，主题 `test: [SC-20261113-009] await rust-host binary to deflake parallel spawns`；上批 SC-20261113-008 提交 f51e703e39e48fa18fdd77eb57eef1a22049ce4d 已推送。
+
+## 2026-11-13 16:47:25 +08:00 · SC-20261113-010 · 诊断 --show-page 标志与页面真机视觉验证
+
+- 修改内容：ControlMode 增加 show_page 解析（严格两段式）；main.rs 抽取生产函数 open_page 供 IPC 命令与诊断标志共用，setup 跳过入口条自动显示后直接开页；--self-check 互斥纳入；desktop-probe 守护断言新增 --show-page/open_page 签名/is_some 与 model 解析用例正则；README、验证文档、PLAN 下一步同步。
+- 验证结果：cargo fmt --check、Rust 9/9、clippy -D warnings、npm test 280/280、git diff --check 通过；真机 --show-page history/settings 渲染核对通过（截图含私有内容已即删）；动效时序未机证需人工。
+- 难题与处理：首次全量测试超时两小时级——定位为 rust-state 漏插 import 导致 ensureHostBinary 未定义挂起（SC-20261113-009 已修）并以 stash 对照法逐文件排除；页面截图含用户私有窗口内容，按规则立即删除不留证。
+- 遗留问题：beUI hover/按压与入场动效需人工目验；真实 CGEvent 托盘点击与 D01～D02/P01～P08 仍待反馈；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-010] add --show-page diagnostic flag`；上批 SC-20261113-009 提交 a8425a0 待随本批一同推送。

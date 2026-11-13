@@ -78,6 +78,8 @@ CLI/API、Rust crates 精确版本见两个 lock 文件。Rust 2.12.5 与 JS 2.1
 
 ### 显式普通控制窗口诊断模式（SC-20261112-007）
 
+开发辅助标志：`--show-chooser`（启动后锚定显示入口条）、`--show-page <history|settings>`（跳过入口条直接以生产路径 `open_page` 打开页面，用于只读视觉核对）；两者与 `--diagnostic-controls` 可叠加，`--show-page` 时入口条不自动显示，且均与 `--self-check` 互斥。
+
 ```sh
 npm run desktop:probe -- -- --diagnostic-controls
 ```

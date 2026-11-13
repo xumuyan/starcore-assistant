@@ -35,6 +35,9 @@ test('T0 native declarations preserve focus separation and transient Escape regi
   assert.match(source, /set_ignore_cursor_events\(true\)/);
   assert.match(source, /unregister\("Escape"\)/);
   assert.match(source, /--show-chooser/);
+  assert.match(source, /--show-page/);
+  assert.match(source, /fn open_page\(app: &tauri::AppHandle, page: Page\) -> Result<\(\)> \{/);
+  assert.match(source, /controls\.show_page\.is_some\(\)/);
   assert.match(source, /include_bytes!\("\.\.\/assets\/tray-moss\.rgba"\)/);
   assert.match(source, /Image::new_owned\(\s*TRAY_ICON_RGBA\.to_vec\(\),\s*36,\s*36,\s*\)/);
   assert.match(source, /icon_as_template\(true\)/);
@@ -77,7 +80,10 @@ test('T0 page bundles original visuals and IPC offline, keeping browser preview 
 test('diagnostic mode is explicit and never relaxes the frameless popover windows', () => {
   const native = read('desktop/src-tauri/src/main.rs');
   const model = read('desktop/src-tauri/src/model.rs');
-  assert.match(model, /arg == "--diagnostic-controls"/);
+  assert.match(model, /"--diagnostic-controls" => diagnostic = true/);
+  assert.match(model, /"--show-page"/);
+  assert.match(model, /Some\("history"\) => Some\(Page::History\)/);
+  assert.match(model, /fn show_page_flag_is_exact_two_arg_form_and_unknown_names_are_ignored/);
   assert.doesNotMatch(model, /standard_window/);
   assert.match(native, /ActivationPolicy::Regular/);
   assert.match(native, /ActivationPolicy::Accessory/);

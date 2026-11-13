@@ -2,15 +2,34 @@ use serde::{Deserialize, Serialize};
 
 // Diagnostic controls are an explicit, nonpersistent observation aid. They only
 // change the activation policy, auto-show and the title suffix; every window
-// stays frameless, transparent and topmost in every mode.
+// stays frameless, transparent and topmost in every mode. `show_page` reuses
+// the production open-page path for read-only visual verification.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ControlMode {
     pub diagnostic: bool,
+    pub show_page: Option<Page>,
 }
 impl ControlMode {
     pub fn from_args(args: impl IntoIterator<Item = String>) -> Self {
+        let mut diagnostic = false;
+        let mut show_page = None;
+        let mut iter = args.into_iter();
+        while let Some(arg) = iter.next() {
+            match arg.as_str() {
+                "--diagnostic-controls" => diagnostic = true,
+                "--show-page" => {
+                    show_page = match iter.next().as_deref() {
+                        Some("history") => Some(Page::History),
+                        Some("settings") => Some(Page::Settings),
+                        _ => None,
+                    };
+                }
+                _ => {}
+            }
+        }
         Self {
-            diagnostic: args.into_iter().any(|arg| arg == "--diagnostic-controls"),
+            diagnostic,
+            show_page,
         }
     }
 }
@@ -59,6 +78,31 @@ mod tests {
         let diagnostic = ControlMode::from_args(["--diagnostic-controls".into()]);
         assert!(diagnostic.diagnostic);
         assert!(!ControlMode::from_args(["--diagnostic-controls=true".into()]).diagnostic);
+    }
+    #[test]
+    fn show_page_flag_is_exact_two_arg_form_and_unknown_names_are_ignored() {
+        assert_eq!(
+            ControlMode::from_args(["--show-page".into(), "history".into()]).show_page,
+            Some(Page::History)
+        );
+        assert_eq!(
+            ControlMode::from_args(["--show-page".into(), "settings".into()]).show_page,
+            Some(Page::Settings)
+        );
+        // Overlay is demo-driven, not an open-page target.
+        assert_eq!(
+            ControlMode::from_args(["--show-page".into(), "overlay".into()]).show_page,
+            None
+        );
+        assert_eq!(
+            ControlMode::from_args(["--show-page".into(), "--show-page".into()]).show_page,
+            None
+        );
+        assert_eq!(
+            ControlMode::from_args(["--show-page=history".into()]).show_page,
+            None
+        );
+        assert_eq!(ControlMode::from_args(Vec::new()).show_page, None);
     }
     #[test]
     fn starts_invisible_without_hotkeys() {
