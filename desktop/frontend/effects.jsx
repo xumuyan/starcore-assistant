@@ -42,10 +42,14 @@ export function ConversationEffect({ phase = 'hidden', level = 0, text = '' }) {
   phase = normalizePhase(phase);
   if (phase === 'hidden') return null; // Unmount canvases: no idle animation while hidden.
   return <section className="conversation-effect" data-phase={phase} aria-label="语音对话效果">
-    <div className="voice-ring-slot"><VoiceRing size={240} state={phase} theme="dark" level={normalizeLevel(level)} /></div>
-    {text && <div className="conversation-transcript" key={phase === 'speaking' ? 'reply' : 'utterance'}>
-      <BeamCard text={text} level={phase === 'processing' ? 0 : level}><TextReveal text={text} /></BeamCard>
-    </div>}
+    <div className="voice-ring-slot"><VoiceRing size={240} state={phase} theme="dark" level={phase === 'processing' ? 0 : normalizeLevel(level)} /></div>
+    <div className="conversation-caption-slot">
+      {(text || phase !== 'listening') && <div className="conversation-transcript" key={phase === 'speaking' ? 'reply' : 'utterance'}>
+        <BeamCard text={text} level={phase === 'processing' ? 0 : level}>
+          {text ? <TextReveal text={text} /> : <span role="status">{phase === 'processing' ? '正在思考' : '正在回复'}</span>}
+        </BeamCard>
+      </div>}
+    </div>
   </section>;
 }
 

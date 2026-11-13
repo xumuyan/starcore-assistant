@@ -45,3 +45,12 @@
 - 两种效果加本地 220ms 入场，reduce 时取消本地 CSS 动画。上游 Canvas 动效保留，不声称所有动效关闭；隐藏立即卸载，无淡出等待。
 - 新增可复现 `desktop/check-effects-browser.mjs`，使用显式外部 Playwright 路径或已有 playwright 安装，本地临时 HTTP 服务，finally 关闭浏览器/服务；不加入默认回归、不联网安装。实际 Chromium 通过尾部跟随→上翻保位→回到底部恢复、原版圆环尺寸、orbs 高度不跳变/Canvas、听写长文字容器≤140px、增量前缀节点保留、reduce 下本地入场关闭、听写播放与 Esc 后不重现、零外部请求和控制台错误。
 - 相关单元、离线构建和完整回归结果见操作日志；WKWebView 新布局、真实麦克风、外部应用焦点、物理按键仍未验收。T0/T1 状态保持。
+
+
+## SC-20261113-014 对话状态对照与圆环锚定
+
+- 本批 curl 实际读取 https://libraries.dev/voice-ring 和 https://libraries.dev/voice 公开 HTML，并对照已安装包 README/类型定义；上游示例明确 listening/speaking/processing 与 0–1 电平，voice processing 的开源包限制保持。没有复制网站动画脚本或 Pro 代码。
+- 发现原先居中布局的总高度随字幕变化，无文字→首段/长文会使圆环上跳。新增固定 112px 字幕槽位，收音无文字不挂载 beam/voice；思考/回复无文字时显示对应 role=status 提示。processing 圆环显式零电平，避免残留输入电平影响状态意图，上游运动参数不改。
+- 浏览器脚本实际验证圆环 y 坐标在无文字、首段、长文、空思考/回复一致；跨状态保留同一圆环 Canvas；进入回复时新建字幕组；无文字提示正确；原有长文跟随/上翻、听写 orbs、reduce/Esc/离线检查继续通过。非逐帧还原验收。
+- 效果专项 8/8、preview/probe 离线构建通过；完整回归结果见操作日志。无原生改动，不重新部署/安装应用，WKWebView 与物理键仍未验收。
+- 下一步：核查目标浮层尺寸、窄屏边界与长文容纳，整理真实服务事件到视图状态的映射；T0 未验收，T1 未启动，映射准备不等于已连接真实服务。

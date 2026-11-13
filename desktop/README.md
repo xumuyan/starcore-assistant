@@ -133,3 +133,10 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ```
 
 覆盖跟随/上翻保位、orbs 槽位高度、长文字限高、分词节点保留、减少动态效果、听写播放/Esc/零外部请求与控制台错误。只打开本地合成页面，不向系统桌面注入输入，不能代替 WKWebView/物理热键验收。
+
+
+### 圆环位置与空文字状态 · SC-20261113-014
+
+再次核对 libraries.dev 公开 voice-ring/voice 示例：listening 和 speaking 驱动实时电平，processing 使用原版状态，文字框不添加本地包不支持的 Pro processing。对话始终预留 112px 字幕空间；收音无文字时只显示圆环，文字到达、变长、切换思考/回复时圆环保持原位。无文字的思考/回复分别显示状态提示，避免空白；processing 显式置零声学电平。圆环 Canvas 保持挂载，回复字幕独立重新入场。
+
+本地浏览器检查新增圆环 y 坐标跨空文字/首段/长文/思考/回复一致、Canvas 身份保留、空文字提示与回复组重新挂载检查。尚未进行参考站逐帧对比或 WKWebView 本批目验。

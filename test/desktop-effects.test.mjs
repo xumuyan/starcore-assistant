@@ -62,6 +62,9 @@ test('visual adapters clamp levels, default hidden, render states and escape unt
       }
     }
     assert.match(render('conversation', {phase:'listening'}), /canvas/);
+    assert.doesNotMatch(render('conversation', {phase:'listening'}), /beam-card|正在思考|正在回复/);
+    assert.match(render('conversation', {phase:'processing'}), /role="status">正在思考/);
+    assert.match(render('conversation', {phase:'speaking'}), /role="status">正在回复/);
     assert.doesNotMatch(render('dictation', {phase:'listening'}), /正在识别/);
     assert.match(render('dictation', {phase:'processing'}), /正在识别/);
   } finally { rmSync(out, { recursive: true, force: true }); }
@@ -135,4 +138,13 @@ test('streaming viewport follows the tail with tolerance and preserves a scrolle
   assert.match(css, /\.dictation-orb-slot[^}]*flex: 0 0 64px/);
   assert.match(css, /\.dictation-text[^}]*max-height: 112px/);
   assert.match(css, /prefers-reduced-motion: reduce[^}]*\.dictation-effect \{ animation: none/);
+});
+
+test('conversation reserves caption space and distinguishes silent processing from voice activity', () => {
+  const source = read('desktop/frontend/effects.jsx');
+  assert.match(source, /className="conversation-caption-slot"/);
+  assert.match(source, /text \|\| phase !== 'listening'/);
+  assert.match(source, /phase === 'processing' \? '正在思考' : '正在回复'/);
+  assert.match(source, /<VoiceRing[^>]*level=\{phase === 'processing' \? 0 : normalizeLevel\(level\)\}/);
+  assert.match(read('desktop/frontend/style.css'), /\.conversation-caption-slot[^}]*height: 112px;[^}]*flex: 0 0 112px/);
 });

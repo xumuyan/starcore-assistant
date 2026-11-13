@@ -45,7 +45,26 @@ try {
     assert.ok(await box.evaluate(e => e.scrollHeight - e.scrollTop - e.clientHeight < 2));
   }
   await phase.selectOption('listening');
+  await page.waitForTimeout(300); // Allow the local entry transform to finish.
+  const anchor = await page.locator('.voice-ring-slot').boundingBox();
+  assert.equal(await page.locator('.conversation-transcript').count(), 0);
+  await text.fill('首段合成文字。');
+  await page.waitForTimeout(300);
+  assert.equal((await page.locator('.voice-ring-slot').boundingBox()).y, anchor.y);
   await verifyScroll('.voice-content');
+  assert.equal((await page.locator('.voice-ring-slot').boundingBox()).y, anchor.y);
+  // The ring canvas stays mounted across phases; reply text gets a fresh group.
+  await page.locator('.voice-ring-slot canvas').first().evaluate(e => { e.dataset.retained = 'yes'; });
+  await text.fill('');
+  await phase.selectOption('processing');
+  assert.equal(await page.locator('[role="status"]').innerText(), '正在思考');
+  await page.locator('.conversation-transcript').evaluate(e => { e.dataset.utterance = 'yes'; });
+  await phase.selectOption('speaking');
+  assert.equal(await page.locator('[role="status"]').innerText(), '正在回复');
+  assert.equal(await page.locator('.conversation-transcript').getAttribute('data-utterance'), null);
+  assert.equal(await page.locator('.voice-ring-slot canvas').first().getAttribute('data-retained'), 'yes');
+  assert.equal((await page.locator('.voice-ring-slot').boundingBox()).y, anchor.y);
+
   assert.equal((await page.locator('.voice-ring-slot').boundingBox()).width, 240);
   await mode.selectOption('dictation');
   const initial = await page.locator('.dictation-strip').boundingBox();
@@ -72,7 +91,7 @@ try {
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, offline');
+  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, offline');
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

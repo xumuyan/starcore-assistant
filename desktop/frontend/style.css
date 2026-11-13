@@ -9,6 +9,8 @@ input, select, button { font: inherit; color: inherit; background: #252525; bord
 .preview-stage { min-height: 460px; padding: 30px; display: grid; place-items: center; background: #111; }
 .conversation-effect { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(520px, 100%); animation: assistant-enter 220ms ease-out both; }
 .voice-ring-slot { width: 240px; height: 240px; flex: 0 0 240px; }
+/* Reserve the maximum caption height before ASR text arrives; keep the ring anchored. */
+.conversation-caption-slot { width: 100%; height: 112px; flex: 0 0 112px; min-width: 0; }
 .conversation-transcript { width: 100%; min-width: 0; animation: transcript-enter 240ms ease-out both; }
 .beam-card { border-radius: 20px; background: #1d1d1d; width: 100%; }
 .voice-content { padding: 22px 28px; border-radius: inherit; max-height: 112px; overflow-y: auto; }
