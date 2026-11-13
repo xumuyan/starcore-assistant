@@ -30,6 +30,32 @@ try {
   await page.goto(origin);
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
   const mode = page.getByLabel('模式'), phase = page.getByLabel('阶段'), text = page.getByLabel('示例文字');
+  // CSS transparency and composited alpha: no rectangular stage or root backdrop.
+  async function verifyTransparency() {
+    assert.equal(await page.locator('html, body, #root, .preview-stage').evaluateAll(nodes =>
+      nodes.every(node => getComputedStyle(node).backgroundColor === 'rgba(0, 0, 0, 0)')), true);
+    const stage = page.locator('.preview-stage');
+    assert.equal(await stage.evaluate(node => getComputedStyle(node).outlineStyle), 'none');
+    const png = await page.screenshot({ clip: await stage.boundingBox(), omitBackground: true });
+    const alpha = await page.evaluate(async data => {
+      const image = new Image(); image.src = data; await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+      return [[0, 0], [image.width - 1, 0], [0, image.height - 1], [image.width - 1, image.height - 1]]
+        .map(([x, y]) => ctx.getImageData(x, y, 1, 1).data[3]);
+    }, `data:image/png;base64,${png.toString('base64')}`);
+    assert.deepEqual(alpha, [0, 0, 0, 0], 'overlay corners have zero alpha, not a black rectangle');
+  }
+  await verifyTransparency();
+  await phase.selectOption('listening');
+  await verifyTransparency();
+  assert.equal(await page.locator('.voice-ring-slot canvas').evaluate(canvas => {
+    const ctx = canvas.getContext('2d');
+    return ctx.getImageData(0, 0, 1, 1).data[3];
+  }), 0);
+  await mode.selectOption('dictation'); await phase.selectOption('processing');
+  await verifyTransparency();
+  await mode.selectOption('conversation'); await phase.selectOption('hidden');
   // Streaming follows new text, but never drags a reader back to the bottom.
   async function verifyScroll(selector) {
     const box = page.locator(selector);
@@ -208,7 +234,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();

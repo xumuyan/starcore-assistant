@@ -163,3 +163,15 @@ test('preview exposes actual overlay dimensions without resizing native windows'
   assert.match(browser, /\['16px', '32px'\]/);
   assert.match(browser, /document.documentElement.scrollWidth <= innerWidth/);
 });
+
+
+test('voice overlay background stays transparent without changing reference card surfaces', () => {
+  const css = read('desktop/frontend/style.css');
+  assert.match(css, /html, body, #root \{ background: transparent; \}/);
+  assert.match(css, /\.preview-stage\s*\{[^}]*background: transparent;/);
+  assert.doesNotMatch(css, /\.preview-stage\s*\{[^}]*(?:outline|border|box-shadow):/);
+  assert.match(css, /\.beam-card\s*\{[^}]*background: #1d1d1d;/);
+  assert.match(css, /\.dictation-strip\s*\{[^}]*background: #1d1d1d;/);
+  assert.match(read('desktop/frontend/probe.css'), /html, body, #root \{ background: transparent; \}/);
+  assert.match(read('desktop/src-tauri/src/main.rs'), /\.transparent\(true\)/);
+});
