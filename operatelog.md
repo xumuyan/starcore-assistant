@@ -711,3 +711,11 @@
 - 难题与处理：闭包 move 与 run_on_main_thread 借用冲突（E0505），克隆 AppHandle 解决；--locked 因新增依赖失败，重新生成 lock 后通过。
 - 遗留问题：SIGUSR1 复放的锚定效果待部署复测；真实 CGEvent 托盘点击及 D01～P08 手测仍待反馈；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-006] replay tray-click toggle via diagnostic SIGUSR1`；上批 SC-20261113-005 提交 146882f63ea8b1648a17b5442c8244b233aece0e 已推送。
+
+## 2026-11-13 14:53:49 +08:00 · SC-20261113-007 · SIGUSR1 锚定重开真机验证通过并归档部署陷阱
+
+- 修改内容：仅文档与测试正则（PLAN.md 下一步推进为 SC-20261113-007、docs/verification 增补复测数据、desktop/README.md 增加部署陷阱说明、test/project-docs.test.mjs 接受新标记）；代码侧保留诊断模式 stderr 追踪 USR1_HOOK_REGISTERED/USR1_RECEIVED（SC-20261113-006 已含，本批补记录）。
+- 验证结果：显式 cargo build 后，SIGUSR1 复放生产托盘切换路径真机通过——锚定弹出 (693,38)/(675,38) 两次均居中于图标下方且重读实时 rect、收起后 on-screen 窗口为 0、进程存活；npm test 280/280、cargo fmt --check、clippy -D warnings、Rust 8/8、git diff --check 通过。
+- 难题与处理：USR1 曾直接杀死进程且无崩溃报告，先用最小 Rust 二进制隔离证明 signal-hook 正常，再定位到部署产物过期（cargo test/clippy/check-native 均不刷新 target/debug 二进制），显式 cargo build 后解决；错误结论（钩子无效）已被正确结论取代并写入 README。
+- 遗留问题：真实 CGEvent 托盘点击投递、按钮→页、控件交互、Esc、外部焦点/点击穿透、热键、多屏/全屏仍需人工按验收单反馈；探针保持入口条锚定打开待手测；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261113-007] record SIGUSR1 anchored-reopen verification`；上批 SC-20261113-006 提交 3219b191e095ba3d956db46c04c30808539e1840 已推送。

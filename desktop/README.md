@@ -11,6 +11,8 @@ npm run build:desktop:preview
 python3 -m http.server 8765 --bind 127.0.0.1 --directory dist/desktop-preview
 ```
 
+**部署原生探针到 /tmp bundle 前必须先 `cargo build`**：`cargo test`、`cargo clippy` 与 `check-native.mjs`（其自身声明不构建）都不会刷新 `target/debug/moss-desktop-probe` 产物；SC-20261113-007 曾因复制过期产物误判 SIGUSR1 钩子无效。诊断钩子会在 stderr 打印 `USR1_HOOK_REGISTERED` / `USR1_RECEIVED`，可用于确认二进制确实是新版。
+
 在浏览器访问 `http://127.0.0.1:8765`。所有电平/文字均为手动样例；不连接后台。输出含完整运行时 `THIRD_PARTY_LICENSES.txt`，构建产物不提交。CSP 禁止连接外部服务；组件需要动态 inline 样式，因此仅样式允许 unsafe-inline，脚本不允许。
 
 ## 上游核查与直接集成
