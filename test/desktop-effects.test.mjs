@@ -120,3 +120,19 @@ test('dictation rehearsal stays in selected mode and switching from hidden revea
   assert.match(source, /function changeMode[^}]*setPhase\('listening'\)/);
   assert.match(source, /mode === 'conversation' && <option value="speaking"/);
 });
+
+test('streaming viewport follows the tail with tolerance and preserves a scrolled-back position', async () => {
+  const { isNearTranscriptEnd } = await import('../desktop/frontend/transcript-scroll.mjs');
+  assert.equal(isNearTranscriptEnd({ scrollHeight: 600, scrollTop: 488, clientHeight: 112 }), true);
+  assert.equal(isNearTranscriptEnd({ scrollHeight: 600, scrollTop: 467, clientHeight: 112 }), true);
+  assert.equal(isNearTranscriptEnd({ scrollHeight: 600, scrollTop: 100, clientHeight: 112 }), false);
+  assert.equal(isNearTranscriptEnd({ scrollHeight: 80, scrollTop: 0, clientHeight: 112 }), true);
+  const source = read('desktop/frontend/effects.jsx');
+  assert.match(source, /if \(following.current && viewport.current\)/);
+  assert.match(source, /following.current = isNearTranscriptEnd/);
+  assert.match(source, /TranscriptViewport className="dictation-text"/);
+  const css = read('desktop/frontend/style.css');
+  assert.match(css, /\.dictation-orb-slot[^}]*flex: 0 0 64px/);
+  assert.match(css, /\.dictation-text[^}]*max-height: 112px/);
+  assert.match(css, /prefers-reduced-motion: reduce[^}]*\.dictation-effect \{ animation: none/);
+});

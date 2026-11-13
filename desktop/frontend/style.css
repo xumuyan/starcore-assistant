@@ -7,16 +7,19 @@ body { margin: 0; }
 .preview-controls label { display: inline-flex; align-items: center; gap: 8px; margin: 6px 18px 6px 0; font-size: 13px; }
 input, select, button { font: inherit; color: inherit; background: #252525; border: 1px solid #555; border-radius: 6px; padding: 6px; }
 .preview-stage { min-height: 460px; padding: 30px; display: grid; place-items: center; background: #111; }
-.conversation-effect { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(520px, 100%); }
+.conversation-effect { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(520px, 100%); animation: assistant-enter 220ms ease-out both; }
 .voice-ring-slot { width: 240px; height: 240px; flex: 0 0 240px; }
 .conversation-transcript { width: 100%; min-width: 0; animation: transcript-enter 240ms ease-out both; }
 .beam-card { border-radius: 20px; background: #1d1d1d; width: 100%; }
 .voice-content { padding: 22px 28px; border-radius: inherit; max-height: 112px; overflow-y: auto; }
 .beam-card > [data-voice-beam] { width: 100%; border-radius: inherit; }
 @keyframes transcript-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-.dictation-effect { width: min(560px, 100%); }
-.dictation-strip { border-radius: 22px; background: #1d1d1d; min-height: 80px; padding: 12px 24px; display: flex; align-items: center; gap: 14px; }
+.dictation-effect { width: min(560px, 100%); animation: assistant-enter 220ms ease-out both; }
+.dictation-strip { border-radius: 22px; background: #1d1d1d; min-height: 88px; padding: 12px 24px; display: flex; align-items: center; gap: 14px; }
+.dictation-orb-slot { width: 64px; height: 64px; flex: 0 0 64px; }
+.dictation-text { min-width: 0; flex: 1; max-height: 112px; overflow-y: auto; }
+@keyframes assistant-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .transcript { margin: 0; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .reveal-word { animation: reveal-word 300ms both; }
 @keyframes reveal-word { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: blur(0); } }
-@media (prefers-reduced-motion: reduce) { .reveal-word, .conversation-transcript { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal-word, .conversation-transcript, .conversation-effect, .dictation-effect { animation: none; } }

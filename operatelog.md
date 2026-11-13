@@ -761,3 +761,13 @@
 - 验证结果：效果专项 6/6；npm test 284/284（0 fail/skip）；preview/probe 构建通过；隔离 Chromium 实际验证隐藏态切换立即可见、播放仍保持 dictation、分段文字/orbs canvas、结束隐藏、Esc 后不重现及切回 conversation，零外部请求/控制台错误；临时合成截图确认长条/orbs 显示。git diff --check 通过。本批仅前端和文档，无原生改动，未重跑 Mac 构建。预览服务复用 http://127.0.0.1:8765 。
 - 遗留问题：用户仍需刷新后确认可见；若用户所指是真实右 Ctrl 而非网页预览，需另按真实运行链路定位，本批不声称修复真实热键。T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261113-012] show and rehearse selected dictation mode`；前批 c2406b10386bf631fc125fb4aba7ec2ae55203aa 已推送。
+
+## SC-20261113-013 主语音状态衔接与长文字跟随
+
+- 北京时间：2026-11-13 18:25:13 +08:00。
+- 修改或新增：按用户“继续”推进主视觉，不扩展托盘诊断。新增共享 TranscriptViewport 与尾部判断函数：新文字跟随到底部、上翻保位、回到底部恢复；听写固定 orbs 槽位与独立长文字限高；两种浮层本地轻量入场及 reduce 兼容；新增可复现隔离浏览器检查脚本。同步 PLAN、README、验证记录和测试，记录用户已确认按键合成预览可见。
+- 遇到的难题：长回复虽限高但新文字不自动露出，直接强制滚动又会打断上翻阅读；听写仅 processing 挂载 64px orbs，导致短文本长条状态切换变高。既有浏览器验证位于 /tmp，无法随代码重跑。
+- 处理方式：根据滚动事件在 24px 末尾容差内恢复跟随，只在 text 变更且处于跟随时 layout commit 滚到底部；固定槽位预留空间，orbs 仍仅 processing 挂载；新增仓库脚本仅本地合成页面测试，不安装/下载 Playwright、不进行系统输入注入。reduce 仅保证本地 CSS 动画关闭，不扩大到上游 Canvas；Esc 仍立即卸载。
+- 验证结果：效果专项 7/7；npm test 285/285（0 fail/skip）；preview/probe 离线构建通过；新仓库浏览器脚本实际 Chromium 通过尾部跟随/上翻保位/恢复、圆环尺寸、听写槽位稳定与限高、前缀节点保留、reduce、模式播放、Esc 后无重现、零外部请求和控制台错误。git diff --check 通过。无原生修改，本批未重跑 Mac 原生构建。
+- 遗留问题：用户确认仅覆盖按键合成预览可见；本批新衔接手感仍需用户目验。WKWebView 本批布局、真实右 Ctrl/录音/输入、上游逐帧对照仍未验收；T0 未验收，T1 未启动；预览继续使用 http://127.0.0.1:8765 。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-013] stabilize voice transitions and streaming text`；前批 6d8df45ed0cddfb67be26630d390c44f1f444a60 已推送。
