@@ -671,3 +671,11 @@
 - 难题与处理：tauri `TrayIconEvent::Click.rect` 为 Position/Size 枚举（物理/逻辑双变体）、`Monitor::scale_factor()` 返回 f64 非 Result，且 `monitor_from_point` 在 macOS 基于 CGDisplayBounds 逻辑点、与物理托盘矩形单位不一致；改为遍历 available_monitors 按物理像素匹配显示器并全程物理坐标定位，逻辑换算仅用于间隙缩放。工具受保护点击此前被焦点校验阻止，本批未注入输入、未绕过。
 - 遗留问题：入口条真实位置/外观、失焦收起、点击按钮开页、beUI 动效手感、多屏/全屏/Spaces/睡眠属 D01～D02、P01～P08 手测且全部未测；诊断模式成功不能替代默认透明置顶模式验收。T0 仍未验收，T1 未接入业务。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-001] anchor frameless tray popover with beUI controls`；上批交接提交 6cbf7529e8080c102b98cf22d5c21b323d9b2a95 已推送。
+
+## 2026-11-13 12:55:20 +08:00 · SC-20261113-002 · 记录无边框面板对桌面工具枚举不可用的根因观察
+
+- 修改内容：仅文档——docs/verification/2026-11-12-tauri-t0.md 增补"部署后即时观察"，PLAN.md 当前下一步更新为"不再重试工具点击，直接手测"；无代码改动。
+- 验证：新 debug 二进制与构建产物 cmp 一致后覆盖临时 bundle，--diagnostic-controls 启动；screencapture 截屏确认菜单栏为 MOSS T0 Probe 前台（Regular 激活策略生效）、入口条为无边框两枚胶囊按钮；桌面工具两次事务共三次窗口枚举均不含该面板（含其处于前台时），确认此前点击被"目标窗口或输入焦点无法确认"阻止的根因是工具枚举局限（无边框透明置顶面板不在枚举结果），非焦点竞态。按保护纪律未发送点击/键盘、未绕过校验。含私人窗口内容的整屏截图已删除，不入库不作证据。
+- 难题与处理：osascript 辅助访问未授权（按规则不新申请权限），改用 screencapture 借用既有录屏授权链路完成视觉核对；桌面事务内 scope=display 截图不可用、仅支持 scope=window，而窗口枚举缺失使该路径终止。
+- 遗留问题：托盘左键重开入口条、点击按钮开页、失焦收起、beUI 动效、外部焦点/穿透、多屏/全屏/Spaces 等仍属 D01～D02、P01～P08 手测且全部未测；T0 仍未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261113-002] record frameless panel tool-enumeration finding`；上批 SC-20261113-001 提交 05b6c65824f613bcb6cba666f40e94a70f7b47d8 已推送。
