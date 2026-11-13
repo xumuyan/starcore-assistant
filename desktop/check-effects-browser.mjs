@@ -89,6 +89,33 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(2600);
   assert.equal(await page.locator('.preview-stage canvas').count(), 0);
+  // Deterministic synthetic callback clock, not OS input or a live service.
+  await page.clock.install();
+  await page.getByRole('button', { name: '测试取消与迟到事件（合成）' }).click();
+  await page.clock.runFor(1100);
+  assert.equal(await page.locator('.event-stage .conversation-effect').getAttribute('data-phase'), 'processing');
+  await page.clock.runFor(1000);
+  assert.equal(await page.locator('.event-stage canvas').count(), 0);
+  assert.equal(await page.locator('.event-status').innerText(), '已忽略 reply · 回合 1');
+  await page.clock.runFor(1500);
+  assert.equal(await page.locator('.event-stage .transcript').innerText(), '新一轮合成听写');
+  assert.equal(await page.locator('.event-stage .dictation-effect').getAttribute('data-phase'), 'listening');
+  assert.equal(await page.locator('.event-status').innerText(), '已忽略 reply · 回合 1');
+  await page.clock.runFor(400);
+  assert.equal(await page.locator('.event-status').innerText(), '已忽略 begin · 回合 3');
+  assert.equal(await page.locator('.event-stage').getAttribute('data-run'), '2');
+  await page.clock.runFor(400);
+  assert.equal(await page.locator('.event-stage .dictation-effect').getAttribute('data-phase'), 'processing');
+  await page.clock.runFor(1100);
+  assert.equal(await page.locator('.event-stage canvas').count(), 0);
+  await page.getByRole('button', { name: '测试取消与迟到事件（合成）' }).click();
+  await page.clock.runFor(600);
+  assert.equal(await page.locator('.event-stage .transcript').innerText(), '第一轮合成提问');
+  await page.keyboard.press('Escape');
+  await page.clock.runFor(6000);
+  assert.equal(await page.locator('.event-stage').count(), 0);
+  assert.equal(await page.locator('.preview-stage canvas').count(), 0);
+  await page.clock.resume();
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320);
   await page.setViewportSize({ width: 960, height: 720 });
@@ -138,7 +165,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();
