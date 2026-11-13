@@ -12,7 +12,6 @@ type Result<T> = std::result::Result<T, String>;
 
 /// TrayIcon is reference-counted and its icon disappears when the last handle
 /// drops; keep one handle alive for the whole app lifetime.
-#[expect(dead_code)]
 struct TrayKeepAlive(tauri::tray::TrayIcon<tauri::Wry>);
 
 fn snapshot(app: &tauri::AppHandle) -> Result<Snapshot> {
@@ -136,6 +135,34 @@ fn physical_tray_rect(rect: tauri::Rect, scale: f64) -> Option<(f64, f64, f64, f
         }
         _ => None,
     }
+}
+
+/// Shared production tray-click path: toggle the entry bar anchored under
+/// the tray icon. Diagnostic mode replays this exact path on SIGUSR1.
+fn toggle_chooser_from_tray(
+    app: &tauri::AppHandle,
+    chooser: &tauri::WebviewWindow,
+    rect: tauri::Rect,
+) {
+    if chooser.is_visible().unwrap_or(false) {
+        let _ = chooser.hide();
+        return;
+    }
+    hide_pages(app);
+    // Tauri normalizes the tray rect into logical-or-physical enums; resolve
+    // it to physical pixels before anchoring.
+    let scale = chooser
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .map(|m| m.scale_factor())
+        .unwrap_or(1.0);
+    let Some(tray_rect) = physical_tray_rect(rect, scale) else {
+        return;
+    };
+    position_under_tray(app, chooser, tray_rect);
+    let _ = chooser.show();
+    let _ = chooser.set_focus();
 }
 
 fn position_under_tray(
@@ -309,25 +336,7 @@ fn main() {
                     if let tauri::tray::TrayIconEvent::Click { rect, .. } = event {
                         let app = tray.app_handle();
                         if let Some(chooser) = app.get_webview_window("chooser") {
-                            if chooser.is_visible().unwrap_or(false) {
-                                let _ = chooser.hide();
-                            } else {
-                                hide_pages(app);
-                                // Tauri normalizes the tray rect into logical-or-physical
-                                // enums; resolve it to physical pixels before anchoring.
-                                let scale = chooser
-                                    .primary_monitor()
-                                    .ok()
-                                    .flatten()
-                                    .map(|m| m.scale_factor())
-                                    .unwrap_or(1.0);
-                                let Some(tray_rect) = physical_tray_rect(rect, scale) else {
-                                    return;
-                                };
-                                position_under_tray(app, &chooser, tray_rect);
-                                let _ = chooser.show();
-                                let _ = chooser.set_focus();
-                            }
+                            toggle_chooser_from_tray(app, &chooser, rect);
                         }
                     }
                 })
@@ -355,6 +364,28 @@ fn main() {
             }
             // Keep the status item alive after setup returns.
             app.manage(TrayKeepAlive(tray));
+            if controls.diagnostic {
+                // Explicit development hook only: replay the exact production
+                // tray-click toggle on SIGUSR1; normal runs never install it.
+                let handle = app.handle().clone();
+                let mut signals =
+                    signal_hook::iterator::Signals::new([signal_hook::consts::SIGUSR1])?;
+                std::thread::spawn(move || {
+                    for _ in signals.forever() {
+                        let app = handle.clone();
+                        let inner = app.clone();
+                        let _ = app.run_on_main_thread(move || {
+                            let Some(chooser) = inner.get_webview_window("chooser") else {
+                                return;
+                            };
+                            let Ok(Some(rect)) = inner.state::<TrayKeepAlive>().0.rect() else {
+                                return;
+                            };
+                            toggle_chooser_from_tray(&inner, &chooser, rect);
+                        });
+                    }
+                });
+            }
             if self_check {
                 // Bounded watchdog; no file/report payload or OS input injection.
                 let handle = app.handle().clone();

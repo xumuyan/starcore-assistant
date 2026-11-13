@@ -703,3 +703,11 @@
 - 难题与处理：初查时入口条未入截图裁剪区、CGWindowList 不单独列出状态项造成“图标缺失”误判风险，均以区域截图+窗口枚举交叉核实；含私密内容的全屏截图即时删除，未入库未上报。
 - 遗留问题：托盘点击重开锚定、页面切换、控件交互、Esc、外部焦点、热键、多屏/全屏等仍待用户按手工验收单反馈；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261113-005] record tray-icon fix retest observations`；上批 SC-20261113-004 提交 08e600e6b904ee02be818c4c418ee26aaae16499 已推送。
+
+## 2026-11-13 13:47:30 +08:00 · SC-20261113-006 · SIGUSR1 诊断钩子复放托盘点击路径
+
+- 修改内容：desktop/src-tauri/src/main.rs 抽取 `toggle_chooser_from_tray` 共享函数，托盘事件与诊断 SIGUSR1 钩子共用；Cargo.toml/lock 新增 signal-hook 0.3；desktop/README.md 记录钩子用法与边界；test/desktop-probe.test.mjs 增加 `fn toggle_chooser_from_tray`、`SIGUSR1` 守护断言；test/project-docs.test.mjs 接受 SC-20261113-005 下一步标记。
+- 测试：cargo fmt --check、Rust 8/8、clippy -D warnings 通过；原生自检 9 检查点 PASS；npm run build:mac:check OK；npm test 280/280；git diff --check 干净。
+- 难题与处理：闭包 move 与 run_on_main_thread 借用冲突（E0505），克隆 AppHandle 解决；--locked 因新增依赖失败，重新生成 lock 后通过。
+- 遗留问题：SIGUSR1 复放的锚定效果待部署复测；真实 CGEvent 托盘点击及 D01～P08 手测仍待反馈；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-006] replay tray-click toggle via diagnostic SIGUSR1`；上批 SC-20261113-005 提交 146882f63ea8b1648a17b5442c8244b233aece0e 已推送。
