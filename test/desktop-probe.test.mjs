@@ -5,12 +5,14 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { buildFrontend, root } from '../desktop/build-frontend.mjs';
 const read = path => readFileSync(join(root, path), 'utf8');
+const readBinary = path => readFileSync(join(root, path));
 
 test('T0 has isolated identity, hidden windows, bounded ACL and no service plugins', () => {
   const config = JSON.parse(read('desktop/src-tauri/tauri.conf.json'));
   assert.equal(config.identifier, 'dev.starcore.moss.t0-probe');
   assert.deepEqual(config.app.windows, []);
   assert.equal(config.bundle.active, false);
+  assert.deepEqual(config.bundle.icon, ['icons/icon.icns', 'icons/icon.png']);
   assert.match(config.app.security.csp, /connect-src ipc: http:\/\/ipc.localhost;/);
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval|https:|\*/);
   const acl = JSON.parse(read('desktop/src-tauri/capabilities/probe.json'));
@@ -33,6 +35,14 @@ test('T0 native declarations preserve focus separation and transient Escape regi
   assert.match(source, /set_ignore_cursor_events\(true\)/);
   assert.match(source, /unregister\("Escape"\)/);
   assert.match(source, /--show-chooser/);
+  assert.match(source, /include_bytes!\("\.\.\/assets\/tray-moss\.rgba"\)/);
+  assert.match(source, /Image::new_owned\(\s*TRAY_ICON_RGBA\.to_vec\(\),\s*36,\s*36,\s*\)/);
+  assert.match(source, /icon_as_template\(true\)/);
+  assert.equal(read('desktop/src-tauri/assets/tray-moss.rgba').length, 36 * 36 * 4);
+  const iconPng = readBinary('desktop/src-tauri/icons/icon.png');
+  assert.equal(iconPng.readUInt32BE(16), 1024, 'icon.png width 1024');
+  assert.equal(iconPng.readUInt32BE(20), 1024, 'icon.png height 1024');
+  assert.ok(readBinary('desktop/src-tauri/icons/icon.icns').length > 1000, 'icns present');
   const demo = source.split('fn demo(')[1].split('#[tauri::command]')[0];
   assert.doesNotMatch(demo.replace(/\/\/[^\n]*/g, ''), /set_focus\(/);
   const model = read('desktop/src-tauri/src/model.rs');

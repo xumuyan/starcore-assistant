@@ -719,3 +719,11 @@
 - 难题与处理：USR1 曾直接杀死进程且无崩溃报告，先用最小 Rust 二进制隔离证明 signal-hook 正常，再定位到部署产物过期（cargo test/clippy/check-native 均不刷新 target/debug 二进制），显式 cargo build 后解决；错误结论（钩子无效）已被正确结论取代并写入 README。
 - 遗留问题：真实 CGEvent 托盘点击投递、按钮→页、控件交互、Esc、外部焦点/点击穿透、热键、多屏/全屏仍需人工按验收单反馈；探针保持入口条锚定打开待手测；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261113-007] record SIGUSR1 anchored-reopen verification`；上批 SC-20261113-006 提交 3219b191e095ba3d956db46c04c30808539e1840 已推送。
+
+## 2026-11-13 15:40:56 +08:00 · SC-20261113-008 · 探针应用图标与菜单栏模板字形接入
+
+- 修改内容：新增 desktop/src-tauri/icons/icon.png、icon.icns（1024 squircle + iconset）与 desktop/src-tauri/assets/tray-moss.rgba（36×36 模板字形原始 RGBA）及生成脚本 generate-icons.swift；main.rs 用 include_bytes! 替换旧 20×20 斜线方块并传 36,36；tauri.conf.json bundle.icon 声明；README/验证文档/PLAN/守护测试同步。
+- 难题与处理：AI 生图服务 429 月度额度耗尽，改用仓库已有 2026-11-10 设计稿程序化产出；tray-icon 源码确认 macOS 强制 18pt 渲染，36px 位图实现 2x 清晰；首版字形实拍过小（消去法像素差分定位状态项在 (749,758)），放大占比后重拍确认清晰。
+- 验证结果：cargo fmt --check、Rust 8/8、clippy -D warnings、npm test 280/280、git diff --check 通过；真机截图确认 Dock 粉色玻璃气泡图标与菜单栏白色三竖条模板字形正常，SIGUSR1 锚定/开关不回归；iconutil 产物非提交脚本自动生成步骤已在 README 注明。
+- 遗留问题：AI 原图重绘可待额度恢复后按用户意愿替换；真实 CGEvent 托盘点击与 D01～D02/P01～P08 手工验收仍待反馈；T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-008] add app icon and tray template glyph`；上批 SC-20261113-007 提交 4732a59103839801e5d52697d5561b80e3c10c21 已推送。

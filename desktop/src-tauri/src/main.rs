@@ -317,18 +317,16 @@ fn main() {
             window(app.handle(), "history", 540.0, 260.0, false)?;
             window(app.handle(), "settings", 600.0, 420.0, false)?;
             window(app.handle(), "overlay", 620.0, 440.0, true)?;
-            // Small original monochrome icon; no external image or resource access.
-            let mut rgba = vec![0u8; 20 * 20 * 4];
-            for y in 3..17 {
-                for x in 3..17 {
-                    if x == 3 || x == 16 || y == 3 || y == 16 || (x == y) {
-                        let offset = (y * 20 + x) * 4;
-                        rgba[offset..offset + 4].copy_from_slice(&[255, 255, 255, 255]);
-                    }
-                }
-            }
+            // Monochrome template glyph (three waveform bars), pre-rendered offline to raw
+            // RGBA bytes; 36px pixels render at 18pt on the status item (2x retina sharp).
+            // No external image or resource access at runtime.
+            const TRAY_ICON_RGBA: &[u8] = include_bytes!("../assets/tray-moss.rgba");
             let tray = tauri::tray::TrayIconBuilder::with_id("moss-t0")
-                .icon(tauri::image::Image::new_owned(rgba, 20, 20))
+                .icon(tauri::image::Image::new_owned(
+                    TRAY_ICON_RGBA.to_vec(),
+                    36,
+                    36,
+                ))
                 .icon_as_template(true)
                 .tooltip("MOSS T0 验证壳（未录音）")
                 .show_menu_on_left_click(false)
@@ -370,8 +368,10 @@ fn main() {
                 let handle = app.handle().clone();
                 let mut signals =
                     signal_hook::iterator::Signals::new([signal_hook::consts::SIGUSR1])?;
+                eprintln!("USR1_HOOK_REGISTERED");
                 std::thread::spawn(move || {
                     for _ in signals.forever() {
+                        eprintln!("USR1_RECEIVED");
                         let app = handle.clone();
                         let inner = app.clone();
                         let _ = app.run_on_main_thread(move || {

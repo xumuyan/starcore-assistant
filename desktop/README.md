@@ -70,6 +70,12 @@ CLI/API、Rust crates 精确版本见两个 lock 文件。Rust 2.12.5 与 JS 2.1
 本机 debug 构建与区域截图观察到原生按钮组，但桌面工具不能确认该窗口/焦点，已停止自动输入。焦点、热键、Esc、菜单栏点击、多屏/全屏和最终精确视觉仍未验收。见 [T0 验证记录](../docs/verification/2026-11-12-tauri-t0.md)。
 
 
+### 图标资产（SC-20261113-008）
+
+- `icons/icon.png`（1024 squircle）与 `icons/icon.icns`：来自 `images/20261110032644-macOS-app-icon-design-ro.png` 设计稿（柔粉液态玻璃语音气泡），用 `assets/generate-icons.swift` 裁切遮罩生成；iconset 需手动 `iconutil -c icns /tmp/moss.iconset -o desktop/src-tauri/icons/icon.icns`。
+- `assets/tray-moss.rgba`：菜单栏模板字形（36×36 原始 RGBA，黑色三竖条声波 + alpha），同一脚本生成，`main.rs` `include_bytes!` 内嵌；tauri tray-icon 在 macOS 强制 18pt 高渲染，36px 位图即 2x 清晰度，`icon_as_template(true)` 自动适配深浅色菜单栏。
+- 运行时不访问外部图像资源；bundle 声明在 `tauri.conf.json` `bundle.icon`，临时 /tmp bundle 的 Dock 图标经 Info.plist `CFBundleIconFile` 指向同源 icns。
+
 ### 显式普通控制窗口诊断模式（SC-20261112-007）
 
 ```sh
