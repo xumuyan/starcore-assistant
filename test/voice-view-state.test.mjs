@@ -177,3 +177,31 @@ test('failure during synthesis or playback preserves text and rejects late playe
       assert.equal(reduce(state, event(type, 5, { text: 'late' })), state);
   }
 });
+
+test('full conversation and dictation fixtures deliver legal events through one reducer', async () => {
+  const { referenceSequence, dictationSequence } = await import('../desktop/frontend/reference-sequence.mjs');
+  for (const frames of [referenceSequence, dictationSequence]) {
+    let state = idle;
+    const states = [];
+    for (const frame of frames) {
+      const next = reduce(state, frame);
+      assert.notEqual(next, state, `${frame.type} at ${frame.at} must be accepted`);
+      assert.ok(Object.isFrozen(frame));
+      assert.equal('phase' in frame, false, 'fixtures cannot bypass the reducer with visual phases');
+      state = next; states.push(state);
+    }
+    assert.equal(state.activity, 'closed'); assert.equal(state.text, ''); assert.equal(state.level, 0);
+    assert.ok(states.some(s => s.activity === 'thinking'));
+    if (frames === referenceSequence) {
+      assert.ok(states.some(s => s.activity === 'ready' && s.text));
+      const playback = frames.findIndex(f => f.type === 'playback-started');
+      assert.ok(states.slice(0, playback).every(s => s.phase !== 'speaking'));
+      assert.ok(states.some(s => s.activity === 'completed' && s.text && s.level === 0));
+      const resumed = states.find(s => s.run === 2);
+      assert.equal(resumed.activity, 'listening'); assert.equal(resumed.text, '');
+      assert.equal(reduce(resumed, { type: 'playback-started', run: 1, seq: 999 }), resumed);
+    } else {
+      assert.ok(states.every(s => s.mode === 'dictation' && s.phase !== 'speaking'));
+    }
+  }
+});

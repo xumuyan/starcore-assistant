@@ -184,6 +184,51 @@ try {
     await page.clock.runFor(6000);
     assert.equal(await page.locator('.preview-stage canvas').count(), 0);
   }
+  // The primary full-flow button now uses the same reducer/timer owner.
+  await mode.selectOption('conversation');
+  const fullFlow = page.getByRole('button', { name: '播放完整语音流程（合成）' });
+  await fullFlow.click();
+  const fullStage = page.locator('.event-stage');
+  for (const [time, activity, level] of [[3300, 'thinking', '0'], [1100, 'ready', '0'],
+    [900, 'synthesizing', '0'], [1000, 'playing', '0'], [300, 'playing', '0.56'], [1500, 'completed', '0']]) {
+    await page.clock.runFor(time);
+    assert.equal(await fullStage.getAttribute('data-activity'), activity);
+    assert.equal(await fullStage.getAttribute('data-level'), level);
+    assert.equal(await mode.isDisabled(), true);
+  }
+  await page.clock.runFor(500);
+  assert.equal(await fullStage.getAttribute('data-run'), '2');
+  assert.equal(await fullStage.getAttribute('data-activity'), 'listening');
+  assert.equal(await fullStage.locator('.transcript').count(), 0);
+  await page.clock.runFor(1500);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'closed');
+  assert.equal(await fullStage.locator('canvas').count(), 0);
+  await page.getByRole('button', { name: '返回手动外观检查' }).click();
+  assert.equal(await mode.isDisabled(), false);
+  await phase.selectOption('listening'); await verifyTransparency();
+  // Restart and switch experiments during synthesis: old end/resume timers must die.
+  await fullFlow.click(); await page.clock.runFor(5400);
+  await fullFlow.click(); await page.clock.runFor(100);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'listening');
+  assert.equal(await fullStage.getAttribute('data-run'), '1');
+  await page.getByRole('button', { name: '测试取消与迟到事件（合成）' }).click();
+  await page.clock.runFor(5600);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'closed');
+  await page.clock.runFor(5000);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'closed');
+  await page.getByRole('button', { name: '返回手动外观检查' }).click();
+  await mode.selectOption('dictation'); await fullFlow.click();
+  await page.clock.runFor(1900);
+  assert.equal(await fullStage.locator('.transcript').innerText(), '这是一段按键听写的合成文字。');
+  await page.clock.runFor(1200);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'thinking');
+  assert.ok(await fullStage.locator('.dictation-orb-slot canvas').count());
+  await page.clock.runFor(2500);
+  assert.equal(await fullStage.getAttribute('data-activity'), 'closed');
+  await page.getByRole('button', { name: '返回手动外观检查' }).click();
+  await phase.selectOption('listening');
+  assert.equal(await page.locator('.dictation-effect').getAttribute('data-phase'), 'listening');
+  await page.keyboard.press('Escape');
   await page.clock.resume();
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320);
@@ -234,7 +279,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, unified full-flow events/restart/switch/manual return, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();

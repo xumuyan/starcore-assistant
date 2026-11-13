@@ -96,30 +96,30 @@ test('reference layout keeps the ring square and bounds streaming transcripts', 
 });
 
 test('explicit synthetic rehearsal covers the main reference flow and cancels timers', () => {
-  assert.equal(referenceSequence[0].phase, 'listening');
-  assert.equal(referenceSequence[0].text, '');
-  assert.equal(referenceSequence.at(-1).phase, 'hidden');
-  assert.ok(referenceSequence.some(frame => frame.phase === 'processing' && frame.text));
-  assert.ok(referenceSequence.some(frame => frame.phase === 'speaking' && frame.text));
+  assert.equal(referenceSequence[0].type, 'begin');
+  assert.equal(referenceSequence.at(-1).type, 'end');
+  for (const type of ['process', 'reply', 'synthesis-started', 'playback-started', 'playback-ended'])
+    assert.ok(referenceSequence.some(frame => frame.type === type));
   assert.ok(referenceSequence.every((frame, index) => index === 0 || frame.at > referenceSequence[index - 1].at));
   const source = read('desktop/frontend/preview.jsx');
   assert.match(source, /useState\(false\)/);
-  assert.match(source, /timers\.forEach\(clearTimeout\)/);
+  assert.doesNotMatch(source, /setTimeout|setPlaying|reference-sequence/);
+  assert.match(read('desktop/frontend/event-rehearsal.jsx'), /timers\.forEach\(clearTimeout\)/);
   assert.match(source, /window\.addEventListener\('keydown', cancel\)/);
   assert.match(source, /播放完整语音流程（合成）/);
 });
 
 
-test('dictation rehearsal stays in selected mode and switching from hidden reveals it', () => {
+test('dictation rehearsal uses the common event runner and switching from hidden reveals it', () => {
   assert.equal(sequenceForMode('dictation'), dictationSequence);
   assert.equal(sequenceForMode('conversation'), referenceSequence);
-  assert.equal(dictationSequence[0].phase, 'listening');
-  assert.equal(dictationSequence.at(-1).phase, 'hidden');
-  assert.ok(dictationSequence.some(frame => frame.phase === 'processing'));
-  assert.ok(!dictationSequence.some(frame => frame.phase === 'speaking'));
+  assert.equal(dictationSequence[0].type, 'begin');
+  assert.equal(dictationSequence[0].mode, 'dictation');
+  assert.equal(dictationSequence.at(-1).type, 'end');
+  assert.ok(dictationSequence.some(frame => frame.type === 'process'));
+  assert.ok(!dictationSequence.some(frame => frame.type.startsWith('playback')));
   const source = read('desktop/frontend/preview.jsx');
-  assert.match(source, /sequenceForMode\(mode\)\.map/);
-  assert.doesNotMatch(source, /function rehearse\(\) \{ setMode/);
+  assert.match(source, /rehearseEvents\(mode === 'dictation' \? 'full-dictation' : 'full-conversation'\)/);
   assert.match(source, /function changeMode[^}]*setPhase\('listening'\)/);
   assert.match(source, /mode === 'conversation' && <option value="speaking"/);
 });

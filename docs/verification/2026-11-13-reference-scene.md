@@ -77,3 +77,10 @@
 ## SC-20261113-018 透明语音画布
 
 用户要求透明背景。移除预览画布 #111 底板及虚线，根 html/body/root 显式透明；保留原版 beam/听写卡片深色表面与控制栏。Chromium 实际检查计算背景透明，在隐藏、对话圆环、听写 processing 时用 omitBackground 截图检测画布四角 alpha=0，另读取圆环 Canvas 角点 alpha=0；截图仅在内存，不保存桌面内容。现有布局/离线/状态分支检查通过。原生 `.transparent(true)` 与 probe 透明根 CSS 已存在且未改；普通浏览器页面透明不能透出桌面，不以浏览器截图代替原生 WKWebView 透明/全屏/多屏验收。T0 未验收、T1 未启动。
+
+
+## SC-20261113-019 主完整流程统一事件层
+
+原 reference-sequence 改为不可变的事件轨迹；主按钮与其他实验共用 EventRehearsal/reducer，不再保留直接 phase 计时流程。对话回复在 ready 时增量，TTS 之前不进入 speaking；播放完成保留文字清零，旧 run 结束后才显式新 run 收音；听写无 reply/playback，end 不等于插入成功。
+
+Chromium 实际检查主按钮的 thinking→ready→synthesizing→playing（输出电平）→completed→新 run→closed、听写增量/orbs/closed、重播重置与切换实验清旧计时器、返回手动解锁及可用性。透明 alpha、此前长文/布局矩阵/播放分支/离线检查保持通过。主流程结束仍留隐藏演练状态，用户显式返回手动或 Esc 后再手动选择外观；不是自动恢复真实录音。构建、相关单元和完整回归结果见操作日志。原生未部署，真实录音/播放未验收，T0 未验收、T1 未启动。
