@@ -751,3 +751,13 @@
 - 验证结果：效果专项 5/5；完整回归先 282/282，文档更新后失败一次并修复，最终 283/283（0 fail/skip）；preview/probe 离线构建、Tauri debug 构建、npm run build:mac:check（不安装）通过；隔离 Chromium 两轮实测原版 DOM/Canvas、中文、环 240×240、长文限高、合成识别/思考/回复、Esc 后不重现、听写 orbs、零外部请求/控制台错误。git diff --check 通过。本地预览 HTTP 200，地址 http://127.0.0.1:8765 。详见 docs/verification/2026-11-13-reference-scene.md。
 - 遗留问题：未完成上游逐帧时序/性能对比、WKWebView 本批新布局真机目验、真实语音驱动与业务接线；长文滚动能力不由限高检查代替。T0 人工项继续待反馈，但不阻塞隔离主视觉开发；T0 未验收，T1 未启动。
 - 对应 Git 提交：本条所在提交，主题 `feat: [SC-20261113-011] prioritize libraries.dev voice scene and flow rehearsal`；前批 51092f248fae5f2d350a61a89bf64e2a0471e912 已核对远端一致。
+
+## SC-20261113-012 修复按键听写预览不可见
+
+- 北京时间：2026-11-13 18:13:54 +08:00。
+- 修改或新增：用户反馈唤醒对话可见、按键对话不可见；修复 browser preview 播放按钮强制切回 conversation，新增 dictation 合成序列、按 mode 选序列、切换模式立即 listening/0.4 电平/清空文本、听写隐藏回复阶段选项，增加模式说明。更新效果测试、PLAN、README 与主视觉验证记录。
+- 遇到的难题：此前完整播放只支持唤醒；选择听写仍继承 hidden 状态，导致用户看不到长条。需区分浏览器视觉按钮与真实右 Ctrl，不能把预览修复冒充物理热键接线。
+- 处理方式：播放不再改 mode；按键听写独立 listening→processing/orbs→hidden，不引入回复播报；沿用 timer 清理与 Esc。未动已安装应用、原生键位、配置或数据。
+- 验证结果：效果专项 6/6；npm test 284/284（0 fail/skip）；preview/probe 构建通过；隔离 Chromium 实际验证隐藏态切换立即可见、播放仍保持 dictation、分段文字/orbs canvas、结束隐藏、Esc 后不重现及切回 conversation，零外部请求/控制台错误；临时合成截图确认长条/orbs 显示。git diff --check 通过。本批仅前端和文档，无原生改动，未重跑 Mac 构建。预览服务复用 http://127.0.0.1:8765 。
+- 遗留问题：用户仍需刷新后确认可见；若用户所指是真实右 Ctrl 而非网页预览，需另按真实运行链路定位，本批不声称修复真实热键。T0 未验收，T1 未启动。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261113-012] show and rehearse selected dictation mode`；前批 c2406b10386bf631fc125fb4aba7ec2ae55203aa 已推送。

@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildFrontend, noticePackages, root } from '../desktop/build-frontend.mjs';
 import { transcriptSegments } from '../desktop/frontend/transcript.mjs';
-import { referenceSequence } from '../desktop/frontend/reference-sequence.mjs';
+import { referenceSequence, dictationSequence, sequenceForMode } from '../desktop/frontend/reference-sequence.mjs';
 
 const read = path => readFileSync(resolve(root, path), 'utf8');
 
@@ -104,4 +104,19 @@ test('explicit synthetic rehearsal covers the main reference flow and cancels ti
   assert.match(source, /timers\.forEach\(clearTimeout\)/);
   assert.match(source, /window\.addEventListener\('keydown', cancel\)/);
   assert.match(source, /播放完整语音流程（合成）/);
+});
+
+
+test('dictation rehearsal stays in selected mode and switching from hidden reveals it', () => {
+  assert.equal(sequenceForMode('dictation'), dictationSequence);
+  assert.equal(sequenceForMode('conversation'), referenceSequence);
+  assert.equal(dictationSequence[0].phase, 'listening');
+  assert.equal(dictationSequence.at(-1).phase, 'hidden');
+  assert.ok(dictationSequence.some(frame => frame.phase === 'processing'));
+  assert.ok(!dictationSequence.some(frame => frame.phase === 'speaking'));
+  const source = read('desktop/frontend/preview.jsx');
+  assert.match(source, /sequenceForMode\(mode\)\.map/);
+  assert.doesNotMatch(source, /function rehearse\(\) \{ setMode/);
+  assert.match(source, /function changeMode[^}]*setPhase\('listening'\)/);
+  assert.match(source, /mode === 'conversation' && <option value="speaking"/);
 });
