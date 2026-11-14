@@ -987,3 +987,14 @@
 - 验证结果：初始专项 17/17，补复制中耗尽与幂等关闭后新增共 19 项；相关 transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 255/255；完整 npm test 534/534（0 fail/skip），git diff --check 通过。覆盖原转换接受/拒绝、无 seq 更新/ABA、合并 meter、四关闭、dismiss/hide、跨 run/epoch 复用、原/复制/外模型 record、耗尽清理、Promise 迟到、冻结/生产无导入。无新增浏览器、preview/probe/Mac 构建、真机、服务、录音/播放、剪贴板/系统输入、权限或安装操作。
 - 遗留问题：只在独占可信同步模型前提下验证，非真实 IPC 认证/唯一消费者/跨线程锁，恶意 getter/Proxy 重入、生产异常恢复与主动 DOM 更新未实现；原模型懒清理/已返回正文不可撤回。没有全局副作用授权、真正资源取消、候选有界寿命或生产重建协议。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线组合完整听写轨迹与转换入口，逐前缀交叉验证终止/复制/耗尽/所有 owner 与 drain，不新增生产通道，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-013] model exclusive dictation transitions and revision invalidation`；前批 6bfbd33cdcc0ea29b7b454c75fb9ea91b8ffbdc6 已推送。
+
+
+## SC-20261114-014 转换入口完整听写生命周期矩阵
+
+- 北京时间：2026-11-14 14:59:09 +08:00。
+- 修改或新增：新增 test/dictation-transition-lifecycle.test.mjs 与专用证据，21 项测试覆盖 1056 条轨迹（144 完整流程/下一模式、720 final/result/停止/close 重排、192 逐前缀版本耗尽/清理）。同步 PLAN/README/transitions 证据与文档检查；原转换模型、三个内部模型、selector/frame/reducer、夹具、产品源均未修改。
+- 遇到的难题：单步模型通过不代表所有关闭/停止顺序组合安全；展示变化不能当 ASR/writer stopped，版本耗尽也可能截在尚未分配全部资源的准备阶段或复制在途阶段。若用实际返回值推导 expected acceptance 会形成自证测试。
+- 处理方式：每步预先给定 expected acceptance，独立 closed/asrStopped/writerStopped/按事件顺序推导的 final/attempt/result 决定重排预期，逐步断言版本恰好推进（耗尽清理饱和例外）、成功失效旧帧、拒绝保持合法帧。长 Unicode 完整业务正文与截断展示交叉验证，新轮原 receipt/attempt/candidate/copy/frame/session 不能借用；下一轮仍需 fresh inputReady。上限 1～16 逐接受前缀检查，只有已实际分配的 lease 才提交原 stopped，复制 ticket 拒绝且原 lease 保留；六清理顺序均 drain 后保持版本饱和，不自动重启。
+- 验证结果：专项 21/21，相关 transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 276/276，完整 npm test 555/555（0 fail/skip），git diff --check 通过。所有矩阵测试保留默认关闭模型的显式测试启用前提；无新增浏览器、preview/probe/Mac 构建、真机、服务、录音/播放、剪贴板/系统输入、权限或安装操作。
+- 遗留问题：合成 ready/stopped/issued/written/显式动作均不是硬件或真实目标接受证明；无生产 IPC/唯一消费者、恶意 getter/Proxy 重入/异常恢复、主动 DOM 更新、资源取消证明、全局正文删除/副作用授权。候选有界寿命与锁屏/设置关闭等失效还未实现，真实接线仍受 T0/T1 门槛。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义候选有界寿命与主动失效事件，注入逻辑时钟、区分业务句柄失效/隐藏与 lease drain，不启生产 timer/系统订阅；当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-014] cross-check transition revisions through dictation lifecycles`；前批 451c489b02651a78058da85ebc7902b7441024b7 已推送。

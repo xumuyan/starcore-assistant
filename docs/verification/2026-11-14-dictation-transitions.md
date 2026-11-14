@@ -31,3 +31,8 @@ maxRevision 为安全正整数，可缩小测试。最后一次普通操作可�
 `node --test test/dictation-transition-model.test.mjs`：每类原操作接受/拒绝、ABA、无 seq 变化的队列覆盖、四关闭、dismiss/hide、跨 run/epoch、计数耗尽及可清理性、Promise 迟到、原/复制/外模型 records、只读输出/无生产导入。相关与全量实际结果见 operatelog。
 
 下一步离线组合**转换入口与完整听写轨迹**，逐前缀检查展示、所有 owner 的接受/拒绝与 drain，特别是终止/复制/耗尽交叉排列；不新增生产通道。真实 UI/服务接线仍受 T0/T1 门槛，当前无需用户操作或授权。
+
+
+## SC-20261114-014 完整轨迹交叉验证
+
+[转换入口生命周期矩阵](2026-11-14-dictation-transition-lifecycle.md)新增 144+720+192 条轨迹，逐前缀验证原 owner/版本/唯一展示/资源 drain/耗尽清理，原模型不修改。仍非真实 UI/IPC/系统操作验收；下一步离线候选有界寿命与主动失效契约。

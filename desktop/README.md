@@ -242,3 +242,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 听写逐接受操作版本 · SC-20261114-013
 
 [唯一转换入口实验](../docs/verification/2026-11-14-dictation-transitions.md)默认关闭、仅测试：内部私有持有原模型，成功操作统一递增版本，即使 ABA 返回同值也拒绝旧 record；失败不消耗版本，dismiss 记录本轮 marker，耗尽隐藏但 close/disconnect/原 stop 清理仍可用。未实现生产唯一消费者、身份认证、异常恢复或主动 DOM 更新。T0/T1/G1～G6 仍未验收；下一步完整轨迹/终止/复制/耗尽交叉验证，当前无需用户操作。
+
+
+### 转换入口完整轨迹 · SC-20261114-014
+
+[生命周期矩阵](../docs/verification/2026-11-14-dictation-transition-lifecycle.md)仅新增离线测试：144 条完整分支/下一模式、720 条 final/result/停止/close 重排、192 条逐前缀耗尽/清理轨迹，逐接受/拒绝校验 revision 与展示，原模型和产品代码不改。不是硬件/目标接受证明；T0/T1/G1～G6 仍未验收。下一步候选有界寿命与主动失效契约，当前无需用户操作。
