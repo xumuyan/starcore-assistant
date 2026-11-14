@@ -197,3 +197,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 恢复与断连合成矩阵 · SC-20261114-004
 
 [离线协调器记录](../docs/verification/2026-11-14-voice-coordinator-model.md)新增 112 条完成/静音/播放或合成失败→end/drain→下一模式输入确认轨迹，以及 10 个断连阶段。仅模型增加 disconnected 门闩，drain 后仍不自动恢复，需新 epoch 显式重建；迟到确认来自保留的本地 owner ticket，不是断开通道的业务事件。停止确认、输入恢复均为测试调用，不是硬件验收；T0/T1、G1～G6 未验收。下一步交叉验证耗尽/断连与离线 meter 合并契约，不接服务，当前无需用户操作。
+
+
+### 离线采样调度与耗尽边界 · SC-20261114-005
+
+[模型验证记录](../docs/verification/2026-11-14-voice-coordinator-model.md)补充显式 coalesceMeters 实验：默认关闭，手工 flush，一万条电平只留一槽，缓冲不分配 seq；文字/播放结果优先，取消/结束/断连直接清槽，不等 flush。合并采样保留最后普通序号和终结序号；缩小计数上限交叉检查断连与缺失资源确认。没有自动计时器/生产队列、真实订阅或设备验证；G1～G6、T0/T1 仍未验收。下一步对照主流程夹具的合成确认边界，当前无需用户操作。

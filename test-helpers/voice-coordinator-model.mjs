@@ -15,15 +15,17 @@ export class VoiceCoordinatorModel {
   #enabled; #epoch; #epochs; #max; #run = 0; #session = null;
   #closing = false; #leases = new Map(); #used = new Set(); #requests = new Set();
   #view = initialVoiceView; #connected = true;
+  #coalesce; #meter = null;
 
-  constructor({ enabled = false, epoch, maxCounter = Number.MAX_SAFE_INTEGER } = {}) {
+  constructor({ enabled = false, epoch, maxCounter = Number.MAX_SAFE_INTEGER, coalesceMeters = false } = {}) {
     if (!id(epoch) || !Number.isSafeInteger(maxCounter) || maxCounter < 2) throw new TypeError('invalid model options');
     this.#enabled = enabled === true; this.#epoch = epoch; this.#epochs = new Set([epoch]); this.#max = maxCounter;
+    this.#coalesce = coalesceMeters === true;
   }
 
   snapshot() {
     return Object.freeze({ epoch: this.#epoch, connected: this.#connected, session: this.#session, closing: this.#closing,
-      pending: Object.freeze([...this.#leases.values()]), view: this.#view });
+      pending: Object.freeze([...this.#leases.values()]), queuedMeters: this.#meter ? 1 : 0, view: this.#view });
   }
 
   reserve({ origin, mode, requestId } = {}) {
@@ -74,18 +76,39 @@ export class VoiceCoordinatorModel {
     if (this.#closing || !this.#owned(ticket) || !event || !events[ticket.resource].has(event.type)) return false;
     if (event.type === 'meter' && event.source !== (ticket.resource === 'capture' ? 'input' : 'output')) return false;
     // Copy only view data. Caller-supplied run/seq/phase cannot overwrite identity.
-    return this.#apply({ type: event.type, text: event.text, source: event.source, level: event.level });
+    const payload = { type: event.type, text: event.text, source: event.source, level: event.level };
+    if (this.#coalesce && event.type === 'meter') {
+      // A single active source/owner: retain only its newest valid sample, no seq yet.
+      // Reserve the last ordinary seq for a lifecycle/text event, plus terminal seq.
+      if (!this.#view.active || this.#view.seq >= this.#max - 2 ||
+        reduceVoiceView(this.#view, { ...payload, run: this.#session.run, seq: this.#view.seq + 1 }) === this.#view) return false;
+      this.#meter = { ticket, payload }; return true; // Buffered, NOT delivered.
+    }
+    const accepted = this.#apply(payload);
+    // A successful non-meter event is a barrier; never flush an older sample after it.
+    if (accepted) this.#meter = null;
+    return accepted;
+  }
+
+  flushMeter(session) {
+    if (!this.#current(session) || this.#closing || !this.#meter) return false;
+    const { ticket, payload } = this.#meter; this.#meter = null;
+    if (!this.#owned(ticket) || this.#view.seq >= this.#max - 2) return false;
+    return this.#apply(payload);
   }
 
   process(session) {
     if (!this.#current(session) || this.#closing || this.#leases.has('capture')) return false;
-    return this.#apply({ type: 'process' });
+    const accepted = this.#apply({ type: 'process' });
+    if (accepted) this.#meter = null;
+    return accepted;
   }
 
   close(session, type = 'cancel') {
     if (!this.#current(session) || !['cancel', 'end', 'fail'].includes(type)) return false;
     if (this.#closing) return true; // Idempotent; do not issue a second terminal event.
     this.#closing = true; // Invalidate deliveries BEFORE hiding the view.
+    this.#meter = null; // Terminal events bypass sampling; no flush or async wait.
     if (this.#view.active) this.#view = reduceVoiceView(this.#view,
       { type, run: session.run, seq: this.#view.seq + 1 });
     this.#settle(); return true;
@@ -95,6 +118,7 @@ export class VoiceCoordinatorModel {
     // This is a separate synthetic ownership acknowledgement, not a view event.
     // Failed/timeout acknowledgements retain the gate. No timers or retries here.
     if (stopped !== true || !this.#owned(ticket)) return false;
+    if (this.#meter?.ticket === ticket) this.#meter = null;
     this.#leases.delete(ticket.resource); this.#settle(); return true;
   }
 
@@ -115,7 +139,7 @@ export class VoiceCoordinatorModel {
     // Model of a drained teardown + new view instance, NOT a live process restart.
     if (this.#session || !id(epoch) || this.#epochs.has(epoch)) return false;
     this.#epochs.add(epoch); this.#epoch = epoch; this.#run = 0; this.#connected = true;
-    this.#used.clear(); this.#requests.clear(); this.#view = initialVoiceView;
+    this.#used.clear(); this.#requests.clear(); this.#view = initialVoiceView; this.#meter = null;
     return true;
   }
 }

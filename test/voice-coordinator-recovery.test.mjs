@@ -203,6 +203,6 @@ test('recovery evidence keeps local acknowledgements separate from transport and
   for (const requirement of [/112 条恢复轨迹/, /10 个断连阶段/, /19 项测试/,
     /不是从断开的传输通道接收匿名确认/, /不把超时当作成功/, /只有新的 capture inputReady 才 begin/,
     /未做设备验收/, /G1～G6 仍未验收/, /T0 未验收、T1 未启动/]) assert.match(section, requirement);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261114-004）/);
+  assert.match(read('PLAN.md'), /SC-20261114-004 已补 112 条恢复轨迹与 10 个断连阶段/);
   assert.match(read('desktop/README.md'), /恢复与断连合成矩阵 · SC-20261114-004/);
 });
