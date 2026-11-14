@@ -910,3 +910,14 @@
 - 验证结果：专项 20/20，相关 reference/model/recovery/scheduling/contract/state/docs 两次 116/116。完整回归依次 387/387 → 386/387（既有 rust host serve chat speaks the relay protocol，test/rust-host.test.mjs:252:39，Cannot read properties of undefined (reading 'type')）→ Rust 单文件重跑 7/8（同一错误）→ 完整回归重跑 387/387（0 fail/skip）。git diff --check 通过。实际完成离线逐帧/缺确认验证及文档检查，无动画逐帧或设备验收。未改前端/原生运行代码，未重跑 preview/probe 构建、Chromium 或 Mac 构建；未接服务/设备/剪贴板，不安装或替换应用。
 - 遗留问题：所有 input/stop/playback/writer 确认仍为合成调用；实际听写无增量来源，processing 后最终 ASR 仍被拒绝，writer 释放不是插入/复制结果。T0 未验收、T1 未启动、G1～G6 全部未验收。既有 Rust 偶发测试本批两次复现，最后完整重跑通过不代表已修复；源码可见等待 user 后立即读取下一行快照，但本批不改该历史测试，需独立核对事件等待边界。下一步先独立修正/验证这个回归等待边界，再推进最终 ASR 展示契约与视图截取/业务原文分离、取消/迟到与 writer 边界；不连接真实服务或设备，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-006] cross-check reference flows against coordinator ownership`；前批 c443109595a0a4be41f81b052f8c61cfa8da66ce 已推送。
+
+
+## SC-20261114-007 Rust 协议测试相邻事件等待修正
+
+- 北京时间：2026-11-14 12:36:26 +08:00。
+- 修改或新增：新增仅测试使用的 waitForEventAt 辅助函数；Rust relay 测试在 user 已出现后等待原相邻下一条事件实际存在，再保留 type=state/name=thinking 的严格断言。新增八项测试（七项行为/源码使用检查及一项文档边界），覆盖拆分 stdout、半条 JSON、旧快照确定性 TypeError、已到事件、错误中间事件不跳过、缺行超时、解析错误和无效参数；同步 PLAN/README/验证记录/文档测试。
+- 遇到的难题：SC-006 两次失败并非 user 没到，而是 user 与 thinking 可分属不同 stdout data 回调；原 parseAll 新快照也无法保证下一行存在，直接读 .type 会偶发 undefined。不能用延长 sleep 或“寻找后续任意 thinking”掩盖协议乱序。
+- 处理方式：只等确切位置 userAt+1，10 秒有界等待、25ms 轮询，单调时钟计算期限；相邻错误事件原样返回使断言失败，解析异常直接抛出，超时错误仅含位置/数量不含载荷。测试先喂 user、再喂半行和末尾换行，确定性证明旧写法失败和新写法等待完整行。未改 Rust/Swift/Node 产品代码或协议，不修改服务器时间/播放/取消行为。
+- 验证结果：初始专项含真实 Rust 单文件 15/15；真实 Rust relay 目标连续五次独立筛选运行各 1/1（筛选不代表全量）；补文档测试后相关 event-at/rust-host/project-docs 35/35，完整 npm test 395/395（0 fail/skip），git diff --check 通过。真实 Rust 测试使用本机编译二进制、回环合成 HTTP 与临时 HOME，金库互读与其他协议断言保留；不是外部服务/设备验收。无原生代码修改，未重跑 Mac 构建、Chromium 或新壳设备验收，不安装/替换应用。
+- 遗留问题：已识别的测试快照竞态有确定性复现与修正验证，但不能保证全部历史偶发风险或宿主生命周期问题消失。T0 未验收、T1 未启动、G1～G6 保持未验收；下一步继续离线最终 ASR 展示契约及视图/业务原文分离、取消/迟到和 writer 边界，真实接线仍受 T0/T1 门槛约束。当前不需要用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-007] await adjacent Rust relay events without snapshot races`；前批 85a47f2be64ae0eea32d5a208d863b92b6738d6b 已推送。

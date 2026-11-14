@@ -6,6 +6,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { waitForEventAt } from '../test-helpers/event-at.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cargo = join(homedir(), '.cargo/bin/cargo');
@@ -248,9 +249,11 @@ test('rust host serve chat speaks the relay protocol', { skip: !existsSync(cargo
     proc.stdin.write(JSON.stringify({ type: 'text', text: '你好，介绍一下自己', mode: 'chat' }) + '\n');
     const [userAt] = await waitEvent(e => e.type === 'message' && e.role === 'user' && e.content === '你好，介绍一下自己');
     {
-      const events = parseAll();
-      assert.equal(events[userAt + 1].type, 'state');
-      assert.equal(events[userAt + 1].name, 'thinking');
+      // stdout may split consecutive JSON lines across separate data callbacks.
+      // Keep the adjacency assertion, but await the next row's existence first.
+      const next = await waitForEventAt(parseAll, userAt + 1);
+      assert.equal(next.type, 'state');
+      assert.equal(next.name, 'thinking');
     }
     const [, usage] = await waitEvent(e => e.type === 'usage', userAt);
     assert.equal(usage.input, 100);

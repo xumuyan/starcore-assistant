@@ -207,3 +207,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 主语音夹具与协调器边界 · SC-20261114-006
 
 [主流程协调器对照](../docs/verification/2026-11-14-voice-reference-coordination.md)在测试内导入现有完整对话/听写及四种播放分支，逐帧与协调器比较；即时/手工合并共 12 条轨迹。另用七组缺确认反例核对输入就绪、capture stop、chat/TTS/player 原 owner、结束后的 drain/新输入和最终 ASR/writer 边界。仅合成假设，不是适配器，不接真实服务；T0/T1、G1～G6 未验收。下一步定义 processing 后最终 ASR 展示契约，当前无需用户操作。
+
+
+### Rust 协议测试等待修正 · SC-20261114-007
+
+[验证记录](../docs/verification/2026-11-14-rust-relay-event-wait.md)：用户消息与后续 thinking 状态可能分 stdout 回调到达。测试改为等待原相邻位置存在，再严格断言 type/name，不跳过中间错误事件。七项确定性测试覆盖拆行/半行、超时、顺序与解析错误；没有产品协议或服务行为修改，T0/T1、G1～G6 未验收。
