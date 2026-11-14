@@ -227,3 +227,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 听写组合生命周期 · SC-20261114-010
 
 [组合矩阵证据](../docs/verification/2026-11-14-dictation-lifecycle.md)：原三个模型不变，144 条完整分支/close-stop-next-mode 轨迹，720 条 final/result/stop/close 乱序；旧回调不能覆盖新回合，缺停止证明不放行。明确 outcome dismiss/issued 不会清除独立 final 投影，尚非统一展示仲裁或全局写入授权。仅合成测试，不操作剪贴板/真实设备；T0/T1、G1～G6 未验收。下一步定义单一只读展示选择契约，当前无需用户操作。
+
+
+### 听写单一展示选择 · SC-20261114-011
+
+[只读选择契约](../docs/verification/2026-11-14-dictation-presentation.md)与默认关闭的纯测试函数：单一状态优先级，只有 thinking 显示 orbs，final/writer/复制终局不伪装收音，终局不展示正文；当前原 session dismiss marker 可隐藏本轮但不释放资源。canCopy 只是提示，原候选与显式动作仍必需；同 session 旧快照新鲜度与主动 marker 生命周期尚未实现。没有 React/服务接线或真实验收，T0/T1、G1～G6 未验收；下一步一致帧采样/dismissal 离线验证，当前无需用户操作。

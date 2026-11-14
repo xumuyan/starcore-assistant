@@ -954,3 +954,14 @@
 - 验证结果：专项首次 22/22；相关 lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 190/190；完整 npm test 469/469，0 fail/skip；git diff --check 通过。额外覆盖同 epoch 新轮的 Promise 迟到 copy、断连缺 ASR stop 连续 50 次阻止 restart、补 drain 也不自动重连。组合矩阵保留截取展示与完整正文、原 owner/单槽/停止顺序/下一模式边界。无前端/原生/Node 产品源修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未使用剪贴板/真实输入/录音/播放/外部服务，不改已安装应用。
 - 遗留问题：三个模型不是统一展示仲裁器或全局写入授权；outcome dismiss 不全局隐藏 final 卡片，惰性方法访问清理不是即时取消/安全擦除，已返回正文和已发粘贴不可撤回。统一 seq、受限 IPC、候选有界寿命/主动清理/真实资源证明仍未实现，T0 未验收、T1 未启动、G1～G6 仍未验收。下一步先离线定义单一只读展示选择契约，明确 thinking/final/preparing/结果/复制/hidden 优先级与内容规则，区分 outcome dismiss 与 run close；不新增生产通道，不接服务，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-010] cross-check dictation result and resource lifecycles`；前批 963842f867746f09df3921f3105431461eaafe6b 已推送。
+
+
+## SC-20261114-011 听写单一只读展示选择规则
+
+- 北京时间：2026-11-14 13:49:32 +08:00。
+- 修改或新增：新增默认关闭、纯测试函数 selectDictationPresentation 与 24 项测试/证据；输入同源本地 coordinator/final/outcome 包封及原 dismissedSession，返回唯一冻结 status/text/truncated/level/showOrbs/canCopy。仅 thinking 显示 orbs，final/preparing/三结果/复制终局优先，不沿用 listening 旧文字；issued/unknown/copied 不展示正文，非删除原 final。同步 PLAN/README/lifecycle 证据/文档检查，旧模型/reducer/夹具/产品源均不改。
+- 遇到的难题：原 outcome preparing 后 dismiss 与从未 begin 的 hidden/unattempted 快照无法区分，三个模型没有统一 revision；原对象包封相等不证明同 session 快照新鲜，整份旧帧无法感知后来的 cancel。展示 canCopy 也不能变成可调用剪贴板授权。
+- 处理方式：明确调用方保留原 session 的 dismissedSession，控制整个本轮展示但不 end/释放资源；终局 dismiss 的非默认 disposition 即使漏 marker 也不复活。preparing dismiss 漏 marker 仍显示 final 的限制以反例固定，不造隐藏历史。测试内要求可信同步采样及原包封，错误身份/phase/长度/Unicode/结果组合隐藏而非补造 thinking。输出无 business handles，复制仍须原 candidate 和显式动作。旧/同 session 帧新鲜度与主动 marker 生命周期留给后续一致帧契约，不冒充已修复所有迟到展示。
+- 验证结果：初始专项 22/22；补 32 组优先级组合与整份旧帧限制后 24/24。相关 presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 214/214，完整 npm test 493/493（0 fail/skip），git diff --check 通过。覆盖默认隐藏、listening 独立、processing 旧文字清空、final 空截取、三结果、复制失败/重试/完成、dismiss 漏 marker、四种关闭覆盖保留值、跨 epoch 包封/旧 marker、非法组合、纯只读稳定与生产无导入。没有 React/Swift/Rust/Node 产品代码修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未触剪贴板/系统输入/服务/权限/安装应用。
+- 遗留问题：函数未接前端，只有语义枚举、无实际卡片文案或动画；纯 selector 不认证 IPC、不保证帧新鲜、不主动清理正文/订阅、不管理 dismissedSession、不分配统一 seq、不授予写入/复制权限。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义一致帧采样和 dismissal 生命周期，检查同 session 旧 revision、关闭优先与跨 run 清 marker，真实接线仍受 T0/T1 门槛，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-011] define a single read-only dictation presentation selector`；前批 6473016f04f07921c6bda0076191165fe316fbd9 已推送。

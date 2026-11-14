@@ -46,3 +46,8 @@ final、writer result、ASR stopped、writer stopped、close 的 120 种全排�
 `node --test test/dictation-lifecycle.test.mjs`；相关及完整回归实际结果记录在根 operatelog。矩阵计数是循环内轨迹数，不把 864 条排列写成 864 个独立 node:test。
 
 下一步先设计**单一只读展示选择契约**：在 thinking/final-ready/preparing/paste-issued/paste-uncertain/copy-available/copying/copied/hidden 之间明确优先级与内容可见规则，区分 outcome dismiss 和整个 run close，避免同时展示“处理中”和终局结果。先文档与纯合成测试，不放宽旧 reducer、不新增生产事件通道、不连接服务；当前无需用户操作或授权，真实接线仍遵守 T0/T1。
+
+
+## SC-20261114-011 展示选择提案
+
+[单一只读选择契约](2026-11-14-dictation-presentation.md)在不修改原模型的前提下组合展示快照：writer 终局覆盖 final/thinking，只有 thinking 显示 orbs，dismissedSession 区分本轮视觉关闭与资源 close。输出不含业务 handles、不授予复制权限，不删除独立 final 正文，也不能识别同 session 旧快照重标身份。仅离线测试，前端与真实服务未接；下一步一致帧采样和 dismissal 生命周期。
