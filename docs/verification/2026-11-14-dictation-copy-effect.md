@@ -27,3 +27,8 @@ snapshot 是无正文、无 handles 的局部执行状态，非统一 UI 选择�
 **TOCTOU 仍存在**：同一逻辑 now、source 高水位、原 token 和 allowed=true 都不证明 OS 检查与执行原子；未到达锁屏/权限变化也推不出来。真实 native executor 必须在自身执行边界复查当前系统状态/权限/原 ownership；自动粘贴还必须复查原 target/focus/selection/security/trigger release（不属于显式复制适配范围）。这里没有调用实际复查、更没有系统授权 bypass。逻辑失效只能停止未交接的本地模拟，无法撤销已交接/已经发生的写入。未新增浏览器、前端/原生构建或真机证据。
 
 下一步离线组合验证原 executor stop 与源重新同步、语音资源 drain/epoch 重建及下一次显式复制，避免局部结果记录误当全局资源恢复；仍不接生产。无需用户操作或授权。
+
+
+## 后续 SC-20261114-020
+
+[组合恢复矩阵](2026-11-14-dictation-copy-recovery.md)仅新增测试与证据，保留本模型不变；独立验证源双快照、voice 原 stop/drain/epoch 与 executor stop，旧结果不投新 run，不声称真实恢复或 OS 副作用已验收。

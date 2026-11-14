@@ -1053,3 +1053,14 @@
 - 验证结果：初始专项 30/30，补候选独立截止/原 session 与外来 copy/voice release/源恢复新复制等原 executor stop/业务耗尽五项，共 35 项；专项+文档 54/54。480 条轨迹（120 种 check/handoff/loss/report/stop 排列 × written/not-written × 两 meter 模式）每前缀独立推导，八失效点×交接前后、Unicode 完整正文、原句柄/拒绝旁路、Promise 跨新 run、截止同刻真实结果、无停止证明和生产无导入。相关两次 408/408，完整 npm test 两次 687/687（0 fail/skip/cancelled），git diff --check 通过。无新增浏览器、前端/原生构建、真机、系统通知、剪贴板/系统输入、音频、权限或安装操作，原生源未变，未运行新原生构建。
 - 遗留问题：真实 OS guard/执行器/IPC 身份/原子性均未实现，同逻辑时刻和 synthetic allowed 不排除未观测锁屏或权限变化，TOCTOU 未解决；handoff 是保守未知边界而非 OS 发出证明，written 也非粘贴或目标接收。已返回正文/发生的写入不可撤回，snapshot 是局部执行状态非统一 UI，独立 final/旧跨结束回退不改。仅可信串行本地 owner，不保证恶意 getter/Proxy/重入/异常恢复/崩溃恢复；检查也无自动 timer。既有 service.test 20 秒超时根因仍未定位，本轮通过不算修复。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线组合验证 executor stop/源同步/voice drain 与 epoch 重建到下一次复制，不直接接生产，无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-019] model one-shot copy checks and executor result ownership`；前批 50dded8583d46faac5a3572621e9b89506a5047e 已推送。
+
+
+## SC-20261114-020 显式复制执行器与源/语音组合恢复验证
+
+- 北京时间：2026-11-14 22:45:55 +08:00。
+- 修改或新增：新增 test/dictation-copy-recovery.test.mjs 的 23 项专项与 docs/verification/2026-11-14-dictation-copy-recovery.md，同步 PLAN/README/copy-effect 后续/文档测试；只改测试与文档，原 copy-effect/source-lease 及下层模型、夹具、reducer 和全部产品源码不改。
+- 遇到的难题：源双快照、原语音 stop/drain、voice 重连/inputReady 与 executor stopped 是独立条件，不能用某项恢复替代另一项；report 在 stop 前后和新 epoch/new copy 交错，须避免旧 truth 被当作新轮成功。局部最近执行记录可能在新轮仍显示旧 written，不能直接当当前 session 展示。
+- 处理方式：4320 条源恢复全排列（六事件 720 排列 × 三结果 × 两 meter）逐前缀用独立 seen 集合推导 phase、资源、结果先后、busy，fresh+voice drain 才进入新准备/原 inputReady，额外 executor stop 才允许新 copy。288 条 voice 断连/epoch 路径保留源高水位，显式重建后撤销旧 query、再次双快照，再验证新 copy 明确失败与新动作重试。所有旧 receipt/attempt/candidate/copy/check/query/job/Promise 在新轮拒绝，结果/stop 不混入新 job；结果不是 stop，stop 不是没写入。
+- 验证结果：初始专项 20/20，补缺第二路快照阻止 50 次预留、旧局部 written 与新 listening 共存、部分恢复再失联撤销 freshness 三项，共 23 项、4608 条完整轨迹（不是 4608 项测试）。另测缺 executor stop 阻止 50 次 copy、缺原 ASR stop 阻止 50 次 reserve/restart、fresh restrictive 不授许可、inclusive 源截止、业务耗尽只能清理、旧回调/预算不续命、生产无导入。相关两次 431/431，完整 npm test 两次 710/710（0 fail/skip/cancelled），git diff --check 通过。无新增浏览器、前端/原生构建、真机、系统通知、剪贴板/输入、音频、权限或安装操作；原生源未变，未运行新原生构建。
+- 遗留问题：仅可信串行本地 ownership/合成 guard/stop/query/result，非生产源认证或真实 worker 停止证明；TOCTOU、自动时钟/计时器、IPC 身份/线性化/异常恢复/崩溃恢复仍未实现。源期限内未通知锁屏不可推断，旧写入/返回正文不可撤回；snapshot.outcome 是局部最近执行记录，不是新回合成功/统一 UI，独立 final 和旧跨结束回退不改。既有 service.test 20 秒超时根因仍未定位，本批通过不算修复。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线明确执行结果展示的原 session/job 归属及新回合隔离，不直接接生产，无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-020] cross-check copy executor and source voice recovery gates`；前批 bd9260052ae2367edeb20e86e51d02ee097d2667 已推送。
