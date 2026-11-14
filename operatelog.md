@@ -1086,3 +1086,13 @@
 - 验证结果：完整 npm test 实际 736 项，729 pass/6 fail/1 cancelled/0 skipped：client-control 两项、rust-host 三项 ETIMEDOUT，dictation-controller 子进程 status=null（不能只据此断定超时），service 20000ms testTimeoutFailure。原四文件缩小复测 13 项，10 pass/3 fail，client-control 两 start 与 rust-host start 仍超时；其余复测通过不称修复。观测 load averages 673.06/680.20/665.72，未证明因果。文档及 SC021 专项 46/46、git diff --check 通过；fetch 后原分支远端差异 0/0。没有新浏览器/原生构建/真机、权限、剪贴板、输入、音频或安装应用操作。
 - 遗留问题：SC021 仍未整批验收，默认 stable 部分状态仍需正常修复；独立工具链可用不代表 fmt/clippy 齐全。先定位 client-control/rust-host start 子进程阻塞，独立保留 service 超时及原生检查问题；不放宽超时、不结束未知进程，不叠加等待提示功能。完整回归及阶段证据实际通过前不勾完成。T0 未验收、T1 未启动、G1～G6 仍未验收；无需用户授予真实输入/剪贴板权限。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-001] record official Rust recovery and remaining regression failures`；前批 9734b15d5626787b833c49ea46d8bb8c1e7b5734 已推送。
+
+## SC-20261115-002 控制子进程失败耗时诊断（未修复回归）
+
+- 北京时间：2026-11-15 01:34:59 +08:00。
+- 修改或新增：新增仅测试 measured-exec-file helper 与六项确定性测试，client-control/rust-host 测试导入同签名包装；新增诊断证据，更新 PLAN/README/上批后续及文档检查。不改产品源码、原时限/参数/断言/并行设置，不添加重试或 skip。
+- 遇到的难题：同一 start 在不同复跑中失败位置变化，负载观察不能证明根因；需要保留原异常并增加脱离业务正文的执行证据。Python/Node 顺序采样不等于受控基准，也不能拿异步快的单例证明应改生产异步。
+- 处理方式：合成 HOME/plist/fake-launchctl 的临时 trace 观察 start=25.22s，内部 plutil 12852/2688ms、fake-launchctl 5330/2873ms；Python 同工具约 0.01s。无业务 Node spawnSync true 为 11603/1724/34/580ms，异步 true 8ms，Python 8/6/7/5ms，仅缩小层次、不归责。正式测试失败时仅加白名单 executable、单调 elapsedMs、原 timeoutMs/code/status/signal，不读取 args/env/input/stdout/stderr，原异常重抛、冻结/只读异常仍保留；原异常自带路径/载荷不由本 helper 清除，不冒称全日志脱敏。
+- 验证结果：helper 首次5/5，补只读消息共6项；helper+两文件17项13 pass/4 fail，四条原30秒Node超时实际返回35.251/42.309/30.498/69.795s。完整 RUSTUP_TOOLCHAIN=1.100.0 npm test（文档新测试加入前）743项739 pass/4 fail/0 cancelled/skipped，两client-control start与一rust-host start仍超时，另rust-state corrupt/legacy测试status=null而期望1，原因未定位；service此次通过不称修复。文档+helper27/27，git diff --check通过，fetch后0/0。未改原生代码，未做新浏览器/原生构建/真机/代理安装/剪贴板/输入/权限操作。
+- 遗留问题：仍未恢复完整回归，SC021未整批验收；下一步无业务最小子进程与控制路径进一步定位同步启动/调度延迟，独立保留rust-state异常状态与service历史超时。ps/sysctl进程计数诊断25秒未完成，未取得可归责清单，不停止未知进程或用户应用。默认stable中断状态未修复，继续进程级1.100.0。T0 未验收、T1 未启动、G1～G6 仍未验收；不叠加等待提示，不要求额外用户权限。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-002] annotate control subprocess failures without relaxing timeouts`；前批53c7307f2b6e22f1f45e246fd226318aca56919b已推送。
