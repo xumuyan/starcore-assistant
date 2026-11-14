@@ -855,3 +855,14 @@
 - 验证结果：effects/state 25/25，连同文档 44/44；preview/probe 离线构建通过；修改快进策略后完整 Chromium 检查通过，27 组全部断言且零外部请求/控制台错误，原透明/文字滚动/几何及生命周期检查继续通过。npm test 304/304，git diff --check 通过。无原生代码修改，本批不重跑 Mac 原生构建，未安装或替换应用。
 - 遗留问题：物理 Esc/真机录音与播放停止、WKWebView 透明/滚动条/多屏行为未验收；T0 未验收、T1 未启动。既有 Rust 偶发协议测试问题未修改，本次全回归未复现。下一步整理服务接线前适配器契约及缺口清单，暂不订阅真实服务；当前无需用户授权或操作。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-001] cover full-flow cancellation and manual return`；前批 ceca3e6aec48b83c828b84cb75ba69822d2c0834 已推送。
+
+
+## SC-20261114-002 真实服务接线前契约与缺口核对
+
+- 北京时间：2026-11-14 09:44:47 +08:00。
+- 修改或新增：核对 Node assistant-service/host、听写服务与门闩、Swift AssistantBridge/AssistantPlayback/DictationController、Rust chat/serve；新增接线前契约文档与 4 项离线测试，覆盖现有播放身份差异、原始事件不可直接驱动视图、最终 ASR 晚到与文本上限。整理 epoch/run/origin/operationId、UUID/attempt、串行 seq、真实播放确认、逐资源取消、写入/复制边界及 G1～G6 未完成项；同步 PLAN/README/事件记录和文档检查。
+- 遇到的难题：旧文档仅概述缺少对外身份，易忽略 Swift 已有对象守卫与 Rust playbackId；现有结束回调把完成/失败/取消合并，系统 speaking 在真正开播前发出。最终听写结果晚于 process，当前 reducer 不接受 transcript；视图 8000 与业务 16000 也不同。首轮相关测试 36/37，新增检查把表格“聊天/润色/TTS transport”误匹配为行首 transport，断言失败。首次追加日志的 Python stdin 因 Non-UTF-8 SyntaxError 未执行，其后测试虽 308/308，但当时没有写入本条日志。
+- 处理方式：按各链路分别列事实与拟议职责，不改旧代码或冒称没有任何播放回调；记录不可直接映射、失败回退 attempt、晚到最终 ASR 和资源释放的缺口，不擅自放宽 reducer。修正测试表格行标题后重跑通过。日志改用 UTF-8 文本文件追加再验证。契约测试明确 reducer 不认证 origin，未来需协调器/受限 IPC 前置验证，不用视图隐藏替代停止确认。
+- 验证结果：相关契约/state/docs 37/37，npm test 308/308（0 fail/skip），git diff --check 通过。实际完成源码核对、离线契约与链接/隐私检查；本批仅文档与测试，无前端运行代码或原生修改，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未安装/替换应用。
+- 遗留问题：契约不是适配器实现，G1～G6 全部未验收；没有真实订阅、录音/播放/写入或资源取消确认。T0 未验收、T1 未启动。既有 Rust 偶发协议测试未修改，本次全回归未复现，不能声称已修复。下一步建立默认关闭、无服务依赖的纯合成协调器契约模型，验证身份/seq/资源门闩；不接硬件、不迁移框架或安装 NSH，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261114-002] define voice adapter contracts and integration gaps`；前批 fd8a514b819f4035dc37059c02b1ebc7aa484107 已推送。

@@ -182,3 +182,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 主流程取消矩阵 · SC-20261114-001
 
 浏览器已覆盖对话 7 阶段及听写 2 阶段 × Esc/隐藏/返回手动，共 27 组：立即卸载、越过旧期限不重现、后续手动模式/文字不被覆盖；纯 reducer 对每个活动前缀取消并拒绝同回合后续事件。测试矩阵用快进时钟检查一次性事件，不代表动画逐帧、物理全局 Esc 或真实音频取消。详见 [验证记录](../docs/verification/2026-11-13-reference-scene.md)。T0 未验收、T1 未启动，框架仍为 Tauri，未安装 NSH。
+
+
+### 接线前契约与缺口 · SC-20261114-002
+
+已核对 Node 无标签播放结束、Rust playbackId 和 Swift 播放对象守卫之间的差异；已有结束回调不等于已具备真实 started/正常结束/失败/取消语义。详见[适配器契约与 G1～G6 缺口](../docs/verification/2026-11-14-voice-adapter-contract.md)，包括 epoch/run/UUID/attempt、串行 seq、录音/播放确认、逐资源取消、最终 ASR 晚到与写入/复制边界。仅文档与离线契约测试，未新增适配器或订阅。T0 未验收、T1 未启动。下一步建立纯合成协调器契约模型；不接硬件、不改已安装应用，当前无需用户操作。

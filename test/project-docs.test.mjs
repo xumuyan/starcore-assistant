@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['docs/verification/2026-11-12-tauri-t0-manual.md','README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
+const files=['docs/verification/2026-11-14-voice-adapter-contract.md','docs/verification/2026-11-12-tauri-t0-manual.md','README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261112-009）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -246,5 +246,5 @@ test('full-flow cancellation evidence distinguishes browser deadlines from devic
     assert.ok(section);
     for (const requirement of [/27 组/, /返回手动/, /fastForward/, /180 秒/, /物理全局 Esc/, /T0 未验收、T1 未启动/]) assert.match(section, requirement);
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261114-001）/);
+  assert.match(read('PLAN.md'), /SC-20261114-001 已补齐 27 组/);
 });
