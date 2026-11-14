@@ -1042,3 +1042,14 @@
 - 验证结果：初始专项 23/23，补无 active run 过期、fresh restrictive 只证明活性、缺原 ASR stop 阻止 50 次新轮、最大安全时刻准确截止四项，共新增 27 项。96 条轨迹（24 种两路 snapshot/tick/copied 全排列 × written 真/假 × 99/100）每前缀独立推导 closing/phase，原 pending 保留。另测候选 TTL 50/100/200、同值/延迟观测/半握手/Promise 迟到/源与 voice 重启/业务版本耗尽/溢出/生产无导入。相关 source-lease/source-sync/event-order/lifetime/transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 两次 373/373，完整 npm test 两次 652/652（0 fail/skip/cancelled），git diff --check 通过。无新增浏览器、前端/原生构建、真机、系统通知、剪贴板/输入、音频、权限或安装操作；原生源码未变，未运行新原生构建。
 - 遗留问题：仅显式时间入口检测静默超期，无入口/事件循环阻塞不主动隐藏或停止；observedAt 是可信调用者假设，不是 OS 查询/IPC 认证/线性化证明。期限内未到达锁屏仍可能存在，TOCTOU 与真正副作用前复查/发出/unknown 协议未实现，已返回正文/已经发生的效果不可撤回，复制 completion 拒绝不是 OS 未写入证明。旧产品跨结束回退不改；恶意 getter/Proxy/重入/异常恢复、暂停恢复的时间域/生产源重建未实现。前批 service.test 20 秒超时根因仍未定位，本轮首次完整通过不等于修复。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义一次性副作用前复查/发出结果边界，不直接接生产，无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-018] model bounded source liveness with observation-based renewal`；前批 30008c810a0de2d30bb00034f2affcd4c9d0d5e4 已推送。
+
+
+## SC-20261114-019 显式复制副作用前复查与执行器结果边界
+
+- 北京时间：2026-11-14 21:42:02 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入的 DictationCopyEffectModel，私有拥有原 source-lease，覆盖用户显式复制，不扩大为自动粘贴；新增 35 项专项及 docs/verification/2026-11-14-dictation-copy-effect.md，同步 PLAN/README/source-lease 后续/文档测试。原各层模型、夹具、reducer 和全部产品源码不改。
+- 遇到的难题：旧 copyText 是读候选而非 OS 授权，检查通过不能冒充发出，任务交给执行器后取消/失联也不能推断没写入；回报写入结果不代表 worker 停止，旧回调可能在新 run 到达。粘贴的 target/focus 约束与用户显式复制范围不同，不混用。
+- 处理方式：原 session/copy 一次性 prepare token，可信同刻 strict allowed 复查、业务 revision 与 source 两路高水位签名，交接前期限/状态失效明确 not-issued，仍活跃 copy 才 copied(false) 等新用户动作。同刻 handoff 返回冻结完整正文 executor handle，立即保守 unknown 而非声称已调用 OS；禁止 copied 旁路和并行 requestCopy。report 只收原 job 一次 written/not-written/unknown，迟到真实结果只局部记载，原 copy 无效不投递到新 run；report 与原 stopped:true 分开，缺 stop 永久占用，stop 先到保持 unknown，不伪造 ASR/writer stop。对照 client/DictationPaste.swift 的执行前原 target/isCurrent guard 及 DictationController.swift 旧 copyResult 行为，只读不改。
+- 验证结果：初始专项 30/30，补候选独立截止/原 session 与外来 copy/voice release/源恢复新复制等原 executor stop/业务耗尽五项，共 35 项；专项+文档 54/54。480 条轨迹（120 种 check/handoff/loss/report/stop 排列 × written/not-written × 两 meter 模式）每前缀独立推导，八失效点×交接前后、Unicode 完整正文、原句柄/拒绝旁路、Promise 跨新 run、截止同刻真实结果、无停止证明和生产无导入。相关两次 408/408，完整 npm test 两次 687/687（0 fail/skip/cancelled），git diff --check 通过。无新增浏览器、前端/原生构建、真机、系统通知、剪贴板/系统输入、音频、权限或安装操作，原生源未变，未运行新原生构建。
+- 遗留问题：真实 OS guard/执行器/IPC 身份/原子性均未实现，同逻辑时刻和 synthetic allowed 不排除未观测锁屏或权限变化，TOCTOU 未解决；handoff 是保守未知边界而非 OS 发出证明，written 也非粘贴或目标接收。已返回正文/发生的写入不可撤回，snapshot 是局部执行状态非统一 UI，独立 final/旧跨结束回退不改。仅可信串行本地 owner，不保证恶意 getter/Proxy/重入/异常恢复/崩溃恢复；检查也无自动 timer。既有 service.test 20 秒超时根因仍未定位，本轮通过不算修复。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线组合验证 executor stop/源同步/voice drain 与 epoch 重建到下一次复制，不直接接生产，无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-019] model one-shot copy checks and executor result ownership`；前批 50dded8583d46faac5a3572621e9b89506a5047e 已推送。

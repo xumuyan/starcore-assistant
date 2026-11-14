@@ -267,3 +267,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 通知源逻辑活性期限 · SC-20261114-018
 
 [仅测试期限提案](../docs/verification/2026-11-14-dictation-source-lease.md)默认关闭，lock/settings 独立预算，可信 observedAt 完整快照才续对应通道，普通活动与 update 不续命；96 条续期/截止/复制排列。显式逻辑时间，不是自动 timer/原生授权，TOCTOU 未解决；T0/T1/G1～G6 未验收。下一步副作用前复查/发出边界，无需用户操作。
+
+
+### 显式复制复查/执行器边界 · SC-20261114-019
+
+[默认关闭离线提案](../docs/verification/2026-11-14-dictation-copy-effect.md)：原 session/copy 一次性 check，交接前失效为 not-issued，handoff 起为 unknown；真实 written/not-written/unknown 回报与 executor stopped 独立，480 条重排。不是实际 OS 复查或自动粘贴协议，TOCTOU 未解决；T0/T1/G1～G6 未验收。下一步 executor/源/语音恢复组合验证，无需用户操作。
