@@ -257,3 +257,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 全局事件版本与截止优先 · SC-20261114-016
 
 [仅测试接收提案](../docs/verification/2026-11-14-dictation-event-order.md)初始 lock/settings 均未知阻止工作，逐通道拒绝旧/重复生成版本，操作入口先检查逻辑截止；96 条复制/tick/lock/disable 排列验证原 lease 保留。未到达的锁屏事实仍不可推断，非系统源认证/生产定时器。下一步通知源断连/重新同步握手；T0/T1/G1～G6 未验收，无需用户操作。
+
+
+### 通知源失联/重新同步 · SC-20261114-017
+
+[离线握手提案](../docs/verification/2026-11-14-dictation-source-sync.md)新增默认关闭模型：显式源失联关闭 run、旧 query token 撤销，两路新快照和原资源 stop/drain 分别确认；48 条排列逐前缀验证。无真实通知/心跳/系统查询，静默失联不能自动发现；T0/T1/G1～G6 未验收。下一步逻辑活性期限及副作用前复查契约，无需用户操作。
