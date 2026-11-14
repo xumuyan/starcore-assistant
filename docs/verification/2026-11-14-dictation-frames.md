@@ -34,3 +34,8 @@ maxRevision 默认 MAX_SAFE_INTEGER，测试可缩小且必须安全正整数。
 `node --test test/dictation-frame-model.test.mjs` 覆盖默认关闭/严格开关、最新原 token/同 session 无 seq 变化、四种关闭、五个阶段 dismiss、旧 marker/新 run/新 epoch 编号复用、复制状态与 lease-stop、缩小 revision 上限、Promise 迟到提交、ABA/原 outcome.dismiss 限制、只读冻结及生产无导入。实际相关与完整回归结果见 operatelog；无新增浏览器/原生构建/真机验收。
 
 下一步离线定义**唯一转换入口/逐转换 revision**，在所有原 owner 的成功转换后采样，明确拒绝回调缺身份、跨异步旧 revision 与 ABA；先验证，不接生产服务，不放宽旧 reducer。当前无需用户操作或授权，真实接线仍受 T0/T1 门槛。
+
+
+## SC-20261114-013 独占转换实验
+
+[逐接受操作版本模型](2026-11-14-dictation-transitions.md)私有持有原源，所有成功操作经唯一同步入口递增版本，ABA/合并 meter 同值也失效；旧 frame 模型及其 ABA 限制反例不改。尚非生产身份认证/唯一消费者，不改变真实 UI 或服务，下一步完整轨迹与终止/复制/耗尽交叉验证。

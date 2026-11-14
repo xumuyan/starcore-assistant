@@ -976,3 +976,14 @@
 - 验证结果：专项 22/22；相关 frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 236/236；完整 npm test 515/515（0 fail/skip），git diff --check 通过。覆盖默认关闭/严格开关、同 session 无 seq 改变、最新原 token、四种关闭、五个 dismiss 阶段、原 outcome.dismiss 的歧义、跨 run/epoch 编号复用、复制状态/lease stop、revision 缩小上限与耗尽、Promise 迟到、ABA、只读冻结/生产无导入。没有 React/Swift/Rust/Node 产品源变化，未执行新浏览器/preview/probe/Mac 构建或真机验收，不操作剪贴板/系统输入/服务/录音/播放/权限/安装应用。
 - 遗留问题：采样 revision 不是逐业务转换 revision，同值 ABA 未彻底拒绝；无主动订阅、真实 IPC/渲染器、跨线程事务、真正的资源取消、权限或安全擦除。生产关闭按钮的隐藏/取消语义与候选有界寿命仍待定，已返回字符串不可撤回。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义唯一转换入口/逐转换 revision，验证每个原 owner 成功转换与 ABA 失效边界，不接真实服务，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-012] model dictation frame freshness and run dismissal`；前批 18fcc9158cf8cf358a6c6a5a25aa5d6b7d5e888d 已推送。
+
+
+## SC-20261114-013 听写唯一转换入口与逐接受操作版本
+
+- 北京时间：2026-11-14 14:21:29 +08:00。
+- 修改或新增：新增默认关闭的测试专用 DictationTransitionModel、19 项测试与证据，内部私有持有原 coordinator/final/outcome，白名单同步 dispatch，每个成功接受操作统一递增安全 revision，最新原 record 一次提交，读/采样不分配版本。同步 PLAN/README/frames 证据与文档检查；原三个模型、frame/selector/reducer、夹具与产品源均不修改。
+- 遇到的难题：SC-012 最终值比较无法发现未观察到的 ABA，合并 meter 覆盖也可能 seq/queue length 均不变。若允许外部直接改源，再多一个版本也不完整；耗尽时盲目禁止全部入口又会堵住原资源 drain。
+- 处理方式：不注入/暴露可变源，成功入口完成后立即失效已展示/待提交记录并递增版本，含保守幂等接受操作；拒绝不消耗版本。copy-available→copying→失败→copy-available 无中间采样也递增两次，旧 record 拒绝。dismiss 同步原 outcome 与本轮展示 marker，hide 仅隐藏，新 session 清 marker但版本不重置。上限后隐藏/普通业务与 copyText 禁止，close/disconnect/released/hide 仍可清理且不回绕，不能 restart 逃逸。原 owner 校验不放宽，presentation/canCopy 不授予业务权限。
+- 验证结果：初始专项 17/17，补复制中耗尽与幂等关闭后新增共 19 项；相关 transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 255/255；完整 npm test 534/534（0 fail/skip），git diff --check 通过。覆盖原转换接受/拒绝、无 seq 更新/ABA、合并 meter、四关闭、dismiss/hide、跨 run/epoch 复用、原/复制/外模型 record、耗尽清理、Promise 迟到、冻结/生产无导入。无新增浏览器、preview/probe/Mac 构建、真机、服务、录音/播放、剪贴板/系统输入、权限或安装操作。
+- 遗留问题：只在独占可信同步模型前提下验证，非真实 IPC 认证/唯一消费者/跨线程锁，恶意 getter/Proxy 重入、生产异常恢复与主动 DOM 更新未实现；原模型懒清理/已返回正文不可撤回。没有全局副作用授权、真正资源取消、候选有界寿命或生产重建协议。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线组合完整听写轨迹与转换入口，逐前缀交叉验证终止/复制/耗尽/所有 owner 与 drain，不新增生产通道，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-013] model exclusive dictation transitions and revision invalidation`；前批 6bfbd33cdcc0ea29b7b454c75fb9ea91b8ffbdc6 已推送。

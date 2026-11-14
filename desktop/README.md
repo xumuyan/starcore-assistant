@@ -237,3 +237,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 听写一致帧采样/投递 · SC-20261114-012
 
 [一致帧模型](../docs/verification/2026-11-14-dictation-frames.md)默认关闭、仅测试导入：单槽最新原 record/安全递增采样 revision，commit/snapshot 重读原模型，原 session dismissal 不跨新轮，关闭后方法访问即隐藏。不是主动订阅/渲染器，采样 revision 不是业务转换 revision，未观察 ABA 仍可能接受同值旧帧；没有真实 UI/IPC 接线或资源释放，T0/T1/G1～G6 未验收。下一步唯一转换入口/逐转换 revision 离线验证，当前无需用户操作。
+
+
+### 听写逐接受操作版本 · SC-20261114-013
+
+[唯一转换入口实验](../docs/verification/2026-11-14-dictation-transitions.md)默认关闭、仅测试：内部私有持有原模型，成功操作统一递增版本，即使 ABA 返回同值也拒绝旧 record；失败不消耗版本，dismiss 记录本轮 marker，耗尽隐藏但 close/disconnect/原 stop 清理仍可用。未实现生产唯一消费者、身份认证、异常恢复或主动 DOM 更新。T0/T1/G1～G6 仍未验收；下一步完整轨迹/终止/复制/耗尽交叉验证，当前无需用户操作。
