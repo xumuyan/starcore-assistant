@@ -998,3 +998,14 @@
 - 验证结果：专项 21/21，相关 transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 276/276，完整 npm test 555/555（0 fail/skip），git diff --check 通过。所有矩阵测试保留默认关闭模型的显式测试启用前提；无新增浏览器、preview/probe/Mac 构建、真机、服务、录音/播放、剪贴板/系统输入、权限或安装操作。
 - 遗留问题：合成 ready/stopped/issued/written/显式动作均不是硬件或真实目标接受证明；无生产 IPC/唯一消费者、恶意 getter/Proxy 重入/异常恢复、主动 DOM 更新、资源取消证明、全局正文删除/副作用授权。候选有界寿命与锁屏/设置关闭等失效还未实现，真实接线仍受 T0/T1 门槛。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义候选有界寿命与主动失效事件，注入逻辑时钟、区分业务句柄失效/隐藏与 lease drain，不启生产 timer/系统订阅；当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-014] cross-check transition revisions through dictation lifecycles`；前批 451c489b02651a78058da85ebc7902b7441024b7 已推送。
+
+
+## SC-20261114-015 候选有界寿命与显式失效离线策略
+
+- 北京时间：2026-11-14 17:29:54 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入的 test-helpers/dictation-lifetime-model.mjs，私有持有原转换模型；新增 25 项测试与 docs/verification/2026-11-14-dictation-lifetime.md，同步 PLAN/README/生命周期证据/文档检查。原转换模型、内部三个模型、selector/frame/reducer/夹具/全部产品源未改。
+- 遇到的难题：候选期限可能被复制失败重试无限续命；复制在途过期不能声称 OS 写入没发生；锁屏与设置关闭互相独立且不能靠原资源 drain 或解锁复活旧候选。版本耗尽与逻辑时钟安全整数加法溢出时仍需 fail closed，不能超时当 stopped。原模型只保证独占同步转换版本，不保证外层全局事件新鲜度。
+- 处理方式：显式 advance 安全单调整数逻辑时钟，无 Date/timer/clock callback；原 definite not-issued 接受后固定绝对 deadline，>= 即 close(cancel)，候选读取/请求/失败重试不续命，copying 同受限。copied(true)/dismiss/close/disconnect 取消期限，hide 仅展示不取消期限；加法溢出立即关闭。lock/disable 分别持久门闩，unlock/enable 仅复位不重开；entry-replaced 需原 session/当前 epoch，仅关当前 run、不抢占预留。原 stop 确认仍独立，清理可在门闩/版本耗尽时进行，新轮需 drain + fresh inputReady。只覆盖听写，不替换对话或旧跨结束复制 UX。
+- 验证结果：初始专项 22/22，补无当前 run 的持久门闩、拒绝操作保持期限与帧、无显式 tick 不到期三项后新增共 25 项；相关 lifetime/transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 301/301；完整 npm test 580/580（0 fail/skip），git diff --check 通过。涵盖三失效事件×五阶段共 15 点、截止边界/重试/复制在途/迟到 Promise、资源先停、双门闩/新 epoch 旧 ID/事件、时钟倒退/溢出/版本耗尽、生产路径无导入。无新增浏览器、前端/原生构建、真机、服务、剪贴板/系统输入、录音/播放、权限或安装操作。
+- 遗留问题：逻辑时钟不是自动计时/系统订阅，不给真实截止或即时 DOM 保证；同刻命令以调用顺序为准。全局 lock/unlock/enable/disable 只有当前 epoch，不含事件生成序号/重放防护；恶意 getter/Proxy 重入/异常恢复/IPC 身份与真正取消仍未实现。关闭后原正文局部缓存仍为方法重查清理，不是安全擦除，已返回字符串/已发生系统副作用不可撤回，迟到 copied 拒绝不是没复制的证明。原产品跨 endSession 回退行为不变。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线交叉验证期限/全局事件/回调同刻排列与 stale-event 接收契约，不直接接生产系统；无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-015] model bounded dictation candidates and explicit invalidation`；前批 fea5ce0a6884fff5e5c3e9d68101f83b677bffe0 已推送。

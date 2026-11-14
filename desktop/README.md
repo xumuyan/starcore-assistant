@@ -247,3 +247,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 转换入口完整轨迹 · SC-20261114-014
 
 [生命周期矩阵](../docs/verification/2026-11-14-dictation-transition-lifecycle.md)仅新增离线测试：144 条完整分支/下一模式、720 条 final/result/停止/close 重排、192 条逐前缀耗尽/清理轨迹，逐接受/拒绝校验 revision 与展示，原模型和产品代码不改。不是硬件/目标接受证明；T0/T1/G1～G6 仍未验收。下一步候选有界寿命与主动失效契约，当前无需用户操作。
+
+
+### 候选寿命/失效提案 · SC-20261114-015
+
+[默认关闭的离线策略](../docs/verification/2026-11-14-dictation-lifetime.md)使用显式逻辑时钟：not-issued 候选绝对截止，复制失败/重试不续命；锁屏/设置关闭门闩独立恢复，旧资源仍需停止确认。没有生产 timer/系统监听/剪贴板操作，原代码与旧跨结束复制回退不改，T0/T1/G1～G6 未验收。下一步验证同刻回调/截止/全局事件排列与陈旧事件契约，无需用户操作。
