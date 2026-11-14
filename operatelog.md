@@ -932,3 +932,14 @@
 - 验证结果：初始专项 25/25；补超长首 grapheme/耗尽 seq/源码长度单位检查后 28/28。相关 final/reference/model/recovery/scheduling/adapter/state/docs 144/144，完整 npm test 423/423（0 fail/skip），git diff --check 通过。覆盖 7999/8000/8001/16000/16001、emoji/ZWJ/旗帜/组合音标、超长单字素空前缀但正文保留、复制/外部 handles、非法/重复结果、调用者修改、ASR 停止顺序、四种关闭仍待 drain、Promise 迟到跨 run、新 epoch 复用编号及生产无导入。仅离线契约验证，无前端/原生运行代码修改，未重跑 preview/probe/Chromium/Mac 构建，未接设备/服务/剪贴板或安装应用。
 - 遗留问题：真实 final-ready UI、统一投递/seq、IPC 身份、主动清理和 writer 结果通道均未接入；惰性本地清理不是安全擦除或撤回已发粘贴。T0 未验收、T1 未启动、G1～G6 仍未验收。SC-007 已修正的 Rust 相邻快照测试本批未再复现，不代表所有偶发风险消失。下一步离线定义写入结果与取消后显式复制候选保留规则，区分已发出粘贴/目标应用接受/失败，不自动补发或发送回车；当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-008] define isolated final ASR display and business-text boundaries`；前批 e6824a06612c0d0efb5ab91ffec30d286402be11 已推送。
+
+
+## SC-20261114-009 写入结果与显式复制候选契约
+
+- 北京时间：2026-11-14 13:19:34 +08:00。
+- 修改或新增：默认关闭、仅测试使用 DictationOutcomeModel，组合协调器与 final 投影，24 项新测试；原 receipt/writer/attempt 的一次性准备与 issued/not-issued/unknown 结果，只有确定未发出创建复制候选。显式原 candidate/copy handle 取得完整业务正文，严格 written completion；失败需新的用户动作，成功清本模型正文。cancel/end/fail/disconnect/dismiss 清候选，旧 handles 不跨 run/epoch；不调用 paste/copy、不改 seq、不释放资源。同步 PLAN/README/final 契约/文档检查及新证据说明。
+- 遇到的难题：首次读取 client/DictationWriter.swift 报不存在，符号检索后定位实际 DictationPaste.swift；旧 posted Bool 不能覆盖未来传输未知/超时，发出 Cmd+V 不证明目标接受，旧 copyResult setString 未区分返回值。旧产品 endSession 后留 copyText，本提案若跨取消借 final receipt 会越过失效边界。
+- 处理方式：核对原 writer 的 requestID、generation、targetStillMatches、修饰键释放、临时剪贴板 restoreIfUnchanged 守卫，不改原实现。原 owner 明确 not-issued 才复制回退，issued/unknown 不补发、不回车、不声称接受。提案仅在原活动 run 保留候选，取消/end 清除，明确记录与旧产品行为差异及后续有界生命周期适配要求。方法调用时惰性清理不冒充订阅/即时取消/安全擦除；已返回字符串或已发粘贴不能撤回。userInitiated/written 仅合成假设，不是 IPC 授权。
+- 验证结果：专项 24/24，相关 outcome/final/reference/model/recovery/scheduling/adapter/state/docs 168/168，完整 npm test 447/447（0 fail/skip），git diff --check 通过。覆盖原/复制/外部 handles、一次性结果、缺失/未知/非法 disposition、不补发、完整非截取正文、复制失败后显式重试、四种关闭 × 三阶段 12 个失效点、issued 后取消保留诚实 disposition、ASR/writer 停止前后、dismiss、Promise 迟到跨新 epoch 编号复用、源码事实和生产无导入。没有 Swift/Rust/产品 JS/前端运行代码修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未触剪贴板、真实输入、权限或安装应用。
+- 遗留问题：真实业务 IPC/统一视图 seq、主动清理、候选有界寿命与系统观察、实际用户动作认证、真实剪贴板成功/副作用/目标接受均未接入；模型候选不会自动 end/drain，真实生命周期需显式适配。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线交叉验证 final→准备写入→结果/复制→关闭/drain→新 run 的单槽生命周期与停止确认顺序，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-009] model dictation outcomes and explicit copy boundaries`；前批 0bd7162f59c95a4121f7e765dff06c96515b7399 已推送。

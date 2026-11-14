@@ -217,3 +217,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### processing 后最终识别展示契约 · SC-20261114-008
 
 [最终 ASR 独立投影提案](../docs/verification/2026-11-14-final-asr-contract.md)仅由测试启用：最终业务结果（可能已润色）与 listening 增量转写分开，不修改 reducer；展示 ≤8000 UTF-16 且不切 grapheme，完整业务正文 ≤16000 UTF-16 独立保留。原 ASR 身份、一次性结果、原 writer/receipt、取消/断连/跨 run 迟到均有离线验证；没有 React 接线、粘贴或复制，不代表真实最终文字已可见。T0/T1 与 G1～G6 仍未验收；下一步定义写入结果/显式复制候选规则，当前无需用户操作。
+
+
+### 写入结果与显式复制契约 · SC-20261114-009
+
+[写入结果提案](../docs/verification/2026-11-14-dictation-outcomes.md)仅测试启用：区分 issued/not-issued/unknown，已发出不代表目标接受；只有确认未发出才创建显式复制候选，复制失败需新用户动作，不补发粘贴。取消/end/断连清候选，旧 handle 不可复制新结果，业务结果不替代资源停止证明。没有剪贴板/真实输入或 UI 接线，旧产品回退行为未改；T0/T1、G1～G6 未验收。下一步交叉验证单槽结果/关闭/drain 生命周期，当前无需用户操作。
