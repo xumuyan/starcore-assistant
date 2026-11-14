@@ -1009,3 +1009,14 @@
 - 验证结果：初始专项 22/22，补无当前 run 的持久门闩、拒绝操作保持期限与帧、无显式 tick 不到期三项后新增共 25 项；相关 lifetime/transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 301/301；完整 npm test 580/580（0 fail/skip），git diff --check 通过。涵盖三失效事件×五阶段共 15 点、截止边界/重试/复制在途/迟到 Promise、资源先停、双门闩/新 epoch 旧 ID/事件、时钟倒退/溢出/版本耗尽、生产路径无导入。无新增浏览器、前端/原生构建、真机、服务、剪贴板/系统输入、录音/播放、权限或安装操作。
 - 遗留问题：逻辑时钟不是自动计时/系统订阅，不给真实截止或即时 DOM 保证；同刻命令以调用顺序为准。全局 lock/unlock/enable/disable 只有当前 epoch，不含事件生成序号/重放防护；恶意 getter/Proxy 重入/异常恢复/IPC 身份与真正取消仍未实现。关闭后原正文局部缓存仍为方法重查清理，不是安全擦除，已返回字符串/已发生系统副作用不可撤回，迟到 copied 拒绝不是没复制的证明。原产品跨 endSession 回退行为不变。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线交叉验证期限/全局事件/回调同刻排列与 stale-event 接收契约，不直接接生产系统；无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-015] model bounded dictation candidates and explicit invalidation`；前批 fea5ce0a6884fff5e5c3e9d68101f83b677bffe0 已推送。
+
+
+## SC-20261114-016 全局事件版本与截止优先离线接收提案
+
+- 北京时间：2026-11-14 18:28:20 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入的 DictationEventOrderModel，私有拥有原 lifetime；新增 21 项专项与独立证据，同步 PLAN/README/lifetime 证据/文档检查。原 lifetime/transitions/内部三个模型/selector/frame/reducer/夹具/全部产品源均未改。
+- 遇到的难题：原 lifetime 同 epoch 的迟到 unlock 可覆盖较新 lock，只有到达顺序不等于事实生成顺序；原先复制回调可能在手动 advance 前完成，导致同截止时刻分支受调用顺序影响。版本最大值若保留“允许”则无法再表达下一次限制；源断连/未到达锁屏也不能由局部版本号推断。
+- 处理方式：保留原反例，另建测试策略，初始 lock/settings 均未知且阻止工作，分别接受完整状态快照的可信源生成版本，只收正安全整数且严格大于各通道高水位，拒绝重复/矛盾/错 epoch/非法字段；跨 voice epoch 不清 source 版本。最大版本接受但强制该通道禁止工作，清理可 drain，不回绕或 restart 绕过。dispatchAt/copyTextAt/合法 receiveAt/原 session replaceAt 先推进显式逻辑时钟，截止优先于 copied，不建 timer/系统订阅。无效 envelope/旧 session 在 tick 前拒绝；合法命令入口即使业务拒绝也可能先过期，文档明确与下层拒绝不改变展示的契约区别。
+- 验证结果：初始 19/19，补两通道各 24 条四版本乱序轨迹后共 21 项；96 条复制/tick/lock/disable 全排列（written 真/假×99/100）与 48 条状态快照乱序，逐前缀独立推导 closed/copied/最大已观察版本/门闩，保留全部原 lease；另测原反例、初始化双快照、最大版本四组合、epoch/ID 重用、四截止入口、Promise 迟到、冻结/展示版本非外层版本、未到达事实反例、生产无导入。相关 event-order/lifetime/transition-lifecycle/transitions/frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 322/322，完整 npm test 601/601（0 fail/skip），git diff --check 通过。无新增浏览器、前端/原生构建、真机、服务、剪贴板/系统输入、音频、权限或安装操作。
+- 遗留问题：不是源生成序号分配器/系统状态查询/IPC 认证，源须在事实生成时编号，不可在到达时补号冒充新鲜；不能推断未到达 version3 lock，仍可能先接受 version2 unlock。缺真实 authoritative 握手、通知丢失/断连 fail closed 与副作用前复查。逻辑时间仅在显式入口推进，无主动 DOM/自动停止，迟到 copied 拒绝不是 OS 没写入证明，已返回对象/正文不可撤回；恶意 getter/Proxy/重入/异常恢复、生产源重建仍未实现。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义通知源失联/重新同步 fail-closed 握手，分别验证 fresh snapshots 与原资源 drain，不接生产；无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-016] model ordered global events and deadline-first ingress`；前批 6530a1114b7072055a9041d3056c048775aba42c 已推送。
