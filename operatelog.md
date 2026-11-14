@@ -965,3 +965,14 @@
 - 验证结果：初始专项 22/22；补 32 组优先级组合与整份旧帧限制后 24/24。相关 presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 214/214，完整 npm test 493/493（0 fail/skip），git diff --check 通过。覆盖默认隐藏、listening 独立、processing 旧文字清空、final 空截取、三结果、复制失败/重试/完成、dismiss 漏 marker、四种关闭覆盖保留值、跨 epoch 包封/旧 marker、非法组合、纯只读稳定与生产无导入。没有 React/Swift/Rust/Node 产品代码修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未触剪贴板/系统输入/服务/权限/安装应用。
 - 遗留问题：函数未接前端，只有语义枚举、无实际卡片文案或动画；纯 selector 不认证 IPC、不保证帧新鲜、不主动清理正文/订阅、不管理 dismissedSession、不分配统一 seq、不授予写入/复制权限。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义一致帧采样和 dismissal 生命周期，检查同 session 旧 revision、关闭优先与跨 run 清 marker，真实接线仍受 T0/T1 门槛，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-011] define a single read-only dictation presentation selector`；前批 6473016f04f07921c6bda0076191165fe316fbd9 已推送。
+
+
+## SC-20261114-012 听写一致帧采样与展示投递模型
+
+- 北京时间：2026-11-14 14:04:04 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入 DictationFrameModel 与 22 项测试/证据，组合原模型/selector，sample 同步读取原源，最新待提交记录单槽、安全递增采样 revision，commit/snapshot 复查身份与可观察状态，dismiss 按原 session 保留/新轮清除。原三个模型、selector/reducer、夹具、产品运行代码均不修改；同步 PLAN/README/presentation 证据/文档检查。
+- 遇到的难题：final/outcome 变化不推进原 reducer seq，旧同 run 帧可能看似合法；纯 selector 不拥有隐藏 marker，整份旧帧无法发现 later close。另一方面没有逐转换 revision 时，未观察到的 A→B→A 不会留下最终值差异，不能将比较签名包装成通用 anti-replay。
+- 处理方式：仅从绑定可信原模型同步采样，不接受历史帧补贴新 session；内部比对原 view/final/lease 与 outcome 可见值，最新原 token 一次提交，复制/外实例/旧 token 拒绝。commit/snapshot 再取最新生命周期，可观察改变立即使本模型缓存 hidden；不是主动订阅或 DOM 卸载。dismiss 只管本轮展示，不调用业务 dismiss/close/stop，不删除正文；新 session 清 marker，采样 revision 跨 epoch 不重置，用尽隐藏不回绕。明确固定 copy-available→copying→失败→copy-available 未观察 ABA 仍接受旧同值帧的反例，下一阶段才定义每次转换版本。
+- 验证结果：专项 22/22；相关 frames/presentation/lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 236/236；完整 npm test 515/515（0 fail/skip），git diff --check 通过。覆盖默认关闭/严格开关、同 session 无 seq 改变、最新原 token、四种关闭、五个 dismiss 阶段、原 outcome.dismiss 的歧义、跨 run/epoch 编号复用、复制状态/lease stop、revision 缩小上限与耗尽、Promise 迟到、ABA、只读冻结/生产无导入。没有 React/Swift/Rust/Node 产品源变化，未执行新浏览器/preview/probe/Mac 构建或真机验收，不操作剪贴板/系统输入/服务/录音/播放/权限/安装应用。
+- 遗留问题：采样 revision 不是逐业务转换 revision，同值 ABA 未彻底拒绝；无主动订阅、真实 IPC/渲染器、跨线程事务、真正的资源取消、权限或安全擦除。生产关闭按钮的隐藏/取消语义与候选有界寿命仍待定，已返回字符串不可撤回。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线定义唯一转换入口/逐转换 revision，验证每个原 owner 成功转换与 ABA 失效边界，不接真实服务，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-012] model dictation frame freshness and run dismissal`；前批 18fcc9158cf8cf358a6c6a5a25aa5d6b7d5e888d 已推送。

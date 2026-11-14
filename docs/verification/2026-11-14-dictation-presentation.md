@@ -49,3 +49,8 @@ close/cancel/fail/disconnect 优先于所有保留值，访问当前 coordinator
 `node --test test/dictation-presentation.test.mjs`：真实三个模型合成状态串联，默认隐藏/listening/thinking/final/preparing/三结果/复制失败重试/完成；空截取、dismiss marker 与遗漏反例；四种关闭、新 epoch 和旧包封、畸形组合/非法 Unicode、只读稳定与无业务 handle、生产无导入及文档链接。相关与完整回归实际结果见 operatelog。
 
 下一步离线交叉验证**一致帧采样和 dismissal 生命周期**：调用者在原 owner 回调后采样、关闭优先、跨 run 清 marker，明确如何拒绝同 session 旧 revision，避免仅包封相等就误判新鲜。仍不新增生产通道或改变旧 reducer；真实接线继续受 T0/T1 门槛约束，当前无需用户操作或授权。
+
+
+## SC-20261114-012 一致采样与投递
+
+[一致帧模型](2026-11-14-dictation-frames.md)新增测试内单槽原 token、采样 revision、commit/snapshot 复查原状态与本轮 dismissal marker 生命周期；不改变本 selector 或三个旧模型。关闭后下次方法访问隐藏，但不是主动订阅/立即 DOM 卸载；同值 ABA 没有逐转换 revision 仍可能接受，不冒称所有同 session 历史重放已解决。下一步唯一转换入口/逐转换 revision，真实服务/前端接线仍未启用。

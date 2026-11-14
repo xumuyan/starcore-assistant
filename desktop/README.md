@@ -232,3 +232,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 听写单一展示选择 · SC-20261114-011
 
 [只读选择契约](../docs/verification/2026-11-14-dictation-presentation.md)与默认关闭的纯测试函数：单一状态优先级，只有 thinking 显示 orbs，final/writer/复制终局不伪装收音，终局不展示正文；当前原 session dismiss marker 可隐藏本轮但不释放资源。canCopy 只是提示，原候选与显式动作仍必需；同 session 旧快照新鲜度与主动 marker 生命周期尚未实现。没有 React/服务接线或真实验收，T0/T1、G1～G6 未验收；下一步一致帧采样/dismissal 离线验证，当前无需用户操作。
+
+
+### 听写一致帧采样/投递 · SC-20261114-012
+
+[一致帧模型](../docs/verification/2026-11-14-dictation-frames.md)默认关闭、仅测试导入：单槽最新原 record/安全递增采样 revision，commit/snapshot 重读原模型，原 session dismissal 不跨新轮，关闭后方法访问即隐藏。不是主动订阅/渲染器，采样 revision 不是业务转换 revision，未观察 ABA 仍可能接受同值旧帧；没有真实 UI/IPC 接线或资源释放，T0/T1/G1～G6 未验收。下一步唯一转换入口/逐转换 revision 离线验证，当前无需用户操作。
