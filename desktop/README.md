@@ -212,3 +212,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### Rust 协议测试等待修正 · SC-20261114-007
 
 [验证记录](../docs/verification/2026-11-14-rust-relay-event-wait.md)：用户消息与后续 thinking 状态可能分 stdout 回调到达。测试改为等待原相邻位置存在，再严格断言 type/name，不跳过中间错误事件。七项确定性测试覆盖拆行/半行、超时、顺序与解析错误；没有产品协议或服务行为修改，T0/T1、G1～G6 未验收。
+
+
+### processing 后最终识别展示契约 · SC-20261114-008
+
+[最终 ASR 独立投影提案](../docs/verification/2026-11-14-final-asr-contract.md)仅由测试启用：最终业务结果（可能已润色）与 listening 增量转写分开，不修改 reducer；展示 ≤8000 UTF-16 且不切 grapheme，完整业务正文 ≤16000 UTF-16 独立保留。原 ASR 身份、一次性结果、原 writer/receipt、取消/断连/跨 run 迟到均有离线验证；没有 React 接线、粘贴或复制，不代表真实最终文字已可见。T0/T1 与 G1～G6 仍未验收；下一步定义写入结果/显式复制候选规则，当前无需用户操作。

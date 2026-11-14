@@ -921,3 +921,14 @@
 - 验证结果：初始专项含真实 Rust 单文件 15/15；真实 Rust relay 目标连续五次独立筛选运行各 1/1（筛选不代表全量）；补文档测试后相关 event-at/rust-host/project-docs 35/35，完整 npm test 395/395（0 fail/skip），git diff --check 通过。真实 Rust 测试使用本机编译二进制、回环合成 HTTP 与临时 HOME，金库互读与其他协议断言保留；不是外部服务/设备验收。无原生代码修改，未重跑 Mac 构建、Chromium 或新壳设备验收，不安装/替换应用。
 - 遗留问题：已识别的测试快照竞态有确定性复现与修正验证，但不能保证全部历史偶发风险或宿主生命周期问题消失。T0 未验收、T1 未启动、G1～G6 保持未验收；下一步继续离线最终 ASR 展示契约及视图/业务原文分离、取消/迟到和 writer 边界，真实接线仍受 T0/T1 门槛约束。当前不需要用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-007] await adjacent Rust relay events without snapshot races`；前批 85a47f2be64ae0eea32d5a208d863b92b6738d6b 已推送。
+
+
+## SC-20261114-008 processing 后最终识别独立投影契约
+
+- 北京时间：2026-11-14 12:55:05 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入的 FinalAsrProjection 提案与 28 项测试。processing/thinking 的当前 dictation 原 ASR ticket 可一次性接受最终业务结果；与旧 transcript/reducer 分开，投影不分配 seq。不修改协调器、旧夹具或 React。展示 ≤8000 UTF-16 按 grapheme 边界截取且独立 truncated 标记；完整最终业务正文 ≤16000 UTF-16 单独保留，原 receipt/当前 writer 才可只读取得。新增契约说明，同步 PLAN/README/适配器文档/文档测试。
+- 遇到的难题：旧听写服务没有增量来源，dictationResult 在等待 ASR tail 和可选润色后才发，不能把最终业务值说成原始 ASR 分块；Node text.length 与 Swift text.count 也不是同一单位。宽松把 final 转 transcript 会伪装恢复收音；直接截取 UTF-16 可切坏 surrogate/组合字符；展示值交 writer 会丢失正文。取消后不能以 receipt 继续获取正文，也不能把回收 writer 当成功。
+- 处理方式：保持旧 reducer processing 后 transcript 拒绝；独立测试投影只接受当前 connected/非 closing 的 dictation thinking 与原 ASR，非法值不占一次性槽。遵守 Node 16000 UTF-16 cap，显式拒绝 malformed Unicode；Intl.Segmenter grapheme 截展示，不 trim/normalize/加省略号到正文。opaque receipt 不含文本；writerText 检查当前原 session/receipt/writer，仅返回候选正文，不调用 paste/copy。每次访问复查关闭/断连/换 run/epoch，惰性清引用，不伪装即时安全擦除或真实取消；已取出的字符串不可撤回，生产主动清理和最终写入守卫仍需实现。
+- 验证结果：初始专项 25/25；补超长首 grapheme/耗尽 seq/源码长度单位检查后 28/28。相关 final/reference/model/recovery/scheduling/adapter/state/docs 144/144，完整 npm test 423/423（0 fail/skip），git diff --check 通过。覆盖 7999/8000/8001/16000/16001、emoji/ZWJ/旗帜/组合音标、超长单字素空前缀但正文保留、复制/外部 handles、非法/重复结果、调用者修改、ASR 停止顺序、四种关闭仍待 drain、Promise 迟到跨 run、新 epoch 复用编号及生产无导入。仅离线契约验证，无前端/原生运行代码修改，未重跑 preview/probe/Chromium/Mac 构建，未接设备/服务/剪贴板或安装应用。
+- 遗留问题：真实 final-ready UI、统一投递/seq、IPC 身份、主动清理和 writer 结果通道均未接入；惰性本地清理不是安全擦除或撤回已发粘贴。T0 未验收、T1 未启动、G1～G6 仍未验收。SC-007 已修正的 Rust 相邻快照测试本批未再复现，不代表所有偶发风险消失。下一步离线定义写入结果与取消后显式复制候选保留规则，区分已发出粘贴/目标应用接受/失败，不自动补发或发送回车；当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-008] define isolated final ASR display and business-text boundaries`；前批 e6824a06612c0d0efb5ab91ffec30d286402be11 已推送。
