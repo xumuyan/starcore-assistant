@@ -35,4 +35,19 @@
 
 实际来源认证、进程生命周期、受限 IPC、队列/采样合并、全部资源确认和不可中断 ASR 退出、播放器回退、最终 ASR 展示、writer/剪贴板结果仍未实现。模型只验证 G1/G2/G5 的部分契约，不能勾选整项完成。
 
-下一步继续离线验证“正常完成/静音/失败后结束旧 run、资源 drain、输入恢复、新 run”的完整组合轨迹，以及断连时资源迟到确认；不扩大到真实订阅。真实接线继续依赖 [T0 手工验收](2026-11-12-tauri-t0-manual.md)和 T1；当前不需要用户操作或授权。
+SC-20261114-004 已补上述恢复与断连合成轨迹，见下节。下一步把断连与已有 seq/run 耗尽边界交叉验证，并明确 meter 合并不吞掉终结事件的离线调度契约；不扩大到真实订阅。真实接线继续依赖 [T0 手工验收](2026-11-12-tauri-t0-manual.md)和 T1；当前不需要用户操作或授权。
+
+
+## SC-20261114-004 恢复矩阵与断连门闩
+
+模型增加 `connected` 快照和 `disconnect(epoch)`：仅当前 epoch 可使模型断连；先阻止新预约，再 fail 关闭旧视图。重复断连幂等，旧 epoch 的迟到断连无效。即使全部 lease 已释放也保持 disconnected，只有 drained 后显式 `restart` 使用从未用过的新 epoch 才恢复预约；不会通过重连绕过缺失资源确认。
+
+断连后 `released` 仍接收原始本地 owner ticket 的严格停止确认。它**不是从断开的传输通道接收匿名确认**，也不证明真实服务退出。模型不建立或恢复网络/IPC，不自动销毁订阅；真实 owner 若拿不到停止证据必须继续受阻，不把超时当作成功。先前模型仅有 close/restart，不能表达“drain 后仍离线”；本批增加此显式状态，其余应用/视图协议不变。
+
+新增 `test/voice-coordinator-recovery.test.mjs`，19 项测试（含证据边界检查）：
+
+- 正常完成、静音、播放失败和合成失败四种结果，穷举所有资源释放排列及 end 的插入位置，再跨 conversation/dictation 下一轮，共 **112 条恢复轨迹**。结果保留文字/零电平；仅 drain 不等于 end，仅 end 不等于 drain，缺任何一项均忙；新的 reservation/acquire 仍隐藏，只有新的 capture inputReady 才 begin。旧 run 的回调和释放确认不能改变新视图。
+- preparing/listening/thinking/ready/synthesizing/playing/completed/muted/播放失败/合成失败 **10 个断连阶段**。即时隐藏，旧事件与输入确认无效；确认全部释放前不能 restart，释放后也不能自动恢复预约。新 epoch 从新输入确认开始，旧 epoch disconnect 不影响它。
+- 空闲断连；Promise 延后本地停止确认；丢失 ASR 确认后重复 100 次 restart 仍受阻；听写 processing 断连时 ASR/writer 均须释放，不把 writer 回收当作插入成功。
+
+首轮模型与恢复专项 33/35：两项把 reducer 的既有 `playback-failed` activity 误写为 `failed`，修正测试期望，不改 reducer；补齐合成失败断连与听写轨迹后 37/37。相关与完整回归以操作日志实际结果为准。未运行浏览器或原生构建，未做设备验收。G1～G6 仍未验收，T0 未验收、T1 未启动；当前不需要用户操作或授权。

@@ -877,3 +877,14 @@
 - 验证结果：最初 14 项模型专项通过，补齐边界后 19/19；相关 model/contract/state/docs 56/56，最终 npm test 327/327（0 fail/skip），此前增补末条前完整 326/326；git diff --check 通过。本批实际验收仅离线模型、合成异步轨迹及文档/链接/隐私检查，无前端运行或原生代码修改，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未部署/替换应用。
 - 遗留问题：模型不是生产协调器、硬件单消费者或真实取消证据；T0 未验收、T1 未启动，G1～G6 保持未完成。既有 Rust 偶发协议测试未修改，本批全回归未复现，不声称修复。下一步补正常完成/静音/失败后 drain→输入恢复→新 run 与断连迟到确认组合轨迹；仍不接真实服务/麦克风/播放器，不迁移框架或安装 NSH，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-003] model voice ownership sequencing and resource drain`；前批 5f3e6550f467f97b39528f3c1171ba912c158c64 已推送。
+
+
+## SC-20261114-004 完整恢复轨迹与断连门闩
+
+- 北京时间：2026-11-14 11:44:40 +08:00。
+- 修改或新增：离线 VoiceCoordinatorModel 增加 connected 快照及 disconnect(epoch)，仅当前 epoch 断连可关闭视图/阻止新预约；所有资源 drain 后仍保持离线，仅完全 drained 后显式新 epoch restart 才重新接收任务。新增恢复测试文件 19 项：四种结果（完成/静音/播放失败/合成失败）的全部释放排列/end 插入位置，跨两种下一轮模式共 112 条恢复轨迹；10 个断连阶段、空闲断连、Promise 延后停止确认、缺确认持续受阻、听写 ASR/writer 门闩及证据文档检查。同步 PLAN、README、模型记录和文档测试。
+- 遇到的难题：先前模型只有 close/restart，资源 drain 后无法表示“仍断连不可接新任务”。断连下迟到停止确认必须区分保留的本地资源 owner 与来自断开传输的业务事件，不能匿名放行，也不能用 timeout/restart 绕过 ASR 占用。首轮模型/恢复专项 33/35，两项测试把现有 activity playback-failed 误写为 failed。
+- 处理方式：先标记 disconnected，再 fail 关闭旧回合；release 继续只认原本地 ticket 与严格 stopped=true，缺确认不释放，旧 epoch 的 disconnect 不作用于新实例。测试穷举 end 前/后释放竞争，断言结果保留文字/零电平、drain 不等于 end、reservation/acquire 不等于录音，必须新 capture inputReady 才 begin；修正测试活动名，不改 reducer。文档明确无真实断连/重连、订阅清理、停止执行或设备确认。
+- 验证结果：补齐合成失败断连和听写后模型/恢复专项 37/37；新增证据检查后相关 model/recovery/contract/state/docs 75/75，npm test 346/346（0 fail/skip），git diff --check 通过。实际验收仅离线模型、合成异步/矩阵轨迹与文档检查。无应用/前端/原生运行代码改动，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未部署或替换应用。
+- 遗留问题：T0 未验收、T1 未启动、G1～G6 保持未验收；资源 stopped 与 inputReady 均为测试调用，不证明物理停止/输入恢复，不能自动撤回系统粘贴。既有 Rust 偶发协议测试本批未复现、未修复。下一步交叉验证断连与计数耗尽，并明确 meter 合并不吞终结事件的离线调度契约；不连接服务或设备，不新增授权，不迁移框架，当前无需用户操作。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-004] verify voice recovery and disconnected resource gates`；前批 834f5ebbb2357168d70e157f69f5804821f87bad 已推送。

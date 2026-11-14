@@ -14,7 +14,7 @@ const events = {
 export class VoiceCoordinatorModel {
   #enabled; #epoch; #epochs; #max; #run = 0; #session = null;
   #closing = false; #leases = new Map(); #used = new Set(); #requests = new Set();
-  #view = initialVoiceView;
+  #view = initialVoiceView; #connected = true;
 
   constructor({ enabled = false, epoch, maxCounter = Number.MAX_SAFE_INTEGER } = {}) {
     if (!id(epoch) || !Number.isSafeInteger(maxCounter) || maxCounter < 2) throw new TypeError('invalid model options');
@@ -22,12 +22,12 @@ export class VoiceCoordinatorModel {
   }
 
   snapshot() {
-    return Object.freeze({ epoch: this.#epoch, session: this.#session, closing: this.#closing,
+    return Object.freeze({ epoch: this.#epoch, connected: this.#connected, session: this.#session, closing: this.#closing,
       pending: Object.freeze([...this.#leases.values()]), view: this.#view });
   }
 
   reserve({ origin, mode, requestId } = {}) {
-    if (!this.#enabled || this.#session || this.#run >= this.#max) return null;
+    if (!this.#enabled || !this.#connected || this.#session || this.#run >= this.#max) return null;
     if (!((origin === 'wake' && mode === 'conversation' && id(requestId)) ||
       (origin === 'right-control' && mode === 'dictation' && uuid(requestId)))) return null;
     const key = requestId.toLowerCase();
@@ -102,10 +102,19 @@ export class VoiceCoordinatorModel {
     if (this.#closing && this.#leases.size === 0) { this.#session = null; this.#closing = false; }
   }
 
+  disconnect(epoch) {
+    // Synthetic transport loss: block new reservations even AFTER leases drain.
+    // Release acknowledgements use the separately retained local owner tickets.
+    if (epoch !== this.#epoch) return false;
+    this.#connected = false;
+    if (this.#session) this.close(this.#session, 'fail');
+    return true;
+  }
+
   restart(epoch) {
     // Model of a drained teardown + new view instance, NOT a live process restart.
     if (this.#session || !id(epoch) || this.#epochs.has(epoch)) return false;
-    this.#epochs.add(epoch); this.#epoch = epoch; this.#run = 0;
+    this.#epochs.add(epoch); this.#epoch = epoch; this.#run = 0; this.#connected = true;
     this.#used.clear(); this.#requests.clear(); this.#view = initialVoiceView;
     return true;
   }

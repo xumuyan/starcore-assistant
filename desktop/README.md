@@ -192,3 +192,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 纯合成协调器契约模型 · SC-20261114-003
 
 新增[离线模型与验证边界](../docs/verification/2026-11-14-voice-coordinator-model.md)：模型只放在 test-helpers，仅测试显式启用，不被应用/预览导入。验证 epoch/UUID/attempt、统一 seq、24 种资源释放顺序、取消立即隐藏但保持门闩、旧回调不能影响新 run/epoch。模型对象身份不等于 IPC 认证，停止确认只是合成调用；G1～G6 与 T0/T1 仍未验收。下一步补完整恢复/断连组合轨迹，不接服务/硬件，当前无需用户操作。
+
+
+### 恢复与断连合成矩阵 · SC-20261114-004
+
+[离线协调器记录](../docs/verification/2026-11-14-voice-coordinator-model.md)新增 112 条完成/静音/播放或合成失败→end/drain→下一模式输入确认轨迹，以及 10 个断连阶段。仅模型增加 disconnected 门闩，drain 后仍不自动恢复，需新 epoch 显式重建；迟到确认来自保留的本地 owner ticket，不是断开通道的业务事件。停止确认、输入恢复均为测试调用，不是硬件验收；T0/T1、G1～G6 未验收。下一步交叉验证耗尽/断连与离线 meter 合并契约，不接服务，当前无需用户操作。
