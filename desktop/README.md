@@ -222,3 +222,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 写入结果与显式复制契约 · SC-20261114-009
 
 [写入结果提案](../docs/verification/2026-11-14-dictation-outcomes.md)仅测试启用：区分 issued/not-issued/unknown，已发出不代表目标接受；只有确认未发出才创建显式复制候选，复制失败需新用户动作，不补发粘贴。取消/end/断连清候选，旧 handle 不可复制新结果，业务结果不替代资源停止证明。没有剪贴板/真实输入或 UI 接线，旧产品回退行为未改；T0/T1、G1～G6 未验收。下一步交叉验证单槽结果/关闭/drain 生命周期，当前无需用户操作。
+
+
+### 听写组合生命周期 · SC-20261114-010
+
+[组合矩阵证据](../docs/verification/2026-11-14-dictation-lifecycle.md)：原三个模型不变，144 条完整分支/close-stop-next-mode 轨迹，720 条 final/result/stop/close 乱序；旧回调不能覆盖新回合，缺停止证明不放行。明确 outcome dismiss/issued 不会清除独立 final 投影，尚非统一展示仲裁或全局写入授权。仅合成测试，不操作剪贴板/真实设备；T0/T1、G1～G6 未验收。下一步定义单一只读展示选择契约，当前无需用户操作。

@@ -943,3 +943,14 @@
 - 验证结果：专项 24/24，相关 outcome/final/reference/model/recovery/scheduling/adapter/state/docs 168/168，完整 npm test 447/447（0 fail/skip），git diff --check 通过。覆盖原/复制/外部 handles、一次性结果、缺失/未知/非法 disposition、不补发、完整非截取正文、复制失败后显式重试、四种关闭 × 三阶段 12 个失效点、issued 后取消保留诚实 disposition、ASR/writer 停止前后、dismiss、Promise 迟到跨新 epoch 编号复用、源码事实和生产无导入。没有 Swift/Rust/产品 JS/前端运行代码修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未触剪贴板、真实输入、权限或安装应用。
 - 遗留问题：真实业务 IPC/统一视图 seq、主动清理、候选有界寿命与系统观察、实际用户动作认证、真实剪贴板成功/副作用/目标接受均未接入；模型候选不会自动 end/drain，真实生命周期需显式适配。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线交叉验证 final→准备写入→结果/复制→关闭/drain→新 run 的单槽生命周期与停止确认顺序，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-009] model dictation outcomes and explicit copy boundaries`；前批 0bd7162f59c95a4121f7e765dff06c96515b7399 已推送。
+
+
+## SC-20261114-010 听写最终结果/写入/复制/资源释放组合生命周期
+
+- 北京时间：2026-11-14 13:34:25 +08:00。
+- 修改或新增：仅新增 test/dictation-lifecycle.test.mjs（22 项）与组合证据，更新 PLAN/README/outcome 契约/文档测试。即时/手工合并 meter × 六业务分支 × 六 close/ASR stopped/writer stopped 顺序 × 下一轮两模式，144 条完整轨迹；final/result/ASR stopped/writer stopped 的 120 全排列 × 三结果 × 两 meter 模式，720 条乱序轨迹。循环内轨迹数不冒称 node:test 个数。
+- 遇到的难题：业务成功/复制完成、run end、资源 drain、下一轮 readiness 是不同边界；资源停止先于业务回调会使 owner 失效。组合审视也明确 outcome dismiss/issued/unknown 只清其本地正文和候选，独立 final 投影仍保留；不能据前批局部清理断言所有字幕或系统写入入口都已失效。
+- 处理方式：不修改原三个模型、reducer、夹具或产品代码，使用独立布尔期望检查每个排列前缀接受条件，不从返回值倒推期望；结果/stopped 不分配 reducer seq，终止与停止分开检查，不缓存早到结果以伪造 ownership。完整轨迹显式新 capture inputReady，新 dictation/candidate 不接受旧 handles，新 conversation 不借听写结果。新增反例固定独立 final 投影仍保留这一缺口，同一 outcome 虽不可重发，但不是跨实例/IPC 的全局副作用守卫；待单一展示选择契约解决可见状态优先级。
+- 验证结果：专项首次 22/22；相关 lifecycle/outcome/final/reference/model/recovery/scheduling/adapter/state/docs 190/190；完整 npm test 469/469，0 fail/skip；git diff --check 通过。额外覆盖同 epoch 新轮的 Promise 迟到 copy、断连缺 ASR stop 连续 50 次阻止 restart、补 drain 也不自动重连。组合矩阵保留截取展示与完整正文、原 owner/单槽/停止顺序/下一模式边界。无前端/原生/Node 产品源修改，未执行新 preview/probe/Chromium/Mac 构建或设备验收，未使用剪贴板/真实输入/录音/播放/外部服务，不改已安装应用。
+- 遗留问题：三个模型不是统一展示仲裁器或全局写入授权；outcome dismiss 不全局隐藏 final 卡片，惰性方法访问清理不是即时取消/安全擦除，已返回正文和已发粘贴不可撤回。统一 seq、受限 IPC、候选有界寿命/主动清理/真实资源证明仍未实现，T0 未验收、T1 未启动、G1～G6 仍未验收。下一步先离线定义单一只读展示选择契约，明确 thinking/final/preparing/结果/复制/hidden 优先级与内容规则，区分 outcome dismiss 与 run close；不新增生产通道，不接服务，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-010] cross-check dictation result and resource lifecycles`；前批 963842f867746f09df3921f3105431461eaafe6b 已推送。
