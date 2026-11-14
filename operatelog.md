@@ -1096,3 +1096,13 @@
 - 验证结果：helper 首次5/5，补只读消息共6项；helper+两文件17项13 pass/4 fail，四条原30秒Node超时实际返回35.251/42.309/30.498/69.795s。完整 RUSTUP_TOOLCHAIN=1.100.0 npm test（文档新测试加入前）743项739 pass/4 fail/0 cancelled/skipped，两client-control start与一rust-host start仍超时，另rust-state corrupt/legacy测试status=null而期望1，原因未定位；service此次通过不称修复。文档+helper27/27，git diff --check通过，fetch后0/0。未改原生代码，未做新浏览器/原生构建/真机/代理安装/剪贴板/输入/权限操作。
 - 遗留问题：仍未恢复完整回归，SC021未整批验收；下一步无业务最小子进程与控制路径进一步定位同步启动/调度延迟，独立保留rust-state异常状态与service历史超时。ps/sysctl进程计数诊断25秒未完成，未取得可归责清单，不停止未知进程或用户应用。默认stable中断状态未修复，继续进程级1.100.0。T0 未验收、T1 未启动、G1～G6 仍未验收；不叠加等待提示，不要求额外用户权限。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-002] annotate control subprocess failures without relaxing timeouts`；前批53c7307f2b6e22f1f45e246fd226318aca56919b已推送。
+
+## SC-20261115-003 /dev/null 描述符路径隔离对照（回归仍受阻）
+
+- 北京时间：2026-11-15 01:56:33 +08:00。
+- 修改或新增：新增显式手动 subprocess-stdio-probe（只执行true，默认管道与私有普通文件fd交错比较）、四项注入式测试、设备描述符证据；更新PLAN/README/上批后续及文档检查。无产品或原回归调用变更，不换stdio、不放宽超时、不skip。
+- 遇到的难题：空命令也变慢，尚不能判断执行/初始化/清理哪个阶段；ps计数此前超时，不能据此归责或停未知进程。
+- 处理方式：只对自己创建的空Node进程sample，2207次同分支中2033次在循环清理close、172次在流初始化open；未识别具体fd，禁止把close直接认定为备用fd。Python直接/dev/null五次open/close有23723/76ms，其余亦有数十至数百ms；同轮/dev/zero及普通临时文件操作四舍五入0ms。设备stat仍为0666字符设备3/2及3/3，未改设备/权限。官方Node v22.22.0 stream.c/loop.c固定blob说明libuv流会打开/dev/null备用fd、循环清理时关闭，但不等于系统根因。手动探针真实三组default=24745/139/390ms，普通fd=4/5/12ms，全部status0；15000ms子进程timeout不能覆盖初始化/清理墙钟，无严格总截止承诺。导入不自动运行、显式--run、有限迭代、只清理自己的临时文件，失败保留且不重试、不记录业务载荷。
+- 验证结果：四项探针4/4；探针+前批诊断+文档32/32。新增测试前完整744项740 pass/4 fail，client enabled-start、Rust start/stop及rust-state key用例异常；新增后完整749项743 pass/5 fail/1 cancelled/0 skipped，两client start及Rust status/start超时、rust-state old rows期望1实际null、service原20秒超时再次取消。原断言和时限未改，失败变化并非修复。git diff --check通过、fetch后0/0；无原生源码修改，未新增浏览器/原生构建/真机验收。
+- 遗留问题：已缩小到设备/描述符路径可独立复现，但系统根因、是否能解释全部失败仍未知。只读libproc观察大量runnable进程（约1556总数，计数随时间变化）；不记录未知进程命令/参数、不终止、不归责第三方。继续获取可归责设备延迟证据；不自动重启系统/改权限或设备、不用普通fd替代回归。SC021整批未验收，T0未验收、T1未启动、G1～G6仍未验收；默认stable未修复，1.100.0进程覆盖保留。目前无新权限要求；若定位需系统维护再明确征求用户操作。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-003] isolate null-device descriptor latency with a manual stdio probe`；前批ca6ac277d609ab8c8360aa03b6ff1086a5b3d404已推送。

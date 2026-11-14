@@ -292,3 +292,6 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 控制子进程诊断 · SC-20261115-002
 
 [仅测试诊断增强](../docs/verification/2026-11-15-control-subprocess-diagnostics.md)保留原异常与时限，不记录参数/业务正文。无业务同步子进程也观测到秒级延迟；完整回归 739 pass/4 fail，根因未定位，非功能修复或 SC021 验收。
+
+
+SC-20261115-003 [设备描述符对照](../docs/verification/2026-11-15-devnull-descriptor-probe.md)：Python 也复现 /dev/null 秒级操作延迟；新增显式手动探针而非改产品 stdio。初次原回归740 pass/4 fail，最终749项743 pass/5 fail/1 cancelled，根因与验收仍未完成。
