@@ -262,3 +262,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 通知源失联/重新同步 · SC-20261114-017
 
 [离线握手提案](../docs/verification/2026-11-14-dictation-source-sync.md)新增默认关闭模型：显式源失联关闭 run、旧 query token 撤销，两路新快照和原资源 stop/drain 分别确认；48 条排列逐前缀验证。无真实通知/心跳/系统查询，静默失联不能自动发现；T0/T1/G1～G6 未验收。下一步逻辑活性期限及副作用前复查契约，无需用户操作。
+
+
+### 通知源逻辑活性期限 · SC-20261114-018
+
+[仅测试期限提案](../docs/verification/2026-11-14-dictation-source-lease.md)默认关闭，lock/settings 独立预算，可信 observedAt 完整快照才续对应通道，普通活动与 update 不续命；96 条续期/截止/复制排列。显式逻辑时间，不是自动 timer/原生授权，TOCTOU 未解决；T0/T1/G1～G6 未验收。下一步副作用前复查/发出边界，无需用户操作。
