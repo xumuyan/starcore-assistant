@@ -866,3 +866,14 @@
 - 验证结果：相关契约/state/docs 37/37，npm test 308/308（0 fail/skip），git diff --check 通过。实际完成源码核对、离线契约与链接/隐私检查；本批仅文档与测试，无前端运行代码或原生修改，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未安装/替换应用。
 - 遗留问题：契约不是适配器实现，G1～G6 全部未验收；没有真实订阅、录音/播放/写入或资源取消确认。T0 未验收、T1 未启动。既有 Rust 偶发协议测试未修改，本次全回归未复现，不能声称已修复。下一步建立默认关闭、无服务依赖的纯合成协调器契约模型，验证身份/seq/资源门闩；不接硬件、不迁移框架或安装 NSH，当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261114-002] define voice adapter contracts and integration gaps`；前批 fd8a514b819f4035dc37059c02b1ebc7aa484107 已推送。
+
+
+## SC-20261114-003 离线语音协调器契约模型
+
+- 北京时间：2026-11-14 10:07:09 +08:00。
+- 修改或新增：新增 test-helpers/voice-coordinator-model.mjs，仅测试显式启用，不接应用/预览。原始不可变 session/ticket 模拟可信入口，跨模式单槽位、epoch/run/UUID/attempt 身份、统一 seq、准备期隐藏、capture 释放才 process、取消先失效回调并隐藏、各资源停止确认齐全才接新 run；耗尽不回绕，drained 后才新 epoch。新增 19 项专项测试，含 24 种释放顺序、Promise 迟到结果、播放中取消、旧 epoch 相同播放 ID、准备/活动期 end/fail/cancel 及生产路径未导入检查。同步契约进展、独立验证文档、PLAN/README 和文档测试。
+- 遇到的难题：不能把模型对象身份当成跨进程认证，或把合成 stopped=true 视作设备已经停止；取消需立即隐藏但不可放开仍被 ASR/transport/player/writer 占用的资源，计数耗尽也必须给终结事件保留安全序号。现有最终 ASR 在 process 后无法展示的缺口不能借模型擅自改协议。
+- 处理方式：将模型放测试辅助目录，无业务依赖、计时器、网络、OS 或配置改动；用原对象 lease 拒绝字段复制/外部/旧实例回调，原 operationId 在 epoch 内不复用。投递按来源白名单，只取 view 数据，忽略调用方 run/seq；保留末序号给 close。release 必须原 lease 且严格 stopped=true，失败/缺失确认持续受阻；文档明确无真实队列、采样合并、IPC、安全认证、停止/abort 或粘贴撤回实现，G1～G6 未验收。
+- 验证结果：最初 14 项模型专项通过，补齐边界后 19/19；相关 model/contract/state/docs 56/56，最终 npm test 327/327（0 fail/skip），此前增补末条前完整 326/326；git diff --check 通过。本批实际验收仅离线模型、合成异步轨迹及文档/链接/隐私检查，无前端运行或原生代码修改，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未部署/替换应用。
+- 遗留问题：模型不是生产协调器、硬件单消费者或真实取消证据；T0 未验收、T1 未启动，G1～G6 保持未完成。既有 Rust 偶发协议测试未修改，本批全回归未复现，不声称修复。下一步补正常完成/静音/失败后 drain→输入恢复→新 run 与断连迟到确认组合轨迹；仍不接真实服务/麦克风/播放器，不迁移框架或安装 NSH，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-003] model voice ownership sequencing and resource drain`；前批 5f3e6550f467f97b39528f3c1171ba912c158c64 已推送。

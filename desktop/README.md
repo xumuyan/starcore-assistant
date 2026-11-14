@@ -187,3 +187,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 接线前契约与缺口 · SC-20261114-002
 
 已核对 Node 无标签播放结束、Rust playbackId 和 Swift 播放对象守卫之间的差异；已有结束回调不等于已具备真实 started/正常结束/失败/取消语义。详见[适配器契约与 G1～G6 缺口](../docs/verification/2026-11-14-voice-adapter-contract.md)，包括 epoch/run/UUID/attempt、串行 seq、录音/播放确认、逐资源取消、最终 ASR 晚到与写入/复制边界。仅文档与离线契约测试，未新增适配器或订阅。T0 未验收、T1 未启动。下一步建立纯合成协调器契约模型；不接硬件、不改已安装应用，当前无需用户操作。
+
+
+### 纯合成协调器契约模型 · SC-20261114-003
+
+新增[离线模型与验证边界](../docs/verification/2026-11-14-voice-coordinator-model.md)：模型只放在 test-helpers，仅测试显式启用，不被应用/预览导入。验证 epoch/UUID/attempt、统一 seq、24 种资源释放顺序、取消立即隐藏但保持门闩、旧回调不能影响新 run/epoch。模型对象身份不等于 IPC 认证，停止确认只是合成调用；G1～G6 与 T0/T1 仍未验收。下一步补完整恢复/断连组合轨迹，不接服务/硬件，当前无需用户操作。
