@@ -1116,3 +1116,13 @@
 - 验证结果：原控制/Rust状态/service四文件18项13 pass/5 fail；最终完整RUSTUP_TOOLCHAIN=1.100.0 npm test共750项747 pass/3 fail/0 cancelled/skipped，client enabled-start与Rust start/stop的Node同步子进程ETIMEDOUT，原30000ms而elapsed67744/58825/58123ms。状态与service本次通过不称历史问题已修复。文档/诊断/探针检查33/33，git diff --check通过，fetch后0/0。无原生源码修改，未新增浏览器/原生构建/真机验收。
 - 遗留问题：系统设备独立打开/关闭延迟可脱离产品复现，来源仍未知；不声称全部失败同因或已有修复。停止继续增加探针与重复跑测冒充推进；需要正常环境复核或经同意的环境维护。不自动重启/停未知进程/授予权限/清配置；重启不是已验证修复。SC021整批未验收、T0未验收、T1未启动、G1～G6仍未验收；默认stable仍中断、1.100.0仅进程覆盖。无需用户为测试重新授权；若用户选择重启机器/执行环境，先保存工作且自行或由维护者执行。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-004] checkpoint independent null-device open delays and environment blocker`；前批e1afdf9c381420384f6171e87ffb788081bc9130已推送。
+
+## SC-20261115-005 只读资源检查与暂停重复诊断
+
+- 北京时间：2026-11-15 02:32:32 +08:00。
+- 修改或新增：只更新设备证据、PLAN、README及一项文档检查；无新探针、无产品修改。明确环境恢复前暂停重复诊断与新功能验收，需要用户/执行环境维护者决定环境维护，不自动执行。
+- 遇到的难题：top/ps分别在45秒与25秒工具限制未完成，无法安全归责；sysctl返回值不能一律当实际进程计数或资源耗尽证据。首次文档22/24为历史当前标记及新措辞不匹配。
+- 处理方式：只读vm_stat/uptime/sysctl及单次O_RDONLY设备打开关闭，load571.85/571.00/559.16；/dev/null open/close863.45/6387.724ms，/dev/zero0.049/0.002ms；maxproc4000、maxprocperuid2666，num_tasks/num_taskthreads均4096口径未核实，不作计数或触顶证据。历史SC004测试改检查保留条目，当前SC005仍严格单独检查；修正新证据措辞。无终止、重启、权限/设备/配置改动。
+- 验证结果：文档24/24；最终RUSTUP_TOOLCHAIN=1.100.0 npm test为751项747 pass/4 fail/0 cancelled/skipped，client enabled-start、Rust status/start/stop对照ETIMEDOUT，原30000ms而elapsed30081/45559/90281/34879ms；末条status0同时ETIMEDOUT仍失败，不改原异常/断言。git diff --check通过。无原生源码修改，未新增浏览器/构建/真机验收。提交前fetch曾40秒工具超时，远端状态需后续正常命令核对。
+- 遗留问题：设备延迟与高load仍在，根因及全部失败是否同因未知，未取得可终止目标，不把环境观察冒充修复。暂停重复跑测与堆叠诊断；需要正常环境复核或维护者经同意定位恢复，不自动重启/停进程/清配置/申请权限。SC021整批、T0、T1、G1～G6均未验收，stable别名仍中断，独立1.100.0仅进程级指定。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-005] record read-only resource checks and pause repeated environment diagnostics`；前批b6d266998c882125adad5c9e6e4eeaf8132eeb4f已推送。
