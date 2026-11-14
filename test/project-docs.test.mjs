@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261112-009）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -237,4 +237,14 @@ test('libraries.dev main visual work takes priority without claiming business mi
   assert.match(plan, /真实服务接线仍依赖 T0\/T1/);
   assert.ok(existsSync(resolve(root, 'docs/verification/2026-11-13-reference-scene.md')));
   assert.match(read('desktop/README.md'), /播放完整语音流程（合成）/);
+});
+
+
+test('full-flow cancellation evidence distinguishes browser deadlines from device cancellation', () => {
+  for (const name of ['docs/verification/2026-11-13-reference-scene.md', 'docs/verification/2026-11-13-voice-view-events.md']) {
+    const section = read(name).split('## SC-20261114-001 主流程取消矩阵')[1];
+    assert.ok(section);
+    for (const requirement of [/27 组/, /返回手动/, /fastForward/, /180 秒/, /物理全局 Esc/, /T0 未验收、T1 未启动/]) assert.match(section, requirement);
+  }
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261114-001）/);
 });

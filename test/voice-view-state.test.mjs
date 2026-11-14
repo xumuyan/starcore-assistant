@@ -205,3 +205,32 @@ test('full conversation and dictation fixtures deliver legal events through one 
     }
   }
 });
+
+
+test('every active full-flow prefix can cancel and rejects the rest of that run', async () => {
+  const { referenceSequence, dictationSequence } = await import('../desktop/frontend/reference-sequence.mjs');
+  for (const frames of [referenceSequence, dictationSequence]) {
+    let state = idle;
+    for (let index = 0; index < frames.length; index++) {
+      state = reduce(state, frames[index]);
+      if (!state.active) continue;
+      const context = `${state.mode}/${state.activity}/${state.run}/${state.seq}`;
+      const cancelled = reduce(state, { type: 'cancel', run: state.run, seq: state.seq + 1 });
+      assert.equal(cancelled.active, false, context);
+      assert.equal(cancelled.phase, 'hidden', context);
+      assert.equal(cancelled.activity, 'closed', context);
+      assert.equal(cancelled.level, 0, context);
+      assert.equal(cancelled.text, '', context);
+      assert.equal(cancelled.run, state.run, context);
+      for (const callback of frames.slice(index + 1).filter(frame => frame.run === state.run))
+        assert.equal(reduce(cancelled, callback), cancelled, `${context}: late ${callback.type}`);
+      // Reusing an old identity cannot reopen it; explicit newer begin is allowed.
+      assert.equal(reduce(cancelled, { type: 'begin', run: state.run, seq: 0, mode: state.mode }), cancelled);
+      const fresh = reduce(cancelled, { type: 'begin', run: state.run + 1, seq: 0, mode: state.mode });
+      assert.equal(fresh.activity, 'listening', context);
+      assert.equal(fresh.text, '', context);
+      assert.equal(fresh.level, 0, context);
+      assert.equal(reduce(fresh, { type: 'playback-started', run: state.run, seq: 999 }), fresh);
+    }
+  }
+});

@@ -239,6 +239,58 @@ try {
   await phase.selectOption('listening');
   assert.equal(await page.locator('.dictation-effect').getAttribute('data-phase'), 'listening');
   await page.keyboard.press('Escape');
+  // Cancellation matrix uses browser keys/buttons and a paused synthetic clock.
+  // Fast-forward checks one-shot deadlines, not intermediate animation frames.
+  // Each exit must unmount immediately and stay closed beyond all old deadlines.
+  const cancellationPoints = [
+    ['conversation', 100, 'listening', '1'],
+    ['conversation', 3300, 'thinking', '1'],
+    ['conversation', 4900, 'ready', '1'],
+    ['conversation', 5400, 'synthesizing', '1'],
+    ['conversation', 7200, 'playing', '1'],
+    ['conversation', 8100, 'completed', '1'],
+    ['conversation', 8800, 'listening', '2'],
+    ['dictation', 1900, 'listening', '1'],
+    ['dictation', 3100, 'thinking', '1'],
+  ];
+  for (const [selectedMode, at, activity, run] of cancellationPoints) {
+    for (const exit of ['escape', 'hide', 'manual']) {
+      const context = `${selectedMode}/${activity}/run${run}/${exit}`;
+      await mode.selectOption(selectedMode);
+      await fullFlow.click();
+      await page.clock.fastForward(at);
+      assert.equal(await fullStage.getAttribute('data-activity'), activity, context);
+      assert.equal(await fullStage.getAttribute('data-run'), run, context);
+      assert.ok(await fullStage.locator('canvas').count(), context);
+      if (exit === 'escape') await page.keyboard.press('Escape');
+      else await page.getByRole('button', { name: exit === 'hide' ? '隐藏（Esc）' : '返回手动外观检查', exact: true }).click();
+      assert.equal(await fullStage.count(), 0, context);
+      assert.equal(await page.locator('.event-status').count(), 0, context);
+      assert.equal(await page.locator('.preview-stage canvas').count(), 0, context);
+      assert.equal(await phase.inputValue(), 'hidden', context);
+      assert.equal(await text.inputValue(), '', context);
+      assert.equal(await mode.isDisabled(), false, context);
+      assert.equal(await phase.isDisabled(), false, context);
+      assert.equal(await text.isDisabled(), false, context);
+      assert.equal(await page.getByLabel('手动模拟电平').inputValue(), '0', context);
+      await page.clock.fastForward(12000);
+      assert.equal(await page.locator('.preview-stage canvas').count(), 0, context);
+      assert.equal(await fullStage.count(), 0, context);
+      // New manual work in the other mode must survive old callback deadlines too.
+      const manualMode = selectedMode === 'conversation' ? 'dictation' : 'conversation';
+      await mode.selectOption(manualMode);
+      await phase.selectOption('processing');
+      const marker = `取消后手动检查 ${context}`;
+      await text.fill(marker);
+      await page.clock.fastForward(12000);
+      assert.equal(await mode.inputValue(), manualMode, context);
+      assert.equal(await phase.inputValue(), 'processing', context);
+      assert.equal(await text.inputValue(), marker, context);
+      assert.equal(await page.locator('.preview-stage .transcript').innerText(), marker, context);
+      assert.equal(await fullStage.count(), 0, context);
+      await page.keyboard.press('Escape');
+    }
+  }
   await page.clock.resume();
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320);
@@ -289,7 +341,7 @@ try {
   }
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, hidden scrollbars with wheel/tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, unified full-flow events/restart/switch/manual return, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
+  console.log('EFFECTS_BROWSER_PASS: transparent root/stage and zero-alpha corners, anchored ring, phase placeholders/canvas retention, hidden scrollbars with wheel/tail-follow/read-back, stable orb slot, bounded text, retained prefix, reduced motion, unified full-flow events/restart/switch/manual return, 27 stage/exit cancellation cases with no delayed reappearance or manual overwrite, mode playback, Esc, cancelled/stale/busy event rejection and replay cleanup, reply/TTS/player/muted/failure/resume branches, 620/390/320 overlay bounds at 1x/2x text, offline');
 } finally {
   await browser?.close();
   server.closeAllConnections();

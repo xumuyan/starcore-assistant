@@ -177,3 +177,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 隐藏文字滚动条 · SC-20261113-020
 
 对话文字卡片和听写文字区不再显示滚动条（scrollbar-width:none + WebKit scrollbar 隐藏），仍保留 112px 限高和 overflow-y:auto。浏览器可用滚轮/触控板阅读长文字，原有尾部跟随、上翻保位逻辑未改。规则仅作用于两个文字区，不隐藏设置/历史页或整个网页的滚动条。实际原生 overlay 仍保持鼠标穿透，本批不改变事件接收方式或声称原生可交互滚动。透明背景不变，WKWebView 真机观感待验收。
+
+
+### 主流程取消矩阵 · SC-20261114-001
+
+浏览器已覆盖对话 7 阶段及听写 2 阶段 × Esc/隐藏/返回手动，共 27 组：立即卸载、越过旧期限不重现、后续手动模式/文字不被覆盖；纯 reducer 对每个活动前缀取消并拒绝同回合后续事件。测试矩阵用快进时钟检查一次性事件，不代表动画逐帧、物理全局 Esc 或真实音频取消。详见 [验证记录](../docs/verification/2026-11-13-reference-scene.md)。T0 未验收、T1 未启动，框架仍为 Tauri，未安装 NSH。
