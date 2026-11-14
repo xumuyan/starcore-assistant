@@ -1106,3 +1106,13 @@
 - 验证结果：四项探针4/4；探针+前批诊断+文档32/32。新增测试前完整744项740 pass/4 fail，client enabled-start、Rust start/stop及rust-state key用例异常；新增后完整749项743 pass/5 fail/1 cancelled/0 skipped，两client start及Rust status/start超时、rust-state old rows期望1实际null、service原20秒超时再次取消。原断言和时限未改，失败变化并非修复。git diff --check通过、fetch后0/0；无原生源码修改，未新增浏览器/原生构建/真机验收。
 - 遗留问题：已缩小到设备/描述符路径可独立复现，但系统根因、是否能解释全部失败仍未知。只读libproc观察大量runnable进程（约1556总数，计数随时间变化）；不记录未知进程命令/参数、不终止、不归责第三方。继续获取可归责设备延迟证据；不自动重启系统/改权限或设备、不用普通fd替代回归。SC021整批未验收，T0未验收、T1未启动、G1～G6仍未验收；默认stable未修复，1.100.0进程覆盖保留。目前无新权限要求；若定位需系统维护再明确征求用户操作。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-003] isolate null-device descriptor latency with a manual stdio probe`；前批ca6ac277d609ab8c8360aa03b6ff1086a5b3d404已推送。
+
+## SC-20261115-004 独立设备打开对照与环境阻塞检查点
+
+- 北京时间：2026-11-15 02:10:40 +08:00。
+- 修改或新增：只更新设备证据、PLAN、README和对应文档检查，不新增探针、不改产品或原测试调用/超时/断言。暂停堆叠诊断代码与新功能，解除条件为正常设备操作环境下完整回归恢复或维护者经同意定位并恢复环境。
+- 遇到的难题：需要区分路径独立打开与已有描述符操作；进程数量、load或runnable不提供可归责证据，不能据此清进程。项目代码不足以安全修复系统级设备操作延迟。
+- 处理方式：临时Python只读open/dup/close，同一原/dev/null保持打开时初次open15502.646ms、随后独立路径open22517.115/63.495/17.882/41.146ms、close558.133/192.918/0.379/89.677ms，原close115.003ms；dup及/dev/fd原描述符均亚毫秒，/dev/zero及普通临时文件操作也亚毫秒。顺序采样不证明全故障根因或替代路径可用于产品，不改设备/权限/stdio。libproc只读两次3.02秒聚合未显示固定分类的大量用户CPU增长；不把计数/状态当烧CPU证据，不取未知进程堆栈、不记录其参数或私人路径。
+- 验证结果：原控制/Rust状态/service四文件18项13 pass/5 fail；最终完整RUSTUP_TOOLCHAIN=1.100.0 npm test共750项747 pass/3 fail/0 cancelled/skipped，client enabled-start与Rust start/stop的Node同步子进程ETIMEDOUT，原30000ms而elapsed67744/58825/58123ms。状态与service本次通过不称历史问题已修复。文档/诊断/探针检查33/33，git diff --check通过，fetch后0/0。无原生源码修改，未新增浏览器/原生构建/真机验收。
+- 遗留问题：系统设备独立打开/关闭延迟可脱离产品复现，来源仍未知；不声称全部失败同因或已有修复。停止继续增加探针与重复跑测冒充推进；需要正常环境复核或经同意的环境维护。不自动重启/停未知进程/授予权限/清配置；重启不是已验证修复。SC021整批未验收、T0未验收、T1未启动、G1～G6仍未验收；默认stable仍中断、1.100.0仅进程覆盖。无需用户为测试重新授权；若用户选择重启机器/执行环境，先保存工作且自行或由维护者执行。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-004] checkpoint independent null-device open delays and environment blocker`；前批e1afdf9c381420384f6171e87ffb788081bc9130已推送。

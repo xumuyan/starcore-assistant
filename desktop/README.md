@@ -295,3 +295,6 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 
 
 SC-20261115-003 [设备描述符对照](../docs/verification/2026-11-15-devnull-descriptor-probe.md)：Python 也复现 /dev/null 秒级操作延迟；新增显式手动探针而非改产品 stdio。初次原回归740 pass/4 fail，最终749项743 pass/5 fail/1 cancelled，根因与验收仍未完成。
+
+
+SC-20261115-004：[同一描述符对照](../docs/verification/2026-11-15-devnull-descriptor-probe.md#sc-20261115-004-独立打开与已有描述符对照环境阻塞检查点)再次复现Python独立/dev/null open达15.5/22.5秒，dup快速；系统根因未定，目标复测13 pass/5 fail。停止叠加诊断代码；待正常环境复核或经同意的环境维护，不自动重启/停进程，不声称产品修复。
