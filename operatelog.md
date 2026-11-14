@@ -1076,3 +1076,13 @@
 - 完整回归实际失败：npm test 共 736 项，684 pass / 52 fail / 0 cancelled/skip；Rust lifecycle/Fish/reminder/state 构建 hook 与 host 构建失败，输出含 partial rename ENOENT、spawnSync cargo ETIMEDOUT（300 秒）与 static.rust-lang.org DNS 失败。正常及提升网络权限的 rustup toolchain install stable --profile minimal 均 DNS 失败，未恢复工具链，未改测试断言/超时/skip 或重置用户配置；没有把相关通过冒充完整通过。未运行新浏览器、前端/原生构建或真机验收；现有完整套件确实尝试 Rust 构建但受工具链阻碍，无新设备/剪贴板/输入/通知/音频/权限/安装操作（仅尝试开发工具链恢复）。
 - 遗留问题：解除条件为恢复完整回归；整批未验收完成，需恢复官方 Rust 分发源 DNS/网络、正常安装 stable 后重跑完整 npm test 并更新证据；保留可回滚提交，不声称完成验收。此前 service.test 超时根因未定位；本批不称修复。原结果徽标非统一 UI/全局 busy/复制许可，旧冻结对象不可撤回，无自动 timer/DOM 投递，TOCTOU/IPC 认证/崩溃恢复仍未实现。T0 未验收、T1 未启动、G1～G6 仍未验收。恢复回归后下一步离线组合语义展示与执行器等待提示，无需用户授权真实剪贴板或系统输入。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-021] scope copy result badges to original sessions and jobs`；前批 20a87a8317a87df0ce19cd306e453c01d11a6a69 已推送。
+
+## SC-20261115-001 官方源站恢复 Rust 与未通过回归检查点
+
+- 北京时间：2026-11-15 01:04:10 +08:00。
+- 修改或新增：新增工具链恢复证据文档及一项文档回归，同步 PLAN 当前步骤、README、SC021 后续状态；不改产品、离线模型、原断言/超时/测试选择或用户运行配置。
+- 遇到的难题：标准分发域名 DNS 不稳定，普通及提升网络安装失败；官方 S3 单连接缓慢，两次 600 秒工具时限后 stable 仅部分安装，component add 返回 missing manifest。工具恢复后完整套件仍有子进程与服务超时，不能把先前工具链失败消失当验收。
+- 处理方式：通过 rust-lang/simpleinfra 生产配置及 CloudFront 源站配置核实 static-rust-lang-org 官方桶，进程级临时源站 HTTPS 下载；缺组件分段续传第一次有 DNS 失败，再续传后 rustc/cargo/rust-std 全归档与官方清单 SHA-256 相符，保留 partial/缓存、不跳过校验。正常安装独立 1.100.0 minimal 成功并执行 rustc/cargo 版本确认；只用 RUSTUP_TOOLCHAIN=1.100.0 运行回归，不重置默认 stable、DNS/hosts 或持久源配置。
+- 验证结果：完整 npm test 实际 736 项，729 pass/6 fail/1 cancelled/0 skipped：client-control 两项、rust-host 三项 ETIMEDOUT，dictation-controller 子进程 status=null（不能只据此断定超时），service 20000ms testTimeoutFailure。原四文件缩小复测 13 项，10 pass/3 fail，client-control 两 start 与 rust-host start 仍超时；其余复测通过不称修复。观测 load averages 673.06/680.20/665.72，未证明因果。文档及 SC021 专项 46/46、git diff --check 通过；fetch 后原分支远端差异 0/0。没有新浏览器/原生构建/真机、权限、剪贴板、输入、音频或安装应用操作。
+- 遗留问题：SC021 仍未整批验收，默认 stable 部分状态仍需正常修复；独立工具链可用不代表 fmt/clippy 齐全。先定位 client-control/rust-host start 子进程阻塞，独立保留 service 超时及原生检查问题；不放宽超时、不结束未知进程，不叠加等待提示功能。完整回归及阶段证据实际通过前不勾完成。T0 未验收、T1 未启动、G1～G6 仍未验收；无需用户授予真实输入/剪贴板权限。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-001] record official Rust recovery and remaining regression failures`；前批 9734b15d5626787b833c49ea46d8bb8c1e7b5734 已推送。

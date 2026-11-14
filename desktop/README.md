@@ -282,3 +282,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 原回合复制结果徽标 · SC-20261114-021
 
 [默认关闭离线提案](../docs/verification/2026-11-14-dictation-copy-result.md)私有持有原 copy-effect，成功 prepare 绑定当前原 session，只有原 job 回报影响本任务徽标；新轮/重试不借旧成功。144 条排列与失联/epoch/隐藏/耗尽反例；hidden 不代表全局空闲，也不授权复制。未接前端，TOCTOU 与 T0/T1/G1～G6 未验收。下一步展示与等待提示组合，无需用户操作。
+
+
+### 工具链恢复检查点 · SC-20261115-001
+
+[官方源站恢复与回归证据](../docs/verification/2026-11-15-rust-toolchain-recovery.md)：独立 Rust 1.100.0 已可运行，默认 stable 中断状态保留；完整回归仍 729 pass/6 fail/1 cancelled，缩小复测 10 pass/3 fail。先定位控制子进程阻塞，不以工具可用代替 SC021 验收，不叠加等待提示功能。

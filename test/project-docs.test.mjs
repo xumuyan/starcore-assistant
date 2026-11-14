@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261112-009）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -247,4 +247,13 @@ test('full-flow cancellation evidence distinguishes browser deadlines from devic
     for (const requirement of [/27 组/, /返回手动/, /fastForward/, /180 秒/, /物理全局 Esc/, /T0 未验收、T1 未启动/]) assert.match(section, requirement);
   }
   assert.match(read('PLAN.md'), /SC-20261114-001 已补齐 27 组/);
+});
+
+
+test('toolchain recovery checkpoint preserves failed regression and process-only configuration boundaries',()=>{
+  const path='docs/verification/2026-11-15-rust-toolchain-recovery.md';
+  const evidence=read(path);
+  for(const requirement of [/SC-20261115-001/,/static_bucket=static-rust-lang-org/,/SHA-256/,/RUSTUP_TOOLCHAIN=1\.100\.0/,/729 pass \/ 6 fail \/ 1 cancelled/,/10 pass \/ 3 fail/,/missing manifest/,/默认配置未重置/,/未证明负载与失败的因果/,/T0 未验收、T1 未启动/,/G1～G6 仍未验收/])assert.match(evidence,requirement);
+  for(const file of ['PLAN.md','desktop/README.md','docs/verification/2026-11-14-dictation-copy-result.md'])assert.ok(read(file).includes('2026-11-15-rust-toolchain-recovery.md'),file);
+  assert.match(read('PLAN.md'),/当前下一步（SC-20261115-001）/);
 });

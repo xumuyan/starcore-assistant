@@ -27,4 +27,6 @@ result() 是按需同步读取，不读 wall clock、不分配业务 revision。
 
 ## 本批验证阻塞
 
-新增专项 26 项、144 条排列与相关回归通过；完整 npm test 实际为 684 pass / 52 fail / 0 cancelled/skip（共 736），不能记为整批验收通过。Rust 测试构建触发 stable 工具链同步，出现下载 partial rename ENOENT、cargo 300 秒超时及 static.rust-lang.org DNS 失败；本机 ~/.rustup/toolchains 当前为空。正常与提升网络权限的 rustup toolchain install stable --profile minimal 恢复均因 DNS 失败，未改系统默认工具链配置、未删除缓存、未跳过测试。解除条件：可解析并访问官方 Rust 分发源，正常恢复 stable 后重新运行完整 npm test 并记录通过；当前仅提交保存可回滚提案，不声称整批验收完成。
+新增专项 26 项、144 条排列与相关回归通过；完整 npm test 实际为 684 pass / 52 fail / 0 cancelled/skip（共 736），不能记为整批验收通过。Rust 测试构建触发 stable 工具链同步，出现下载 partial rename ENOENT、cargo 300 秒超时及 static.rust-lang.org DNS 失败；当次观察本机 ~/.rustup/toolchains 为空。正常与提升网络权限的 rustup toolchain install stable --profile minimal 恢复均因 DNS 失败，未改系统默认工具链配置、未删除缓存、未跳过测试。解除条件：可解析并访问官方 Rust 分发源，正常恢复 stable 后重新运行完整 npm test 并记录通过；当前仅提交保存可回滚提案，不声称整批验收完成。
+
+后续 SC-20261115-001 已[恢复独立 1.100.0 工具链](2026-11-15-rust-toolchain-recovery.md)，不是修好默认 stable：完整回归 729 pass/6 fail/1 cancelled，仍未验收；以新检查点为当前阻塞，原失败历史保留。
