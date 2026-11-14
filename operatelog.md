@@ -899,3 +899,14 @@
 - 验证结果：新增 21/21；相关 model/recovery/scheduling/contract/state/docs 96/96，npm test 367/367（0 fail/skip），git diff --check 通过。实际验收仅离线调度/有界计数合成轨迹与文档检查，不证明设备取消延迟、UI 帧率或生产 IPC 安全。无应用/前端/原生运行代码修改，未重跑 preview/probe 构建、Chromium 或 Mac 原生构建，未安装/替换应用。
 - 遗留问题：手工模型不是生产队列，普通事件耗尽后仍需显式关闭/重建，保留序号并非无限容量保证。真实采样调度、全部资源停止、最终 ASR、播放器回退、T0/T1、G1～G6 继续未验收。既有 Rust 偶发测试本批未复现、未修复。下一步逐段对照现有主流程合成夹具与协调器确认边界，列明假设/缺口，不接真实服务或设备，不安装 NSH、不替换应用；当前无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-005] model coalesced meters and terminal counter safety`；前批 b7acdf80f396059b009fc1003d197b8015c0b989 已推送。
+
+
+## SC-20261114-006 主语音夹具与协调器逐帧边界对照
+
+- 北京时间：2026-11-14 12:08:45 +08:00。
+- 修改或新增：新增仅测试导入的 voice-coordinator-reference.test.mjs，读取实际 referenceSequence/dictationSequence/playbackRehearsal 六个夹具，以默认即时电平和手工合并两模式共 12 条完整轨迹逐帧比较视图/身份/接受到达 seq。另有七组缺确认反例与一项文档证据检查，共 20 项测试；独立核对预约/inputReady、capture 停止、chat/TTS/player 原 owner、playback-ended/end 后资源 drain、新输入确认、最终 ASR/writer 与未知 run。新增验证文档逐项列合成假设；同步 PLAN、README、模型记录及文档 marker。
+- 遇到的难题：现有视图夹具仅有 begin/process/end 等事件，不能把它们当成设备确认或资源回收。播放取消分支包含已忽略帧与新 run 后不归零的夹具 seq，不能误把固定 fixture 序号作为协调器业务编号。首次专项 19/20，唯一失败是计划尚未加入新证据链接，非运行行为缺陷。
+- 处理方式：测试内路由只查预留的原 owner，未知 run 不借当前会话；单独的 prepareFrame 准备脚本明确注入已知夹具的合成 inputConfirmed/lease/stop 假设，配缺确认反例，不作为适配器或从时间戳推断实际状态。每帧按 acceptedCounts 检查协调器序号，主完整对话/听写还核对固定 fixture seq；原始 fixture、reducer、模型与服务不修改。加入缺失链接并重跑。
+- 验证结果：专项 20/20，相关 reference/model/recovery/scheduling/contract/state/docs 两次 116/116。完整回归依次 387/387 → 386/387（既有 rust host serve chat speaks the relay protocol，test/rust-host.test.mjs:252:39，Cannot read properties of undefined (reading 'type')）→ Rust 单文件重跑 7/8（同一错误）→ 完整回归重跑 387/387（0 fail/skip）。git diff --check 通过。实际完成离线逐帧/缺确认验证及文档检查，无动画逐帧或设备验收。未改前端/原生运行代码，未重跑 preview/probe 构建、Chromium 或 Mac 构建；未接服务/设备/剪贴板，不安装或替换应用。
+- 遗留问题：所有 input/stop/playback/writer 确认仍为合成调用；实际听写无增量来源，processing 后最终 ASR 仍被拒绝，writer 释放不是插入/复制结果。T0 未验收、T1 未启动、G1～G6 全部未验收。既有 Rust 偶发测试本批两次复现，最后完整重跑通过不代表已修复；源码可见等待 user 后立即读取下一行快照，但本批不改该历史测试，需独立核对事件等待边界。下一步先独立修正/验证这个回归等待边界，再推进最终 ASR 展示契约与视图截取/业务原文分离、取消/迟到与 writer 边界；不连接真实服务或设备，当前无需用户操作或授权。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-006] cross-check reference flows against coordinator ownership`；前批 c443109595a0a4be41f81b052f8c61cfa8da66ce 已推送。

@@ -202,3 +202,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 离线采样调度与耗尽边界 · SC-20261114-005
 
 [模型验证记录](../docs/verification/2026-11-14-voice-coordinator-model.md)补充显式 coalesceMeters 实验：默认关闭，手工 flush，一万条电平只留一槽，缓冲不分配 seq；文字/播放结果优先，取消/结束/断连直接清槽，不等 flush。合并采样保留最后普通序号和终结序号；缩小计数上限交叉检查断连与缺失资源确认。没有自动计时器/生产队列、真实订阅或设备验证；G1～G6、T0/T1 仍未验收。下一步对照主流程夹具的合成确认边界，当前无需用户操作。
+
+
+### 主语音夹具与协调器边界 · SC-20261114-006
+
+[主流程协调器对照](../docs/verification/2026-11-14-voice-reference-coordination.md)在测试内导入现有完整对话/听写及四种播放分支，逐帧与协调器比较；即时/手工合并共 12 条轨迹。另用七组缺确认反例核对输入就绪、capture stop、chat/TTS/player 原 owner、结束后的 drain/新输入和最终 ASR/writer 边界。仅合成假设，不是适配器，不接真实服务；T0/T1、G1～G6 未验收。下一步定义 processing 后最终 ASR 展示契约，当前无需用户操作。
