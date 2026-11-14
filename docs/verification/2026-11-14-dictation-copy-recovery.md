@@ -23,3 +23,8 @@
 本批是原模型组合验证，不是生产调度器/资源管理器。源 query、观测、guard allowed、written/not-written、stopped 都不是 IPC/OS 认证；无自动 timer、真实取消/执行边界原子性或崩溃恢复。**TOCTOU** 仍存在；source budget 不能证明未到达的锁屏，executor stop 也不能撤销已发生写入。没有新原生/浏览器/真机证据，已有 service.test 超时根因仍未定位，不因本批回归通过而称修复。
 
 原 snapshot.outcome 是局部最近执行记录，可能在新回合仍保留旧 job 的真实结果；它不是当前 session 的统一 UI 状态，不应直接绑定前端。下一步离线明确执行结果展示的原 session/job 归属及新回合隔离规则，避免把旧局部结果当作新回合成功；不新增真实权限或生产接线。无需用户操作或授权。
+
+
+## 后续 SC-20261114-021
+
+[原回合结果徽标提案](2026-11-14-dictation-copy-result.md)新增独立默认关闭 wrapper，不改本批模型与旧诊断反例。隔离当前 session 的徽标和旧局部真实结果；不是前端接线或执行权限。

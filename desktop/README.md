@@ -277,3 +277,8 @@ MOSS_PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs node desktop/check-e
 ### 显式复制组合恢复 · SC-20261114-020
 
 [离线恢复矩阵](../docs/verification/2026-11-14-dictation-copy-recovery.md)只加测试，不改原模型：4320 条源/voice/executor 重排与 288 条 epoch 重建路径，fresh、原 stop/drain、inputReady、executor stopped 分开。缺停止证明不超时成功；未接真实 OS、未解决 TOCTOU，T0/T1/G1～G6 未验收。下一步明确局部执行结果的展示归属，无需用户操作。
+
+
+### 原回合复制结果徽标 · SC-20261114-021
+
+[默认关闭离线提案](../docs/verification/2026-11-14-dictation-copy-result.md)私有持有原 copy-effect，成功 prepare 绑定当前原 session，只有原 job 回报影响本任务徽标；新轮/重试不借旧成功。144 条排列与失联/epoch/隐藏/耗尽反例；hidden 不代表全局空闲，也不授权复制。未接前端，TOCTOU 与 T0/T1/G1～G6 未验收。下一步展示与等待提示组合，无需用户操作。

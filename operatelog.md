@@ -1064,3 +1064,15 @@
 - 验证结果：初始专项 20/20，补缺第二路快照阻止 50 次预留、旧局部 written 与新 listening 共存、部分恢复再失联撤销 freshness 三项，共 23 项、4608 条完整轨迹（不是 4608 项测试）。另测缺 executor stop 阻止 50 次 copy、缺原 ASR stop 阻止 50 次 reserve/restart、fresh restrictive 不授许可、inclusive 源截止、业务耗尽只能清理、旧回调/预算不续命、生产无导入。相关两次 431/431，完整 npm test 两次 710/710（0 fail/skip/cancelled），git diff --check 通过。无新增浏览器、前端/原生构建、真机、系统通知、剪贴板/输入、音频、权限或安装操作；原生源未变，未运行新原生构建。
 - 遗留问题：仅可信串行本地 ownership/合成 guard/stop/query/result，非生产源认证或真实 worker 停止证明；TOCTOU、自动时钟/计时器、IPC 身份/线性化/异常恢复/崩溃恢复仍未实现。源期限内未通知锁屏不可推断，旧写入/返回正文不可撤回；snapshot.outcome 是局部最近执行记录，不是新回合成功/统一 UI，独立 final 和旧跨结束回退不改。既有 service.test 20 秒超时根因仍未定位，本批通过不算修复。T0 未验收、T1 未启动、G1～G6 仍未验收。下一步离线明确执行结果展示的原 session/job 归属及新回合隔离，不直接接生产，无需用户操作或授权。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-020] cross-check copy executor and source voice recovery gates`；前批 bd9260052ae2367edeb20e86e51d02ee097d2667 已推送。
+
+
+## SC-20261114-021 原回合复制结果徽标（完整回归受阻，未验收完成）
+
+- 北京时间：2026-11-14 23:25:11 +08:00。
+- 修改或新增：新增默认关闭、仅测试导入的 DictationCopyResultModel，私有拥有原 copy-effect，不改旧模型/夹具/reducer 或产品源码；新增 26 项专项、结果归属证据文档，同步 PLAN/README/recovery 后续/文档测试。
+- 遇到的难题：旧 snapshot.outcome 可在新轮保留 written，不能直接显示新轮成功；重试尚未 prepare 也不能继承上次结果，hidden 不代表 executor 全局空闲。完整回归另外遇到 Rust stable 自动同步/下载失败，工具链目录当前为空。
+- 处理方式：只有成功原 prepare 绑定 session；任务身份仍由原 check/job 严格验证，不接外部重标 snapshot。新 requestCopy 清旧徽标归属，原当前 processing/session/run/epoch 与连接/关闭/耗尽门槛决定只读 result；hide/dismiss 同轮 sticky，新轮解除。返回 status/awaitingStop 不含正文/handles/权限，不改原 sample/commit 或副作用门槛。原结果和 stop 分离，旧 callback 不影响新 job。
+- 验证结果：首次专项 21/23，两处测试假设错误：advance(100) 后清理 helper 仍使用 now=0 被倒退时间拒绝；candidate 原 handle 在 copying 时仍存在，不等于 requestCopy 可成功。修正 helper 时间与真正 requestCopy 拒绝断言，非放宽业务约束；修正后专项+文档 42/42。补同值源版本失效、同轮隐藏重试不复活、跨时刻交接/候选截止三项，共专项 26 项，144 条四事件排列，相关首次 457/457，git diff --check 通过。日志后相关 456/457，唯一失败为文档检查要求精确字段 `遗留问题：`，原先写为“遗留问题及解除条件”未匹配，已修正字段，不改规则断言；日志修正后相关再次 457/457（0 fail/skip/cancelled），提交前 git diff --check 与 fetch 后远端差异 0/0。
+- 完整回归实际失败：npm test 共 736 项，684 pass / 52 fail / 0 cancelled/skip；Rust lifecycle/Fish/reminder/state 构建 hook 与 host 构建失败，输出含 partial rename ENOENT、spawnSync cargo ETIMEDOUT（300 秒）与 static.rust-lang.org DNS 失败。正常及提升网络权限的 rustup toolchain install stable --profile minimal 均 DNS 失败，未恢复工具链，未改测试断言/超时/skip 或重置用户配置；没有把相关通过冒充完整通过。未运行新浏览器、前端/原生构建或真机验收；现有完整套件确实尝试 Rust 构建但受工具链阻碍，无新设备/剪贴板/输入/通知/音频/权限/安装操作（仅尝试开发工具链恢复）。
+- 遗留问题：解除条件为恢复完整回归；整批未验收完成，需恢复官方 Rust 分发源 DNS/网络、正常安装 stable 后重跑完整 npm test 并更新证据；保留可回滚提交，不声称完成验收。此前 service.test 超时根因未定位；本批不称修复。原结果徽标非统一 UI/全局 busy/复制许可，旧冻结对象不可撤回，无自动 timer/DOM 投递，TOCTOU/IPC 认证/崩溃恢复仍未实现。T0 未验收、T1 未启动、G1～G6 仍未验收。恢复回归后下一步离线组合语义展示与执行器等待提示，无需用户授权真实剪贴板或系统输入。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261114-021] scope copy result badges to original sessions and jobs`；前批 20a87a8317a87df0ce19cd306e453c01d11a6a69 已推送。
