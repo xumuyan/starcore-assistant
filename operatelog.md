@@ -1146,3 +1146,13 @@
 - 验证结果：组合/结果/恢复/执行器专项初次109/109、补充thinking/final-ready/preparing及候选到期后111/111通过；首次组合14/16及后续67/68的原因与修正如上。进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 784/784，0 fail/cancelled/skipped；文档与组合初次51/51，补充两项后最终53/53；git diff --check通过。无原生修改，未新增Mac/Tauri构建、浏览器或真机验收。
 - 遗留问题：组合投递一致性、认证/TOCTOU、真实timer/监听、ended-result槽及安全耗尽替换未实现；canCopy不是权限，等待不是排队，隐藏不代表执行器停止。SC021整批、T0、T1、G1～G6仍未验收。设备延迟及历史stop影响无新结论，stable别名/fmt/clippy未核实。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-007] compose copy result and executor wait presentation offline`；前批e7a2ec69565e1aae3b65def1fd5ae507d104194d已推送。
+
+## SC-20261115-008 组合展示帧离线投递
+
+- 北京时间：2026-11-15 16:31:16 +08:00。
+- 修改或新增：新增默认关闭DictationCopyFrameModel私有原owner封装，仅最新原帧一次commit；十个写入口预先失效pending/shown，包含拒绝及抛错；新增40项测试、144条独立前缀投递轨迹和证据，更新PLAN/README/文档检查。不改已有业务模型或产品前端。
+- 遇到的难题：只比较业务revision或组合字段会漏掉独立report/stop及ABA，失败返回也可能触发到期；首次33/34因测试假定checked句柄可重复成功，与原阶段约束不符。
+- 处理方式：保守地对全部写入口先失效，异常仍原样传播，不用字段相等判新鲜；不新增数值generation，原业务耗尽仍隐藏且保留原stop/资源清理。改用合法meter往返验证ABA，保留原checked规则。明确仅可信同步本地一致性、非DOM/IPC事务，保留引用不自动消失。
+- 验证结果：扩充后的组合帧/组合/结果/恢复/执行器专项150/150通过；补sample保留shown后专项151/151，加文档共178/178；进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 825/825，0 fail/cancelled/skipped；最终帧与文档67/67、git diff --check通过。无原生修改，未运行新Mac/Tauri构建、浏览器或真机验收。
+- 遗留问题：消费者主动投递/失效、真实timer/源监听、IPC/UI认证、系统TOCTOU、ended-result槽与安全耗尽替换仍缺；拒绝调用也隐藏可能闪烁，恶意getter/Proxy重入不在可信同步范围。SC021整批、T0、T1、G1～G6仍未验收；设备延迟及历史stop影响无新结论，stable别名/fmt/clippy未核实。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-008] guard offline copy frame delivery with private ingress invalidation`；前批81ec4bb06333e9761dd379efc251a992eb9b77b0已推送。
