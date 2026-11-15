@@ -1156,3 +1156,13 @@
 - 验证结果：扩充后的组合帧/组合/结果/恢复/执行器专项150/150通过；补sample保留shown后专项151/151，加文档共178/178；进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 825/825，0 fail/cancelled/skipped；最终帧与文档67/67、git diff --check通过。无原生修改，未运行新Mac/Tauri构建、浏览器或真机验收。
 - 遗留问题：消费者主动投递/失效、真实timer/源监听、IPC/UI认证、系统TOCTOU、ended-result槽与安全耗尽替换仍缺；拒绝调用也隐藏可能闪烁，恶意getter/Proxy重入不在可信同步范围。SC021整批、T0、T1、G1～G6仍未验收；设备延迟及历史stop影响无新结论，stable别名/fmt/clippy未核实。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-008] guard offline copy frame delivery with private ingress invalidation`；前批81ec4bb06333e9761dd379efc251a992eb9b77b0已推送。
+
+## SC-20261115-009 单主控与子进程主动展示投递
+
+- 北京时间：2026-11-15 16:58:46 +08:00。
+- 修改或新增：按用户要求一主进程统一控制，新增默认关闭controller私有原frame model、固定展示验证worker、主动consumer hidden→原frame提交；子进程真实fork测试与合成故障测试、144条ACK排列。更新PLAN/README/证据/文档检查，连续实现验证至提交，不改生产服务或安装应用。
+- 遇到的难题：跨IPC不能保留原对象身份；旧ACK可能晚于新轮或stop；child退出也不能成为复制执行器stop；消费者异常、协议错误和挂起需要有界失败处理，不无限排队。
+- 处理方式：原frame保留主进程，子进程只收有限展示值并回text-free id ACK；一处理中/一最新槽，状态入口同步hidden并废弃旧frame，父端原commit后通知；严格消息与文本界限，默认5000ms启动/任务watchdog，故障无重启/重试，仅结束自己child，1000ms后必要时SIGKILL，close等实际close。失败后仍保留原report/stop/drain入口；消费者失败锁存并拒绝重入。
+- 验证结果：首次controller35/35，扩充后相关专项199/199；补升级终止/耗尽/payload后controller51/51、相关202/202、加文档230/230；进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 877/877，0 fail/cancelled/skipped；最终controller与文档79/79、git diff --check通过。实际fork覆盖正常生命周期/正常shutdown、协议非法拒绝与自己的worker意外退出。无原生源码修改，未做新Mac/Tauri构建、浏览器或真机验收。
+- 遗留问题：本地consumer通知不证明真实DOM卸载；异常consumer可能保留外部内容，Node worker不是沙箱或认证边界；真实timer/OS源监听、TOCTOU、休眠恢复、ended-result槽、安全耗尽替换、G1～G6生产接线仍缺。SC021整批、T0、T1、G1～G6仍未验收。设备延迟及历史stop影响无新结论，stable/fmt/clippy未核实。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-009] drive offline display from one parent and a tested child worker`；前批2c0fdf4d1ada532f9e04f2217e1e719271280604已推送。
