@@ -1,7 +1,7 @@
 // moss-host start/stop：与 src/client-control.mjs 的 start/stop 命令逐调用对齐。
 // 语义基准：operatelog SC-20261109-012 之后的行为——
 //   start：Disabled 的代理跳过（绝不复活用户停用的微信代理）；已注册跳过；否则 bootstrap（失败吞掉）。
-//   stop：倒序 bootout（先桌面监视后微信 bot），失败吞掉；node 版此处硬编码 /bin/launchctl，本实现保持一致。
+//   stop：倒序 bootout（先桌面监视后微信 bot），失败吞掉；与 start/status 共用 launchctl 路径注入。
 // 两者的 stdout 都由随后的 status 快照输出（与 node 版一致），本模块只负责动作。
 use crate::status::{home_dir, launchctl_path, plutil_path, domain, LABELS};
 use serde_json::Value;
@@ -76,8 +76,7 @@ pub fn run(command: &str) {
         let launch_agents = home_dir().join("Library/LaunchAgents");
         start_agents(&launchctl, &launch_agents, domain, &plutil_path());
     } else if command == "stop" {
-        // node 版 stop 硬编码 /bin/launchctl，不走注入；保持一致。
-        stop_agents("/bin/launchctl", domain);
+        stop_agents(&launchctl, domain);
     }
 }
 
@@ -197,13 +196,25 @@ mod tests {
         let log = dir.join("launchctl.log");
         let fake = fake_launchctl(&dir, &log, 1);
         stop_agents(&fake, "gui/test");
-        let text = log_contents(&log);
-        let first = text.lines().next().unwrap_or("");
-        assert!(
-            first.ends_with(&format!("bootout gui/test/{}", LABELS[1])),
-            "stop 先停桌面监视（倒序），实际首行: {first}"
+        assert_eq!(
+            log_contents(&log),
+            format!("bootout gui/test/{}\nbootout gui/test/{}\n", LABELS[1], LABELS[0])
         );
-        assert!(text.contains(&format!("bootout gui/test/{}", LABELS[0])));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn stop_continues_after_failed_bootout() {
+        let dir = temp_dir("stop-failure");
+        let log = dir.join("launchctl.log");
+        let script = dir.join("fake-launchctl.sh");
+        fs::write(&script, format!("#!/bin/bash\necho \"$*\" >> \"{}\"\nexit 1\n", log.display())).unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        stop_agents(script.to_str().unwrap(), "gui/test");
+        assert_eq!(
+            log_contents(&log),
+            format!("bootout gui/test/{}\nbootout gui/test/{}\n", LABELS[1], LABELS[0])
+        );
         fs::remove_dir_all(&dir).ok();
     }
 

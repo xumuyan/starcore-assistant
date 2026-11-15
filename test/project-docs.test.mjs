@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261112-009）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -289,6 +289,14 @@ test('resource checkpoint remains observational and non-destructive',()=>{
  const evidence=read('docs/verification/2026-11-15-devnull-descriptor-probe.md').split('## SC-20261115-005')[1];
  assert.ok(evidence);
  for(const rule of [/571\.85\/571\.00\/559\.16/,/863\.45\/6387\.724/,/0\.049\/0\.002/,/top.*ps.*未完成/,/不能由上限值推导具体阻塞/,/也没有执行终止、重启、权限修改/,/SC021、T0\/T1、G1～G6均保持未验收/])assert.match(evidence,rule);
- assert.match(read('PLAN.md'),/当前下一步（SC-20261115-005）/);
+ assert.match(read('PLAN.md'),/SC-20261115-005 只读资源检查/);
  assert.match(read('desktop/README.md'),/SC-20261115-005/);
+});
+
+
+test('stop isolation checkpoint corrects the historical safety claim without accepting the native stage',()=>{
+ const evidence=read('docs/verification/2026-11-15-control-stop-isolation.md');
+ for(const rule of [/SC-20261115-006/,/临时 HOME 不能隔离/,/历史影响未核实/,/MOSS_LAUNCHCTL/,/755\/755/,/build:mac:check/,/不证明设备延迟已修复/,/SC021 整批仍未验收、T0 未验收、T1 未启动/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/当前下一步（SC-20261115-006）/);
+ for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-control-stop-isolation.md'));
 });

@@ -1126,3 +1126,13 @@
 - 验证结果：文档24/24；最终RUSTUP_TOOLCHAIN=1.100.0 npm test为751项747 pass/4 fail/0 cancelled/skipped，client enabled-start、Rust status/start/stop对照ETIMEDOUT，原30000ms而elapsed30081/45559/90281/34879ms；末条status0同时ETIMEDOUT仍失败，不改原异常/断言。git diff --check通过。无原生源码修改，未新增浏览器/构建/真机验收。提交前fetch曾40秒工具超时，远端状态需后续正常命令核对。
 - 遗留问题：设备延迟与高load仍在，根因及全部失败是否同因未知，未取得可终止目标，不把环境观察冒充修复。暂停重复跑测与堆叠诊断；需要正常环境复核或维护者经同意定位恢复，不自动重启/停进程/清配置/申请权限。SC021整批、T0、T1、G1～G6均未验收，stable别名仍中断，独立1.100.0仅进程级指定。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-005] record read-only resource checks and pause repeated environment diagnostics`；前批b6d266998c882125adad5c9e6e4eeaf8132eeb4f已推送。
+
+## SC-20261115-006 stop 测试隔离与命令注入修正
+
+- 北京时间：2026-11-15 15:55:28 +08:00。
+- 修改或新增：Node/Rust stop 入口共用已有 MOSS_LAUNCHCTL 注入，生产默认 /bin/launchctl 不变；Node成功/失败路径、Rust失败继续及完整日志、宿主双侧假命令严格对照、源码隔离守卫；同步PLAN/README/证据/文档检查。
+- 遇到的难题：静态审查发现旧stop对照仅换HOME，真实bootout仍面向当前用户gui/UID域；先前“安全空操作”判断不成立，历史影响未核实。该缺陷与设备延迟因果独立，不能用这次全绿推断系统根因已修复。
+- 处理方式：stop使用已有注入路径，双方测试显式假launchctl，严格检查倒序两次bootout及两次print，失败仍继续。无放宽超时/断言/并发/stdio、无重试修复；未查询恢复真实代理、未停进程/重启/改设备/权限/配置，Mac构建未安装。
+- 验证结果：Node和隔离7/7、Rust控制6/6、宿主对照8/8；首次完整npm test 755/755无失败取消跳过；build:mac:check通过。新增文档检查后756项755通过/1失败，为历史当前标记白名单缺少006；已补006（保留其他手测约束），最终完整756/756，0 fail/cancelled/skipped，文档与隔离27/27；git diff --check通过。无新增浏览器/真实语音/物理热键/真实输入与剪贴板/托盘点击验收。
+- 遗留问题：不证明设备延迟已修复，历史service/rust-state/native dictation异常不合并归因，stable别名及fmt/clippy未核实。SC021整批仍未验收、T0未验收、T1未启动、G1～G6仍未验收；本轮回归通过不替代实际阶段验收，下一批仅继续离线组合，真实接线保留门槛。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261115-006] isolate stop control tests through injected launchctl`；前批f47842c0f1b06109eb76719d1b044d73d80a4ce4已推送。

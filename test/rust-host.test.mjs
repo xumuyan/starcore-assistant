@@ -141,14 +141,32 @@ test('rust host start matches node control invocation for invocation', { skip: !
   assert.match(enabledLog, /print gui\/\d+\/local\.codex-weixin-notifier/, '快照阶段同样查询服务状态');
 });
 
-test('rust host stop matches node control output', { skip: !existsSync(cargo) ? 'cargo 未安装' : darwinSkip }, () => {
+test('rust host stop matches node output and injected launcher invocation for invocation', { skip: !existsSync(cargo) ? 'cargo 未安装' : darwinSkip }, () => {
   execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
   const home = sandbox();
+  const logNode = join(home, 'log-node');
+  const logRust = join(home, 'log-rust');
+  const nodeLauncher = fakeLaunchctl(logNode);
+  const rustLauncher = fakeLaunchctl(logRust);
   try {
-    const nodeOut = run(home, process.execPath, [join(root, 'src/client-control.mjs'), 'stop']);
-    const rustOut = run(home, mossHost, ['stop']);
-    assert.equal(rustOut, nodeOut, 'stop 输出字节级一致（对未注册代理双方均为安全空操作）');
-  } finally { rmSync(home, { recursive: true, force: true }); }
+    const nodeOut = runWithLaunchctl(home, nodeLauncher, process.execPath, [join(root, 'src/client-control.mjs'), 'stop']);
+    const rustOut = runWithLaunchctl(home, rustLauncher, mossHost, ['stop']);
+    assert.equal(rustOut, nodeOut, 'stop 输出字节级一致');
+    const domain = `gui/${process.getuid()}`;
+    const expected = [
+      `bootout ${domain}/local.codex-weixin-desktop-watch`,
+      `bootout ${domain}/local.codex-weixin-notifier`,
+      `print ${domain}/local.codex-weixin-notifier`,
+      `print ${domain}/local.codex-weixin-desktop-watch`,
+      '',
+    ].join('\n');
+    assert.equal(readFileSync(logNode, 'utf8'), expected);
+    assert.equal(readFileSync(logRust, 'utf8'), expected);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(join(nodeLauncher, '..'), { recursive: true, force: true });
+    rmSync(join(rustLauncher, '..'), { recursive: true, force: true });
+  }
 });
 
 test('rust host serve speaks the minimal stdio protocol subset', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, () => {

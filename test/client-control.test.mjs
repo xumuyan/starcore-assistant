@@ -28,11 +28,12 @@ function plist(label, disabled) {
 `;
 }
 
-function fakeLaunchctl(log) {
+function fakeLaunchctl(log, bootoutExit = 0) {
   const script = join(mkdtempSync(join(tmpdir(), 'client-control-bin-')), 'fake-launchctl.sh');
   writeFileSync(script, `#!/bin/bash
 echo "$*" >> "${log}"
 if [ "$1" = "print" ]; then exit 1; fi
+if [ "$1" = "bootout" ]; then exit ${bootoutExit}; fi
 exit 0
 `);
   chmodSync(script, 0o755);
@@ -86,6 +87,29 @@ test('start bootstraps enabled agents and status keeps working', darwinOnly, () 
     assert.equal(typeof status.delivery, 'boolean', 'status carries the delivery flag');
   } finally { rmSync(home, { recursive: true, force: true }); }
 });
+
+for (const bootoutExit of [0, 1]) {
+  test(`stop uses the injected launcher in reverse order even with bootout exit ${bootoutExit}`, darwinOnly, () => {
+    const home = makeHome();
+    const log = join(home, 'launchctl.log');
+    const launchctl = fakeLaunchctl(log, bootoutExit);
+    try {
+      const snapshot = JSON.parse(runControl(home, launchctl, 'stop'));
+      assert.equal(snapshot.serviceRunning, false);
+      const domain = `gui/${process.getuid()}`;
+      assert.equal(readFileSync(log, 'utf8'), [
+        `bootout ${domain}/local.codex-weixin-desktop-watch`,
+        `bootout ${domain}/local.codex-weixin-notifier`,
+        `print ${domain}/local.codex-weixin-notifier`,
+        `print ${domain}/local.codex-weixin-desktop-watch`,
+        '',
+      ].join('\n'));
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(join(launchctl, '..'), { recursive: true, force: true });
+    }
+  });
+}
 
 test('the app retries transient failures and renders the disabled state honestly', () => {
   const app = readFileSync(join(root, 'client', 'App.swift'), 'utf8');

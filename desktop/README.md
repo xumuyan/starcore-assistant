@@ -301,3 +301,6 @@ SC-20261115-004：[同一描述符对照](../docs/verification/2026-11-15-devnul
 
 
 SC-20261115-005 只读资源检查观察到8核load约571、/dev/null close约6387ms，而top/ps未完成；无进程归责证据，不自动停进程或重启。待正常环境复核，不称项目代码已修复。
+
+
+SC-20261115-006：[stop 测试隔离修正](../docs/verification/2026-11-15-control-stop-isolation.md)。临时 HOME 不能隔离 gui/UID 的真实 launchd 域，旧 stop 对照不可视为必然安全空操作；历史影响未核实。本批 Node/Rust stop 共用已有 MOSS_LAUNCHCTL，生产默认 /bin/launchctl 不变；假命令严格核对倒序 bootout 和状态 print。首次完整回归755/755，最终756/756，Mac非安装构建通过；不是设备延迟修复或真机交互验收，SC021整批、T0、T1、G1～G6仍未验收。

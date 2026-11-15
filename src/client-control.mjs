@@ -40,7 +40,7 @@ if (command === 'start') {
   }
 } else if (command === 'stop') {
   for (const label of [...labels].reverse()) {
-    try { execFileSync('/bin/launchctl', ['bootout', `${domain}/${label}`], { stdio: 'ignore' }); } catch {}
+    try { execFileSync(launchctl, ['bootout', `${domain}/${label}`], { stdio: 'ignore' }); } catch {}
   }
 } else if (command !== 'status') {
   throw new Error('Unsupported command');
