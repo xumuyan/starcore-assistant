@@ -304,3 +304,6 @@ SC-20261115-005 只读资源检查观察到8核load约571、/dev/null close约63
 
 
 SC-20261115-006：[stop 测试隔离修正](../docs/verification/2026-11-15-control-stop-isolation.md)。临时 HOME 不能隔离 gui/UID 的真实 launchd 域，旧 stop 对照不可视为必然安全空操作；历史影响未核实。本批 Node/Rust stop 共用已有 MOSS_LAUNCHCTL，生产默认 /bin/launchctl 不变；假命令严格核对倒序 bootout 和状态 print。首次完整回归755/755，最终756/756，Mac非安装构建通过；不是设备延迟修复或真机交互验收，SC021整批、T0、T1、G1～G6仍未验收。
+
+
+SC-20261115-007：[离线结果/执行器等待组合](../docs/verification/2026-11-15-dictation-copy-composition.md)。默认关闭、未导入产品；samplePresentation输出当前结果或copy-waiting，等待禁用复制但不挡新轮收音，不自动排队或复制。返回值不是可提交帧，会替换业务pending frame；保留值不自刷新，canCopy不授予权限。专项111/111、完整784/784、文档与组合53/53通过，仅离线验证；SC021整批、T0/T1与G1～G6仍未验收。

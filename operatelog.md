@@ -1136,3 +1136,13 @@
 - 验证结果：Node和隔离7/7、Rust控制6/6、宿主对照8/8；首次完整npm test 755/755无失败取消跳过；build:mac:check通过。新增文档检查后756项755通过/1失败，为历史当前标记白名单缺少006；已补006（保留其他手测约束），最终完整756/756，0 fail/cancelled/skipped，文档与隔离27/27；git diff --check通过。无新增浏览器/真实语音/物理热键/真实输入与剪贴板/托盘点击验收。
 - 遗留问题：不证明设备延迟已修复，历史service/rust-state/native dictation异常不合并归因，stable别名及fmt/clippy未核实。SC021整批仍未验收、T0未验收、T1未启动、G1～G6仍未验收；本轮回归通过不替代实际阶段验收，下一批仅继续离线组合，真实接线保留门槛。
 - 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261115-006] isolate stop control tests through injected launchctl`；前批f47842c0f1b06109eb76719d1b044d73d80a4ce4已推送。
+
+## SC-20261115-007 离线复制结果与执行器等待组合
+
+- 北京时间：2026-11-15 16:17:19 +08:00。
+- 修改或新增：默认关闭的结果模型新增samplePresentation，组合原业务与当前原job徽标；旧执行器busy时新轮候选copy-waiting但收音保持独立；新增27项测试及36条独立前缀排列，更新证据/PLAN/README/文档检查。无产品导入与真实副作用。
+- 遇到的难题：同轮not-written既是结果也恢复业务copy-available，不能误作等待旧作业；关闭夹具漏epoch、失联用ready阶段beginAt返回值而不是原query导致测试失败。组合读取原业务sample会替换pending frame，不能宣称无副作用或可提交一致帧。
+- 处理方式：当前原结果优先，waiting仅在无徽标的新候选与busy共存时显示；canCopy受busy约束但not-written停止后可提示显式重试；修正测试夹具，不改旧模型验证。明确组合采样不可commit、旧帧被替换、保留值不自刷新，后续需原子投递协议。无真实剪贴板/输入/服务/定时器。
+- 验证结果：组合/结果/恢复/执行器专项初次109/109、补充thinking/final-ready/preparing及候选到期后111/111通过；首次组合14/16及后续67/68的原因与修正如上。进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 784/784，0 fail/cancelled/skipped；文档与组合初次51/51，补充两项后最终53/53；git diff --check通过。无原生修改，未新增Mac/Tauri构建、浏览器或真机验收。
+- 遗留问题：组合投递一致性、认证/TOCTOU、真实timer/监听、ended-result槽及安全耗尽替换未实现；canCopy不是权限，等待不是排队，隐藏不代表执行器停止。SC021整批、T0、T1、G1～G6仍未验收。设备延迟及历史stop影响无新结论，stable别名/fmt/clippy未核实。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-007] compose copy result and executor wait presentation offline`；前批e7a2ec69565e1aae3b65def1fd5ae507d104194d已推送。

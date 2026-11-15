@@ -36,6 +36,23 @@ export class DictationCopyResultModel {
     const key = ['checking', 'checked', 'not-issued'].includes(effect.phase) ? effect.phase : effect.outcome;
     return Object.hasOwn(statuses, key) ? Object.freeze({ status: statuses[key], awaitingStop: effect.busy }) : hidden;
   }
+  // Synchronous offline sample, NOT a committed frame or effect permission.
+  // Sampling uses the original business owner and supersedes its pending frame.
+  samplePresentation() {
+    const frame = this.#model.sample();
+    if (!frame) return null;
+    const business = frame.presentation; const badge = this.result();
+    const hasResult = business.status !== 'hidden' && badge.status !== 'hidden';
+    const waiting = !hasResult && business.status === 'copy-available' && this.#model.snapshot().busy;
+    return Object.freeze({
+      status: hasResult ? badge.status : waiting ? 'copy-waiting' : business.status,
+      text: business.text, truncated: business.truncated, level: business.level,
+      showOrbs: hasResult || waiting ? false : business.showOrbs,
+      canCopy: business.canCopy && !this.#model.snapshot().busy,
+      awaitingStop: hasResult && badge.awaitingStop,
+      executorWaiting: waiting,
+    });
+  }
   advance(now) { return this.#model.advance(now); }
   beginAt(now) { return this.#model.beginAt(now); }
   receiveAt(now, token, envelope) { return this.#model.receiveAt(now, token, envelope); }
