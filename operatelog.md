@@ -1241,10 +1241,6 @@
 
 ## SC-20261115-017 CI test job 迁移到 macos-14
 
-- 北京时间：2026-11-17 00:02biddenplaceholder
-
-## SC-20261115-017 CI test job 迁移到 macos-14
-
 - 北京时间：2026-11-16 23:53:21 +08:00。
 - 修改或新增：.github/workflows/check.yml 的 test job 由 ubuntu-latest 改为 macos-14 并改用完整 npm ci，与产品真实目标平台（macOS 助理，npm test 含 launchctl/系统域等 macOS 专用用例）及本地验收环境一致；mac-build job 不变。
 - 遇到的难题：SC-20261115-016 补装固定 Rust 工具链后，ubuntu 上 npm test 仍在约 1 分钟内失败（steps 显示失败位于 npm test），与历史全部提交一致，ubuntu 环境从未通过本仓库测试。
@@ -1262,3 +1258,13 @@
 - 验证结果：本地完整回归 893/893、build:mac:check 通过、git diff --check 通过、远端分支哈希 776b5b8 与本地一致；远端 CI 未提供通过结论（取消原因未定位，无权限核查），不作为通过证据，也不据此否决本地已实测验证。
 - 遗留问题：远端 CI 整 run 被 2 秒内取消的原因需仓库管理员核查（疑似仓库级并发/自动化策略或 macOS 分钟额度策略）；真实接线未实现未验收，SC021 整批、T0、T1、G1～G6 保持未验收。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-018] record final verification and ci status`。
+
+## SC-20261115-019 执行器边界 TOCTOU 复查与 timer/锁屏/fork 时机约束离线模型
+
+- 北京时间：2026-11-17 00:31:54 +08:00。
+- 修改或新增：按 [消费者边界审查](docs/verification/2026-11-15-dictation-consumer-boundary.md) 差距清单第 2/4/5 条与 SC-20261115-013 两份接线准备评估，新增两个默认关闭的离线接线准备模型：test-helpers/dictation-executor-recheck-model.mjs（handoff 后执行器边界同刻显式证据复查、复查拒绝即确定 not-written、mid-flight 失败锁存 unknown 且不可升级为 written、一槽等待记 waitsRecorded 不排队）与 test-helpers/dictation-timing-fork-constraint-model.mjs（单调逻辑时钟回退 clock-rewound 永久锁存且高水位冻结、期限先于工作的入口检查、显式挂起/恢复不自动复活须显式 rebuild、fork 默认关闭单槽不排队、watchdog 只在显式入口到期触发并强制 term→grace→kill→显式 close 升级序列、sourceTtl/watchdogMs/forkGraceMs 构造校验）；专项测试 test/dictation-executor-recheck-model.test.mjs 与 test/dictation-timing-fork-constraint-model.test.mjs；验证文档 docs/verification/2026-11-15-wiring-recheck-timing-models.md；PLAN 新增 SC-20261115-019 检查点并更新当前下一步；desktop/README 新增条目；project-docs 守护断言新增本批专项（文档规则、相对链接、默认关闭与离线源码断言、隐私、禁止预填通过结论、PLAN/README 引用、当前下一步白名单扩至 019）。不接真实 UI/输入/剪贴板/监听/权限，不 fork 生产进程，不改生产源码与默认关闭行为。
+- 遇到的难题：任务指定的 Change-ID SC-20261115-014 已被汇总核对批次占用，按唯一 Change-ID 规则改用 SC-20261115-019。开发期专项实际出现三类失败并逐项修复：① 执行器模型在 waiting 阶段拒绝边界复查（改为 waiting 仅是二次 handoff 被拒标记，原 job 仍可复查）；② timing 模型 rebuildAt/resumeAt 被自身锁存拦死（增设锁存唯一出口：rebuildAt 任意锁存、resumeAt 仅 suspend 锁存，且锁存期间拒绝入口不推进 maxSeen 高水位，避免前向拒绝时间污染后续 rebuild）；③ 升级序列测试在 kill 后用更小 now 调 close 构成时间回退被单调守卫正确拒绝（按守卫语义改用 61）。另外发现 HEAD 基线既有失败：operatelog SC-20261115-017 条目残留损坏行「2026-11-17 00:02biddenplaceholder」并重复标题，导致 project-docs 日志条目守护在基线即 1 项失败（stash 后在 HEAD 复核确认非本批引入）。
+- 处理方式：①②为模型缺陷，按模型语义修复；③为测试自身时序错误，按单调守卫语义修正测试。基线损坏行按同条目真实时间口径（2026-11-16 23:53:21 +08:00，与同条目有效块一致）删除残留重复块，不放宽任何守护断言。
+- 验证结果：新增专项 node --test 两文件 15/15 通过、0 fail；文档专项 test/project-docs.test.mjs 修复基线损坏行后 33/33 通过（修复前基线 32/33、本批中间态 31/33，均如实记录）；git diff --check 通过。完整 npm test（RUSTUP_TOOLCHAIN=1.100.0）909/909、0 fail/cancelled/skipped 通过；本批仅离线模型与文档验证，不是生产接线、构建或真机验收。
+- 遗留问题：真实剪贴板写入、输入注入、执行器边界真实 TOCTOU 二次复查、真实单调时钟与锁屏/休眠监听、生产 fork 时机与 close/watchdog 真实标定均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-019] add executor recheck and timing fork constraint models`；前批 9889381（SC-20261115-018）已推送。
