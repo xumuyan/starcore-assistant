@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -356,4 +356,32 @@ test('renderer ack protocol design stays offline default-off with fail-closed ac
  for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
  // 不得预填通过结论或把离线专项写成生产/真机验收
  assert.doesNotMatch(evidence,/生产接线.*验收通过|已验收完成|真机验收通过/);
+});
+
+
+test('input/clipboard wiring readiness stays an evaluation without any real wiring or permission grants',()=>{
+ const evidence=read('docs/verification/2026-11-15-wiring-input-clipboard-readiness.md');
+ for(const rule of [/SC-20261115-013/,/差距清单第 2 条/,/TOCTOU/,/handoffAt/,/checkedAt/,/not-written/,/unknown/,/未实现、未验收/,/NSPasteboard|pbcopy/,/CGEvent/,/辅助功能\/输入监控/,/不自动替用户授予|不自动授予|不自动授权/,/T0/,/T1/,/G1～G6/,/不能从 `allowed=true` 推断/,/只读引用/,/正文最小化/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/SC-20261115-013 接线准备评估检查点/);
+ for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-wiring-input-clipboard-readiness.md'));
+ assert.ok(evidence.includes('](2026-11-14-dictation-copy-effect.md)'), 'relative link to copy effect boundary');
+ assert.ok(evidence.includes('](2026-11-15-dictation-consumer-boundary.md)'), 'relative link to consumer boundary audit');
+ assert.ok(evidence.includes('](2026-11-15-renderer-ack-protocol.md)'), 'relative link to renderer ack protocol');
+ // 隐私检查
+ for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
+ // 不得预填通过结论
+ assert.doesNotMatch(evidence,/真机验收通过|生产接线.*验收通过|已验收完成/);
+});
+
+
+test('timer/listener and fork readiness stays an evaluation without real listeners or production forks',()=>{
+ const evidence=read('docs/verification/2026-11-15-wiring-timer-fork-readiness.md');
+ for(const rule of [/SC-20261115-013/,/差距清单第 4 条/,/第 5 条/,/sourceTtl/,/逻辑单位/,/无自动活性检测/,/watchdog/,/5000ms/,/SIGTERM/,/SIGKILL/,/close Promise/,/未实现、未验收/,/锁屏/,/休眠唤醒/,/不自动重启|不自动复活/,/runtimeEngine/,/T0/,/T1/,/G1～G6/,/不能从测试 fork 通过推断生产 fork 可用/,/只读引用/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/SC-20261115-013 接线准备评估检查点/);
+ for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-wiring-timer-fork-readiness.md'));
+ assert.ok(evidence.includes('](2026-11-14-dictation-source-lease.md)'), 'relative link to source lease model');
+ assert.ok(evidence.includes('](2026-11-15-dictation-parent-child.md)'), 'relative link to parent child evidence');
+ assert.ok(evidence.includes('](2026-11-15-renderer-ack-protocol.md)'), 'relative link to renderer ack protocol');
+ for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
+ assert.doesNotMatch(evidence,/真机验收通过|生产接线.*验收通过|已验收完成/);
 });

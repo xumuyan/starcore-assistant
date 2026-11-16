@@ -18,7 +18,9 @@ SC-20261115-010 消费者边界审查检查点：新增[组合帧主动消费者
 
 SC-20261115-012 renderer 回执协议检查点：任务指定的 Change-ID SC-20261115-011 已被前一批文档守护测试占用，本批改用 SC-20261115-012。按消费者边界审查差距第 1/3 条，新增默认关闭的[renderer/IPC 回执协议与单消费者认证设计](docs/verification/2026-11-15-renderer-ack-protocol.md)与模型 `test-helpers/dictation-renderer-ack-protocol.mjs`、专项测试 `test/dictation-renderer-ack-protocol.test.mjs`：prepare→展示更新→确认回执（回执类型/字段/id 白名单校验），迟到/重复/陌生/畸形回执 fail-closed 锁存；单消费者唯一身份绑定、退役不可逆、第二消费者/冒充拒绝。不接真实 UI、输入、剪贴板或服务，不改默认关闭行为；生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
 
-当前下一步（SC-20261115-012）：renderer/IPC 回执协议与单消费者认证离线设计已完成（见上方检查点，专项 12/12，完整回归见 operatelog SC-20261115-012）。后续按差距清单推进：评估真实输入/clipboard 与 timer/监听接线，及真实 renderer/宿主 IPC 通道；全部真实接线仍受 T0/T1 与 G1～G6 门槛约束，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
+SC-20261115-013 接线准备评估检查点：任务指定的 Change-ID SC-20261115-012 已被 renderer 回执协议批次占用，本批改用 SC-20261115-013。按消费者边界审查差距第 2/4/5 条，新增两份接线准备评估文档：[真实输入/clipboard 执行器与 TOCTOU 复查接线准备](docs/verification/2026-11-15-wiring-input-clipboard-readiness.md)与[真实 timer/锁屏/设置监听与真实 fork 时机权限崩溃策略](docs/verification/2026-11-15-wiring-timer-fork-readiness.md)。逐条写明已验证边界（只读引用 008/009/004 系与 renderer 回执协议证据）、生产差距（未实现、未验收）与解除条件（T0/T1、G1～G6、用户正常授权流程，不自动授予）。不做任何真实接线、不申请权限、不改默认关闭行为。
+
+当前下一步（SC-20261115-013）：接线准备评估已完成（见上方检查点，完整回归见 operatelog SC-20261115-013）。后续按差距清单推进：真实接线均须 T0/T1 与 G1～G6 门槛满足并经真机验收；权限一律走用户正常授权流程，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
 
 ## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 

@@ -1197,3 +1197,13 @@
 - 验证结果：专项 test/dictation-renderer-ack-protocol.test.mjs 12/12 通过；文档与守护专项 test/project-docs.test.mjs 全部通过（含新增 renderer 回执协议守护 40/42→修正后通过，合并运行 42/42）；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 891/891、0 fail/cancelled/skipped 通过；git diff --check 通过。以上均为离线模型验证，不是生产接线、构建或真机验收。
 - 遗留问题：真实 renderer DOM 时序、Tauri/Rust 宿主 IPC 通道、令牌不泄露的机密性、正文跨进程最小化均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；不能从 rendered 回执推断真实 DOM 已更新或旧内容消失，不能从身份绑定推断通信保密。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-012] add offline renderer ack protocol and single-consumer auth model`；前批 262a890（SC-20261115-011）已提交。
+
+## SC-20261115-013 接线准备评估（输入/clipboard TOCTOU、timer/锁屏/fork 策略）
+
+- 北京时间：2026-11-16 23:27:41 +08:00。
+- 修改或新增：按 [消费者边界审查](docs/verification/2026-11-15-dictation-consumer-boundary.md) 差距清单第 2/4/5 条新增两份接线准备评估文档：docs/verification/2026-11-15-wiring-input-clipboard-readiness.md（真实输入/剪贴板执行器与 TOCTOU 复查接线准备：已验证 checkedAt/handoffAt 边界与 TOCTOU 存在性、真实剪贴板/输入注入/执行器生命周期/权限前置/正文最小化六项生产差距、解除条件与五条反例）与 docs/verification/2026-11-15-wiring-timer-fork-readiness.md（真实 timer/锁屏/设置监听方案与真实 fork 时机/权限/崩溃策略：sourceTtl 逻辑单位与无自动活性检测边界、六项生产差距、单调时钟/唤醒不复活/不自动重启等解除条件与六条反例）。更新 PLAN 检查点与当前下一步、desktop/README 条目、project-docs 守护断言（两份新文档关键规则、相对链接、隐私、禁止预填通过结论、PLAN/README 引用）。只做文档与只读引用：不接真实输入/剪贴板/timer/监听，不 fork 生产进程，不申请或触发任何系统权限，不改默认关闭行为。
+- 遇到的难题：任务指定的 Change-ID SC-20261115-012 已被 renderer 回执协议批次占用，按唯一 Change-ID 规则改用 SC-20261115-013 并在文档与日志说明；守护断言先运行时因 PLAN 检查点未写而 2 项失败，按先失败再修口径补 PLAN 后通过。
+- 处理方式：对齐 010/011/012 批次守护样式（相对链接/隐私/未验收措辞/禁止预填通过结论）；评估结论严格区分离线已验证边界与生产未验收差距。
+- 验证结果：文档专项 test/project-docs.test.mjs 32/32 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 893/893、0 fail/cancelled/skipped 通过；git diff --check 通过。仅离线验证与文档检查，不是生产接线、构建或真机验收。
+- 遗留问题：真实剪贴板写入、输入注入、执行器边界 TOCTOU 二次复查、真实 timer/锁屏/唤醒监听、生产 fork 时机与崩溃路径均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-013] assess wiring readiness for input clipboard timer and fork`；前批 6e566fb（SC-20261115-012）已推送。
