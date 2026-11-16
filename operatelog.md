@@ -1207,3 +1207,13 @@
 - 验证结果：文档专项 test/project-docs.test.mjs 32/32 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 893/893、0 fail/cancelled/skipped 通过；git diff --check 通过。仅离线验证与文档检查，不是生产接线、构建或真机验收。
 - 遗留问题：真实剪贴板写入、输入注入、执行器边界 TOCTOU 二次复查、真实 timer/锁屏/唤醒监听、生产 fork 时机与崩溃路径均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-013] assess wiring readiness for input clipboard timer and fork`；前批 6e566fb（SC-20261115-012）已推送。
+
+## SC-20261115-014 汇总核对与 PLAN/日志/构建回归复核
+
+- 北京时间：。
+- 修改或新增：汇总核对 SC-20261115-011/012/013 三批产物：operatelog 三条记录（北京时间/Change-ID/难题/处理方式/验证结果/遗留问题/提交主题）已齐全；PLAN 已有 012/013 检查点与当前下一步，本批补 SC-20261115-011 审查文档守护检查点（含 011 日志字段补齐说明）。不改任何源码、模型或默认关闭行为，不推送（由最终验证任务核对后执行）。
+- 遇到的难题：无新增；011 批次无独立 PLAN 检查点，按任务要求补齐。
+- 处理方式：只补 PLAN 检查点段落；未改动既有检查点措辞，未放宽守护断言。
+- 验证结果：文档专项 32/32 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 893/893、0 fail/cancelled/skipped 通过；RUSTUP_TOOLCHAIN=1.100.0 且 cargo 1.100.0 在 PATH 下 npm run build:mac:check 输出 RUST_HOST_READY 与 APP_BUILT（dist/MuYan.app）通过；git diff --check 通过。以上均为构建与离线回归复核，不是真机验收；SC021 整批、T0、T1、G1～G6 仍未验收。
+- 遗留问题：全部真实接线（renderer DOM/宿主 IPC、输入/clipboard 执行器 TOCTOU、timer/锁屏/唤醒监听、生产 fork）未实现、未验收；本提交未推送，推送由最终验证任务核对后执行。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-014] reconcile plan checkpoints and rerun full regression`；前批 46f188a（SC-20261115-013）已推送。
