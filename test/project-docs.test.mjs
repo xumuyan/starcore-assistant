@@ -331,4 +331,15 @@ test('consumer boundary audit lists verified limits, production gaps and counter
  for(const rule of [/SC-20261115-010/,/SC-20261115-008/,/SC-20261115-009/,/一次 commit 的最新帧/,/一槽 in-flight \+ 一槽最新 queued/,/fail-closed/,/DOM\/IPC 事务/,/真实输入与 clipboard/,/单消费者认证/,/TOCTOU/,/不是沙箱或认证边界/,/不能从 ACK 推断展示已消失/,/SIGTERM/,/SC021 整批\/T0\/T1\/G1～G6/,/只做离线审查文档/,/不接真实 UI\/输入\/剪贴板/])assert.match(evidence,rule);
  assert.match(read('PLAN.md'),/SC-20261115-010 消费者边界审查检查点/);
  for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-dictation-consumer-boundary.md'));
+ // 链接检查：文档必须以相对链接引用 008/009 证据文档，且 PLAN/README 也链接到本文件
+ assert.ok(evidence.includes('](2026-11-15-dictation-copy-frames.md)'), 'relative link to 008 evidence');
+ assert.ok(evidence.includes('](2026-11-15-dictation-parent-child.md)'), 'relative link to 009 evidence');
+ assert.ok(evidence.includes('](2026-11-14-dictation-copy-effect.md)'), 'relative link to copy effect boundary');
+ assert.ok(evidence.includes('](2026-11-14-voice-coordinator-model.md)'), 'relative link to disconnected latch evidence');
+ // 隐私检查：审查文档不得包含凭据/令牌/真实运行数据痕迹
+ for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
+ // 未验收措辞：生产差距逐条为未实现、未验收；不得预填通过结论或把离线回归写成生产验收
+ for(const rule of [/未实现、未验收/,/SC021 整批、T0、T1、G1～G6 未验收|SC021 整批、T0、T1、G1～G6 仍未验收/])assert.match(evidence,rule);
+ assert.doesNotMatch(evidence,/生产接线.*验收通过|已验收完成/);
+ assert.doesNotMatch(evidence,/878\/878.*生产|完整回归.*验收完成/);
 });

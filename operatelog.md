@@ -1176,3 +1176,12 @@
 - 验证结果：文档专项 29/29 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 878/878，0 fail/cancelled/skipped；git diff --check 通过。无原生源码修改，未新增 Mac/Tauri 构建、浏览器或真机验收；本轮为纯文档与测试只读审查，不构成任何生产接线验收。
 - 遗留问题：审查确认的全部生产差距（真实 renderer 回执、单消费者认证、真实输入/clipboard TOCTOU、真实 timer/监听、休眠恢复、ended-result 槽、G1～G6）仍未实现；SC021 整批、T0、T1、G1～G6 未验收。设备延迟及历史 stop 影响无新结论，stable 别名/fmt/clippy 未核实。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-010] audit consumer delivery boundaries and production gaps`；前批提交哈希提交后回填。
+
+## SC-20261115-011 审查文档守护测试强化
+
+- 北京时间：2026-11-15 18:02:30 +08:00。
+- 修改或新增：扩充 project-docs 中 SC-20261115-010 审查文档的守护断言：新增相对链接检查（必须以相对链接引用 008 组合帧、009 主动投递、复制执行器边界、coordinator disconnected 门闩四份证据文档）、隐私检查（禁 api key/token/password/secret/Bearer/sk- 模式）、未验收措辞检查（"未实现、未验收"及 SC021 整批/T0/T1/G1～G6 未验收字样）与禁止预填通过结论（不得出现生产接线验收通过/已验收完成/把 878/878 完整回归写成生产验收）。同步将审查文档中四处纯文本引用改为相对链接并补齐仍未验收措辞。不改任何源码、模型或默认关闭行为。
+- 遵循先失败再修口径：先加入新断言运行，文档专项 28/29 失败（缺 008 证据相对链接），随后修文档措辞，再运行通过；未放宽任何既有断言。
+- 验证结果：文档专项 29/29 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 878/878，0 fail/cancelled/skipped；git diff --check 通过。无原生源码修改，未新增构建、浏览器或真机验收。
+- 遗留问题：审查确认的生产差距（真实 renderer 回执、单消费者认证、真实输入/clipboard TOCTOU、真实 timer/监听、休眠恢复、ended-result 槽、G1～G6 接线）仍未实现；SC021 整批、T0、T1、G1～G6 未验收。前批 010 提交哈希 c2d0c135e63fb954acb66efe5bc9ca44cfd90354 已回填确认。设备延迟及历史 stop 影响无新结论，stable 别名/fmt/clippy 未核实。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-011] guard consumer boundary audit links, privacy and unaccepted wording`；前批c2d0c135e63fb954acb66efe5bc9ca44cfd90354已推送。
