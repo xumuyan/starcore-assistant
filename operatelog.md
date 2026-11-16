@@ -1210,10 +1210,21 @@
 
 ## SC-20261115-014 汇总核对与 PLAN/日志/构建回归复核
 
-- 北京时间：。
+- 北京时间：2026-11-16 23:40:06 +08:00（原条目时间字段提交时留空，由最终验证批次按实际核对时间补齐，见 SC-20261115-015）。
+
 - 修改或新增：汇总核对 SC-20261115-011/012/013 三批产物：operatelog 三条记录（北京时间/Change-ID/难题/处理方式/验证结果/遗留问题/提交主题）已齐全；PLAN 已有 012/013 检查点与当前下一步，本批补 SC-20261115-011 审查文档守护检查点（含 011 日志字段补齐说明）。不改任何源码、模型或默认关闭行为，不推送（由最终验证任务核对后执行）。
 - 遇到的难题：无新增；011 批次无独立 PLAN 检查点，按任务要求补齐。
 - 处理方式：只补 PLAN 检查点段落；未改动既有检查点措辞，未放宽守护断言。
 - 验证结果：文档专项 32/32 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 893/893、0 fail/cancelled/skipped 通过；RUSTUP_TOOLCHAIN=1.100.0 且 cargo 1.100.0 在 PATH 下 npm run build:mac:check 输出 RUST_HOST_READY 与 APP_BUILT（dist/MuYan.app）通过；git diff --check 通过。以上均为构建与离线回归复核，不是真机验收；SC021 整批、T0、T1、G1～G6 仍未验收。
 - 遗留问题：全部真实接线（renderer DOM/宿主 IPC、输入/clipboard 执行器 TOCTOU、timer/锁屏/唤醒监听、生产 fork）未实现、未验收；本提交未推送，推送由最终验证任务核对后执行。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-014] reconcile plan checkpoints and rerun full regression`；前批 46f188a（SC-20261115-013）已推送。
+
+## SC-20261115-015 最终验证与补时间字段
+
+- 北京时间：2026-11-16 23:40:22 +08:00。
+- 修改或新增：独立最终验证批次：核对 SC-20261115-011/012/013/014 各批次产物与 PLAN 状态（SC021 整批、T0、T1、G1～G6 均保持未验收，PLAN 未把离线结果写成真实验收）；核对默认关闭断言与新增模型（renderer 回执协议、接线准备文档）不接真实 UI/输入/剪贴板/服务。修复 SC-20261115-014 日志条目"北京时间"字段提交时留空导致守护断言失败的问题（按实际核对时间补齐并注明来源），未放宽任何守护断言。
+- 遇到的难题：SC-20261115-014 提交内容中 operatelog 时间字段为空，进程级完整 npm test 守护断言失败（project-docs.test.mjs 时间格式断言），与前批自述"893/893 通过"不符。
+- 处理方式：如实记录失败，仅补齐时间字段并注明补齐来源，不改实现、不放宽断言；补齐后重跑全部验证。
+- 验证结果：补齐后进程级 RUSTUP_TOOLCHAIN=1.100.0 npm test 完整回归 893/893、0 fail/cancelled/skipped 通过（补齐前实际运行为 892/893、1 fail）；RUSTUP_TOOLCHAIN=1.100.0 且 cargo 在 PATH 下 npm run build:mac:check 输出 RUST_HOST_READY 与 APP_BUILT 通过；git diff --check 通过；git push 至 starcore-assistant 远端并核对提交哈希。以上为构建与离线回归复核，不是真机验收。
+- 遗留问题：全部真实接线（renderer DOM/宿主 IPC、输入/clipboard 执行器 TOCTOU、timer/锁屏/唤醒监听、生产 fork）未实现、未验收；SC021 整批、T0、T1、G1～G6 保持未验收。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-015] final verification fill log timestamp and push`；前批 251ec5b（SC-20261115-014）由本批一并推送。
