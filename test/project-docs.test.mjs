@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261112-009）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -321,6 +321,14 @@ test('copy delivery frames distinguish synchronous invalidation from real render
 test('single parent and tested child remain an offline delivery chain, not production acceptance',()=>{
  const evidence=read('docs/verification/2026-11-15-dictation-parent-child.md');
  for(const rule of [/SC-20261115-009/,/实际fork/,/144条/,/一槽in-flight加一槽最新queued/,/5000ms/,/SIGTERM/,/SIGKILL/,/close Promise只在实际close事件后完成/,/不制造复制执行器的stop证明/,/不是沙箱或认证边界/,/TOCTOU/,/SC021 整批仍未验收、T0 未验收、T1 未启动/])assert.match(evidence,rule);
- assert.match(read('PLAN.md'),/当前下一步（SC-20261115-009）/);
+ assert.match(read('PLAN.md'),/SC-20261115-010 消费者边界审查检查点/);
  for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-dictation-parent-child.md'));
+});
+
+
+test('consumer boundary audit lists verified limits, production gaps and counterexamples without wiring',()=>{
+ const evidence=read('docs/verification/2026-11-15-dictation-consumer-boundary.md');
+ for(const rule of [/SC-20261115-010/,/SC-20261115-008/,/SC-20261115-009/,/一次 commit 的最新帧/,/一槽 in-flight \+ 一槽最新 queued/,/fail-closed/,/DOM\/IPC 事务/,/真实输入与 clipboard/,/单消费者认证/,/TOCTOU/,/不是沙箱或认证边界/,/不能从 ACK 推断展示已消失/,/SIGTERM/,/SC021 整批\/T0\/T1\/G1～G6/,/只做离线审查文档/,/不接真实 UI\/输入\/剪贴板/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/SC-20261115-010 消费者边界审查检查点/);
+ for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-dictation-consumer-boundary.md'));
 });

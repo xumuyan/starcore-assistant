@@ -1166,3 +1166,13 @@
 - 验证结果：首次controller35/35，扩充后相关专项199/199；补升级终止/耗尽/payload后controller51/51、相关202/202、加文档230/230；进程级RUSTUP_TOOLCHAIN=1.100.0完整npm test 877/877，0 fail/cancelled/skipped；最终controller与文档79/79、git diff --check通过。实际fork覆盖正常生命周期/正常shutdown、协议非法拒绝与自己的worker意外退出。无原生源码修改，未做新Mac/Tauri构建、浏览器或真机验收。
 - 遗留问题：本地consumer通知不证明真实DOM卸载；异常consumer可能保留外部内容，Node worker不是沙箱或认证边界；真实timer/OS源监听、TOCTOU、休眠恢复、ended-result槽、安全耗尽替换、G1～G6生产接线仍缺。SC021整批、T0、T1、G1～G6仍未验收。设备延迟及历史stop影响无新结论，stable/fmt/clippy未核实。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-009] drive offline display from one parent and a tested child worker`；前批2c0fdf4d1ada532f9e04f2217e1e719271280604已推送。
+
+## SC-20261115-010 组合帧主动消费者投递边界与生产差距审查
+
+- 北京时间：2026-11-15 17:36:00 +08:00。
+- 修改或新增：按 PLAN SC-20261115-009 指定的下一步，新增离线审查文档 docs/verification/2026-11-15-dictation-consumer-boundary.md：逐条列出主动消费者投递/失效的已验证边界（只读复用 SC-20261115-008/009 模型与测试证据）、与生产接线的差距清单（DOM/IPC 事务、真实输入/clipboard、单消费者认证、真实 timer/源监听、fork 差距、跨进程正文、ended-result 槽、Tauri/Rust 接线、消费者失败后外部状态）及九条不可推断事实与反例。同步 PLAN（新增 010 检查点、当前下一步改为 010 及后续优先级）、desktop/README、project-docs 检查。不接真实 UI、输入或剪贴板，不修改任何源码、模型或默认关闭行为。
+- 遇到的难题：首次文档检查 28/29 通过，1 失败为新增断言与文档措辞不一致（"一槽 latest" vs "一槽最新 queued"）及 PLAN/README 引用与历史 009 断言（"当前下一步（SC-20261115-009）"白名单）冲突。
+- 处理方式：断言改为匹配实际措辞；PLAN 保留 008/009 证据文档链接，"当前下一步"白名单补入 010，旧 009 断言改检查 010 检查点标题；不放宽任何既有断言。
+- 验证结果：文档专项 29/29 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 878/878，0 fail/cancelled/skipped；git diff --check 通过。无原生源码修改，未新增 Mac/Tauri 构建、浏览器或真机验收；本轮为纯文档与测试只读审查，不构成任何生产接线验收。
+- 遗留问题：审查确认的全部生产差距（真实 renderer 回执、单消费者认证、真实输入/clipboard TOCTOU、真实 timer/监听、休眠恢复、ended-result 槽、G1～G6）仍未实现；SC021 整批、T0、T1、G1～G6 未验收。设备延迟及历史 stop 影响无新结论，stable 别名/fmt/clippy 未核实。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-010] audit consumer delivery boundaries and production gaps`；前批提交哈希提交后回填。

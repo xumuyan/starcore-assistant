@@ -311,3 +311,4 @@ SC-20261115-007：[离线结果/执行器等待组合](../docs/verification/2026
 SC-20261115-008：[组合帧离线投递实验](../docs/verification/2026-11-15-dictation-copy-frames.md)。新默认关闭私有封装只接受最新原帧一次commit；所有写入口先清掉pending/shown，包括拒绝和抛错。离线专项151/151、含文档178/178、完整825/825通过。不新增数字generation，不接产品；保留引用不自刷新，未交付真实DOM或IPC，不授权复制。SC021整批、T0/T1、G1～G6仍未验收。
 
 SC-20261115-009：[主控/子进程离线投递](../docs/verification/2026-11-15-dictation-parent-child.md)。默认关闭，主进程独占原frame与提交，固定worker仅验证有限展示数据并ACK；本地消费者先hidden后新原帧，一处理中/一最新槽。controller51/51、含相关与文档230/230、完整877/877通过；包含实际fork、异常退出、协议拒绝与close测试；不接产品/真实剪贴板，不把展示worker退出当复制执行器stop。SC021整批、T0/T1、G1～G6仍未验收。
+SC-20261115-010：[组合帧主动消费者投递边界与生产差距审查](../docs/verification/2026-11-15-dictation-consumer-boundary.md)。只做离线审查文档：复用 SC-20261115-008/009 模型证据，逐条列出已验证投递/失效边界、生产差距（DOM/IPC 事务、真实输入/clipboard、单消费者认证等）与不可推断事实反例；不接真实 UI、输入或剪贴板，不改默认关闭行为。SC021整批、T0/T1、G1～G6仍未验收。

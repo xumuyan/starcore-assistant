@@ -14,7 +14,9 @@ SC-20261115-007 组合采样检查点：新增默认关闭的[复制结果与执
 
 SC-20261115-008 组合帧投递检查点：新增默认关闭的[组合帧离线投递实验](docs/verification/2026-11-15-dictation-copy-frames.md)，私有原owner、最新原帧一次commit，全部写入口（含拒绝/抛错）预先失效pending/shown，不借业务revision推断结果/stop新鲜度。离线专项151/151、含文档178/178、完整825/825通过。仅可信同步调用一致性，不是DOM/IPC事务；下一步先验证主动消费者投递/失效，暂不接真实UI或服务。SC021整批、T0、T1、G1～G6仍未验收。
 
-当前下一步（SC-20261115-009）：按用户要求完成一主控/子进程的[离线主动投递与子进程测试](docs/verification/2026-11-15-dictation-parent-child.md)。主进程私有原owner与最终commit，worker仅结构准备ACK；一处理中/一最新槽、主动hidden、旧ACK拒绝、失败及watchdog关闭自己的子进程，close等实际事件。controller51/51、含相关与文档230/230、完整877/877通过。真实fork与合成故障测试不等于生产接线；下一步先做消费者投递边界与生产差距审查，不擅自接真实输入/clipboard。SC021整批、T0、T1、G1～G6仍未验收。
+SC-20261115-010 消费者边界审查检查点：新增[组合帧主动消费者投递边界与生产差距审查](docs/verification/2026-11-15-dictation-consumer-boundary.md)，只做离线审查文档：复用 SC-20261115-008（[组合帧投递](docs/verification/2026-11-15-dictation-copy-frames.md)）与 SC-20261115-009（[离线主动投递与子进程测试](docs/verification/2026-11-15-dictation-parent-child.md)）模型证据，主动消费者投递/失效的已验证边界、与生产接线的差距清单（DOM/IPC 事务、真实输入/clipboard、单消费者认证、真实 timer/监听等）与不可推断事实及反例。不接真实 UI、输入或剪贴板，不改默认关闭模型行为。下一步可按差距清单推进生产接线准备，但 SC021 整批、T0、T1、G1～G6 仍未验收，真实接线仍受门槛约束。
+
+当前下一步（SC-20261115-010）：消费者投递边界与生产差距审查已完成（见上方检查点，文档与完整回归见 operatelog SC-20261115-010）。后续按差距清单推进：优先补真实 renderer/IPC 回执协议与单消费者认证设计，再评估真实输入/clipboard 与 timer/监听接线；全部真实接线仍受 T0/T1 与 G1～G6 门槛约束，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
 
 ## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 
