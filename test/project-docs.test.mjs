@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -342,4 +342,18 @@ test('consumer boundary audit lists verified limits, production gaps and counter
  for(const rule of [/未实现、未验收/,/SC021 整批、T0、T1、G1～G6 未验收|SC021 整批、T0、T1、G1～G6 仍未验收/])assert.match(evidence,rule);
  assert.doesNotMatch(evidence,/生产接线.*验收通过|已验收完成/);
  assert.doesNotMatch(evidence,/878\/878.*生产|完整回归.*验收完成/);
+});
+
+
+test('renderer ack protocol design stays offline default-off with fail-closed acks and single consumer auth',()=>{
+ const evidence=read('docs/verification/2026-11-15-renderer-ack-protocol.md');
+ for(const rule of [/SC-20261115-012/,/SC-20261115-011/,/prepare→展示更新→确认回执/,/rendered/,/hidden-ack/,/精确三键/,/迟到回执/,/重复回执/,/陌生回执/,/fail-closed/,/唯一身份绑定/,/退役不可逆/,/冒充/,/不接真实 UI、输入、剪贴板或任何服务/,/enabled` 非真/,/不能从 `rendered` 回执推断/,/SC021 整批、T0、T1、G1～G6 保持未验收/,/未实现、未验收/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/SC-20261115-012 renderer 回执协议检查点/);
+ assert.ok(read('PLAN.md').includes('2026-11-15-renderer-ack-protocol.md'));
+ assert.ok(read('desktop/README.md').includes('2026-11-15-renderer-ack-protocol.md'));
+ assert.ok(evidence.includes('](2026-11-15-dictation-consumer-boundary.md)'), 'relative link to consumer boundary audit');
+ // 隐私检查：设计文档不得包含凭据样式或真实运行数据痕迹
+ for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
+ // 不得预填通过结论或把离线专项写成生产/真机验收
+ assert.doesNotMatch(evidence,/生产接线.*验收通过|已验收完成|真机验收通过/);
 });

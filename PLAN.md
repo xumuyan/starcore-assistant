@@ -16,7 +16,9 @@ SC-20261115-008 组合帧投递检查点：新增默认关闭的[组合帧离线
 
 SC-20261115-010 消费者边界审查检查点：新增[组合帧主动消费者投递边界与生产差距审查](docs/verification/2026-11-15-dictation-consumer-boundary.md)，只做离线审查文档：复用 SC-20261115-008（[组合帧投递](docs/verification/2026-11-15-dictation-copy-frames.md)）与 SC-20261115-009（[离线主动投递与子进程测试](docs/verification/2026-11-15-dictation-parent-child.md)）模型证据，主动消费者投递/失效的已验证边界、与生产接线的差距清单（DOM/IPC 事务、真实输入/clipboard、单消费者认证、真实 timer/监听等）与不可推断事实及反例。不接真实 UI、输入或剪贴板，不改默认关闭模型行为。下一步可按差距清单推进生产接线准备，但 SC021 整批、T0、T1、G1～G6 仍未验收，真实接线仍受门槛约束。
 
-当前下一步（SC-20261115-010）：消费者投递边界与生产差距审查已完成（见上方检查点，文档与完整回归见 operatelog SC-20261115-010）。后续按差距清单推进：优先补真实 renderer/IPC 回执协议与单消费者认证设计，再评估真实输入/clipboard 与 timer/监听接线；全部真实接线仍受 T0/T1 与 G1～G6 门槛约束，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
+SC-20261115-012 renderer 回执协议检查点：任务指定的 Change-ID SC-20261115-011 已被前一批文档守护测试占用，本批改用 SC-20261115-012。按消费者边界审查差距第 1/3 条，新增默认关闭的[renderer/IPC 回执协议与单消费者认证设计](docs/verification/2026-11-15-renderer-ack-protocol.md)与模型 `test-helpers/dictation-renderer-ack-protocol.mjs`、专项测试 `test/dictation-renderer-ack-protocol.test.mjs`：prepare→展示更新→确认回执（回执类型/字段/id 白名单校验），迟到/重复/陌生/畸形回执 fail-closed 锁存；单消费者唯一身份绑定、退役不可逆、第二消费者/冒充拒绝。不接真实 UI、输入、剪贴板或服务，不改默认关闭行为；生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
+
+当前下一步（SC-20261115-012）：renderer/IPC 回执协议与单消费者认证离线设计已完成（见上方检查点，专项 12/12，完整回归见 operatelog SC-20261115-012）。后续按差距清单推进：评估真实输入/clipboard 与 timer/监听接线，及真实 renderer/宿主 IPC 通道；全部真实接线仍受 T0/T1 与 G1～G6 门槛约束，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
 
 ## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 

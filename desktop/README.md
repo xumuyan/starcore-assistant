@@ -312,3 +312,4 @@ SC-20261115-008：[组合帧离线投递实验](../docs/verification/2026-11-15-
 
 SC-20261115-009：[主控/子进程离线投递](../docs/verification/2026-11-15-dictation-parent-child.md)。默认关闭，主进程独占原frame与提交，固定worker仅验证有限展示数据并ACK；本地消费者先hidden后新原帧，一处理中/一最新槽。controller51/51、含相关与文档230/230、完整877/877通过；包含实际fork、异常退出、协议拒绝与close测试；不接产品/真实剪贴板，不把展示worker退出当复制执行器stop。SC021整批、T0/T1、G1～G6仍未验收。
 SC-20261115-010：[组合帧主动消费者投递边界与生产差距审查](../docs/verification/2026-11-15-dictation-consumer-boundary.md)。只做离线审查文档：复用 SC-20261115-008/009 模型证据，逐条列出已验证投递/失效边界、生产差距（DOM/IPC 事务、真实输入/clipboard、单消费者认证等）与不可推断事实反例；不接真实 UI、输入或剪贴板，不改默认关闭行为。SC021整批、T0/T1、G1～G6仍未验收。
+SC-20261115-012：[renderer/IPC 回执协议与单消费者认证设计](../docs/verification/2026-11-15-renderer-ack-protocol.md)。按差距第1/3条新增默认关闭离线模型：prepare→展示更新→确认回执（rendered/hidden-ack 白名单、精确字段/id 校验），迟到/重复/陌生/畸形回执 fail-closed 锁存；单消费者唯一绑定、退役不可逆、第二消费者/冒充拒绝。专项12/12通过；不接真实UI/输入/剪贴板，生产接线未实现、未验收，SC021整批、T0/T1、G1～G6仍未验收。

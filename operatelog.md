@@ -1181,7 +1181,19 @@
 
 - 北京时间：2026-11-15 18:02:30 +08:00。
 - 修改或新增：扩充 project-docs 中 SC-20261115-010 审查文档的守护断言：新增相对链接检查（必须以相对链接引用 008 组合帧、009 主动投递、复制执行器边界、coordinator disconnected 门闩四份证据文档）、隐私检查（禁 api key/token/password/secret/Bearer/sk- 模式）、未验收措辞检查（"未实现、未验收"及 SC021 整批/T0/T1/G1～G6 未验收字样）与禁止预填通过结论（不得出现生产接线验收通过/已验收完成/把 878/878 完整回归写成生产验收）。同步将审查文档中四处纯文本引用改为相对链接并补齐仍未验收措辞。不改任何源码、模型或默认关闭行为。
+- 遇到的难题：首批新增断言与审查文档措辞不一致（缺 008 证据相对链接），首次文档专项 28/29 失败。
+- 处理方式：修正审查文档措辞为相对链接并补齐未验收措辞，未放宽任何断言后复跑通过。
 - 遵循先失败再修口径：先加入新断言运行，文档专项 28/29 失败（缺 008 证据相对链接），随后修文档措辞，再运行通过；未放宽任何既有断言。
 - 验证结果：文档专项 29/29 通过；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 878/878，0 fail/cancelled/skipped；git diff --check 通过。无原生源码修改，未新增构建、浏览器或真机验收。
 - 遗留问题：审查确认的生产差距（真实 renderer 回执、单消费者认证、真实输入/clipboard TOCTOU、真实 timer/监听、休眠恢复、ended-result 槽、G1～G6 接线）仍未实现；SC021 整批、T0、T1、G1～G6 未验收。前批 010 提交哈希 c2d0c135e63fb954acb66efe5bc9ca44cfd90354 已回填确认。设备延迟及历史 stop 影响无新结论，stable 别名/fmt/clippy 未核实。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-011] guard consumer boundary audit links, privacy and unaccepted wording`；前批c2d0c135e63fb954acb66efe5bc9ca44cfd90354已推送。
+
+## SC-20261115-012 renderer/IPC 回执协议与单消费者认证离线设计
+
+- 北京时间：2026-11-16 23:23:42 +08:00。
+- 修改或新增：按 [消费者边界审查](docs/verification/2026-11-15-dictation-consumer-boundary.md)差距清单第 1/3 条，新增设计文档 docs/verification/2026-11-15-renderer-ack-protocol.md、默认关闭离线模型 test-helpers/dictation-renderer-ack-protocol.mjs 与专项测试 test/dictation-renderer-ack-protocol.test.mjs。协议覆盖 prepare→展示更新→确认回执：prepare/prepare-hide 固定消息形状（复用 009 worker 有限展示值校验），回执精确三键 {type,id,consumer}，类型白名单 rendered/hidden-ack，id 为每任务 UUIDv4；一槽 in-flight，supersede 后旧回执按迟到拒绝；迟到（stray-ack）、重复（duplicate-ack）、陌生（stray-ack）、畸形（malformed-ack）、类型不匹配、未认证消费者一律 fail-closed 锁存 failed，不重试不重置。单消费者认证：随机 UUIDv4 身份令牌全生命周期唯一绑定，退役不可逆且协议立即 fail-closed，第二消费者/冒充回执拒绝并锁存；renderer 侧对称校验未认证声明。新增 PLAN 检查点与当前下一步、desktop/README 条目、project-docs 守护断言（关键规则、相对链接、隐私、禁止预填通过结论、PLAN/README 引用）。不接真实 UI、输入、剪贴板或服务，不改 008/009 既有模型，不改默认关闭行为。
+- 遇到的难题：任务指定的 Change-ID SC-20261115-011 已被前一批守护测试占用，按唯一 Change-ID 规则改用 SC-20261115-012 并在文档与日志中说明。首轮专项 6/12 失败：测试把 validPresentation 返回值误当展示对象、两处拒绝原因预期与模型校验顺序（入参校验先于认证检查）不符、supersede 断言重复；均为测试侧错误，未放宽模型 fail-closed 行为。
+- 处理方式：修正测试构造与断言使其与模型一致；文档/守护断言按先失败再修口径先运行后修正；对齐 011 批次的守护样式（相对链接/隐私/未验收措辞）。
+- 验证结果：专项 test/dictation-renderer-ack-protocol.test.mjs 12/12 通过；文档与守护专项 test/project-docs.test.mjs 全部通过（含新增 renderer 回执协议守护 40/42→修正后通过，合并运行 42/42）；进程级 RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 891/891、0 fail/cancelled/skipped 通过；git diff --check 通过。以上均为离线模型验证，不是生产接线、构建或真机验收。
+- 遗留问题：真实 renderer DOM 时序、Tauri/Rust 宿主 IPC 通道、令牌不泄露的机密性、正文跨进程最小化均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；不能从 rendered 回执推断真实 DOM 已更新或旧内容消失，不能从身份绑定推断通信保密。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-012] add offline renderer ack protocol and single-consumer auth model`；前批 262a890（SC-20261115-011）已提交。
