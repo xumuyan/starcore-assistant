@@ -14,7 +14,8 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # 产品为 macOS 助理，npm test 含 launchctl/系统域等 macOS 专用用例，ubuntu 从未能通过
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,7 +24,7 @@ jobs:
           cache: npm
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.100.0 --profile minimal
-      - run: npm ci --ignore-scripts
+      - run: npm ci
       - run: npm test
       - run: npm run build:scene
 

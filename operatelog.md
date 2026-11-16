@@ -1238,3 +1238,17 @@
 - 验证结果：本地同配置完整回归已在 SC-20261115-015 实测 893/893 通过；CI 结果待推送后核对（本条验证结果不含 CI 结论，推送后由后续日志或验收结论如实补充）。
 - 遗留问题：CI 在 ubuntu 上运行是否全绿待推送后核实；真实接线未实现未验收，SC021 整批、T0、T1、G1～G6 保持未验收。
 - 对应 Git 提交：本条所在提交，主题 `ci: [SC-20261115-016] pin rust toolchain in source checks`。
+
+## SC-20261115-017 CI test job 迁移到 macos-14
+
+- 北京时间：2026-11-17 00:02biddenplaceholder
+
+## SC-20261115-017 CI test job 迁移到 macos-14
+
+- 北京时间：2026-11-16 23:53:21 +08:00。
+- 修改或新增：.github/workflows/check.yml 的 test job 由 ubuntu-latest 改为 macos-14 并改用完整 npm ci，与产品真实目标平台（macOS 助理，npm test 含 launchctl/系统域等 macOS 专用用例）及本地验收环境一致；mac-build job 不变。
+- 遇到的难题：SC-20261115-016 补装固定 Rust 工具链后，ubuntu 上 npm test 仍在约 1 分钟内失败（steps 显示失败位于 npm test），与历史全部提交一致，ubuntu 环境从未通过本仓库测试。
+- 处理方式：将 test job 迁移到 macos-14，与本地已实测全绿的环境对齐；未放宽任何测试或断言。
+- 验证结果：本地 macOS 环境完整回归已在 SC-20261115-015 实测 893/893 通过；CI 推送后结果如实核对（本条验证结果不含 CI 结论）。
+- 遗留问题：CI 是否全绿待本次推送后核实；真实接线未实现未验收，SC021 整批、T0、T1、G1～G6 保持未验收。
+- 对应 Git 提交：本条所在提交，主题 `ci: [SC-20261115-017] run source checks test job on macos`。
