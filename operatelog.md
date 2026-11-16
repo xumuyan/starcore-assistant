@@ -1228,3 +1228,13 @@
 - 验证结果：补齐后进程级 RUSTUP_TOOLCHAIN=1.100.0 npm test 完整回归 893/893、0 fail/cancelled/skipped 通过（补齐前实际运行为 892/893、1 fail）；RUSTUP_TOOLCHAIN=1.100.0 且 cargo 在 PATH 下 npm run build:mac:check 输出 RUST_HOST_READY 与 APP_BUILT 通过；git diff --check 通过；git push 至 starcore-assistant 远端并核对提交哈希。以上为构建与离线回归复核，不是真机验收。
 - 遗留问题：全部真实接线（renderer DOM/宿主 IPC、输入/clipboard 执行器 TOCTOU、timer/锁屏/唤醒监听、生产 fork）未实现、未验收；SC021 整批、T0、T1、G1～G6 保持未验收。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-015] final verification fill log timestamp and push`；前批 251ec5b（SC-20261115-014）由本批一并推送。
+
+## SC-20261115-016 修复 CI 固定 Rust 工具链缺失
+
+- 北京时间：2026-11-16 23:50:16 +08:00。
+- 修改或新增：.github/workflows/check.yml 为 test（ubuntu）与 mac-build（macos-14）两个 job 安装固定 Rust 1.100.0 最小 profile 并设置 RUSTUP_TOOLCHAIN=1.100.0，使 CI 环境与本地完整回归要求一致；不改任何源码、模型或默认关闭行为。
+- 遇到的难题：最终验证核对远端 CI 时发现 Source checks test job 在多个近期提交（含 c4778fe）上均失败、mac-build 级联取消，根因为 ubuntu runner 缺少 npm test 所要求的固定 Rust 工具链（本地需 RUSTUP_TOOLCHAIN=1.100.0 才能全绿，见 SC-20261115-001/015）。
+- 处理方式：按本地已验证的工具链版本修复 CI 环境配置；未放宽任何测试或断言。
+- 验证结果：本地同配置完整回归已在 SC-20261115-015 实测 893/893 通过；CI 结果待推送后核对（本条验证结果不含 CI 结论，推送后由后续日志或验收结论如实补充）。
+- 遗留问题：CI 在 ubuntu 上运行是否全绿待推送后核实；真实接线未实现未验收，SC021 整批、T0、T1、G1～G6 保持未验收。
+- 对应 Git 提交：本条所在提交，主题 `ci: [SC-20261115-016] pin rust toolchain in source checks`。
