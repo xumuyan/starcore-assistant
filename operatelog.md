@@ -1299,12 +1299,22 @@
 - 遗留问题：汇总文档所述生产差距均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-022] summarize single-instance and wiring-chain evidence`；前批 003d6bd（SC-20261115-021）已推送。
 
-## SC-20261117-001 T0 探针正式打包安装（与沐宿并存）
+## SC-20261117-001 T0 探针正式打包安装（与沐言并存）
 
 - 北京时间：2026-11-17 16:38:59 +08:00。
-- 修改或新增：应用户"安装新项目"要求，desktop tauri.conf.json 开启 bundle（targets 仅 app、category utilities），`npx tauri build` 产出 MOSS T0 Probe.app 16.10 MiB 并复制到 /Applications，ad-hoc 本机签名、无公证；守卫测试 desktop-probe 首项更新为断言该受控打包形态。旧沐宿.app 与 local.codex-weixin-* launchd 未删除未修改。
+- 修改或新增：应用户"安装新项目"要求，desktop tauri.conf.json 开启 bundle（targets 仅 app、category utilities），`npx tauri build` 产出 MOSS T0 Probe.app 16.10 MiB 并复制到 /Applications，ad-hoc 本机签名、无公证；守卫测试 desktop-probe 首项更新为断言该受控打包形态。旧产品为 ~/Applications/MuYan.app（沐言）及其 local.codex-weixin-* launchd，未删除未修改；/Applications/沐宿.app 为无关应用，未触碰。
 - 遇到的难题：tauri 不在 PATH（改用 npx）；首次后台构建超 900 秒前台超时，日志尾部 "Build failed" 系 grep 命中陈旧临时日志，实际后台构建 4m04s Finished；完整回归 922/923 因守卫断言 bundle.active=false 失败。
 - 处理方式：本批有意变更打包行为，守卫改为断言 active=true、targets=['app']、category 及原 icon，不放宽隔离身份/隐藏窗口/受限ACL/无服务插件检查；构建改后台运行并留完整日志。
 - 验证结果：`npm run build:mac:check` 通过（RUST_HOST_READY/APP_BUILT）；RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 最终924/924，0 fail/cancelled/skipped；文档与探针专项42/42；安装后 `codesign -dv` 确认 arm64 ad-hoc；git diff --check 通过。开发中曾误将既有 SC-20261115-010 守卫断言改为 SC-20261117-001，已恢复原断言仅更新本批守卫；首次922/923、923/924→924/924 均为守卫与白名单同步过程。真机托盘/入口条/Esc/透明/双屏/焦点手测待用户执行，未验收。
-- 遗留问题：T0 手测清单（托盘点击、入口条锚定/收起、Esc、透明渲染、双屏、焦点分离）待用户按 PLAN 清单执行；通过前不删除沐宿。T0/T1/SC021整批/G1～G6 仍未验收；无公证签名不能分发。
+- 遗留问题：T0 手测清单（托盘点击、入口条锚定/收起、Esc、透明渲染、双屏、焦点分离）待用户按 PLAN 清单执行；通过前不删除沐言。T0/T1/SC021整批/G1～G6 仍未验收；无公证签名不能分发。
 - 对应 Git 提交：本条所在提交，主题 `build: [SC-20261117-001] bundle and install the T0 probe app for manual acceptance`；前批31f748e（SC-20261115-022）已推送。
+
+## SC-20261117-002 更正旧应用名称记录
+
+- 北京时间：2026-11-17 16:50:18 +08:00。
+- 修改或新增：更正 SC-20261117-001 及 PLAN/README 中旧应用名称：旧产品为 ~/Applications/MuYan.app（沐言），/Applications/沐宿.app 为无关应用（local.musu.desktop），本仓库批次从未触碰。纯文档更正，无代码或配置变更。
+- 遇到的难题：SC-20261117-001 记录时误将 /Applications/沐宿.app 当作本项目旧产品。
+- 处理方式：实际核对 /Applications、~/Applications、dist 与 launchd：确认沐言安装于 ~/Applications/MuYan.app，其 local.codex-weixin-client/desktop-watch/notifier 服务在运行；逐处更正名称并保留无关应用说明。
+- 验证结果：RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 924/924，0 fail/cancelled/skipped；git diff --check 通过。纯文档更正，无原生修改。
+- 遗留问题：T0 手测仍待用户执行；删除沐言仍须手测通过并经用户确认。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261117-002] correct installed product name records`；前批fa7b39d84a95aa5d52cc8bf2a265f47ba218751d已推送。

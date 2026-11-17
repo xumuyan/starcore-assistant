@@ -321,4 +321,4 @@ SC-20261115-021：[接线准备链路组合离线测试](../docs/verification/20
 
 SC-20261115-022：[单实例数据安全与接线链路组合汇总](../docs/verification/2026-11-15-single-instance-wiring-chain.md)。汇总 SC-20261115-020/021 已验证边界、生产差距与不可推断事实及反例；纯文档同步批次，不改模型、测试或生产源码；SC021整批、T0/T1、G1～G6仍未验收。
 
-SC-20261117-001：T0 探针已启用受控 .app 打包（targets 仅 app）并本机安装为 /Applications/MOSS T0 Probe.app；ad-hoc 签名、无公证，仅供本机手测。守卫测试改为断言该打包形态；隔离身份、隐藏窗口、受限 ACL、无服务插件不变。与旧沐宿并存，未删除旧应用或 launchd 项。
+SC-20261117-001：T0 探针已启用受控 .app 打包（targets 仅 app）并本机安装为 /Applications/MOSS T0 Probe.app；ad-hoc 签名、无公证，仅供本机手测。守卫测试改为断言该打包形态；隔离身份、隐藏窗口、受限 ACL、无服务插件不变。与旧沐言（~/Applications/MuYan.app）并存，未删除旧应用或 launchd 项。
