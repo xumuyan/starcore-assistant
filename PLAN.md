@@ -26,7 +26,9 @@ SC-20261115-019 接线准备模型检查点：任务指定的 Change-ID SC-20261
 
 SC-20261115-020 单实例与数据安全离线检查点：按 T1 差距新增默认关闭的离线模型 [docs/verification/2026-11-15-single-instance-model.md](docs/verification/2026-11-15-single-instance-model.md)，含 `test-helpers/dictation-single-instance-model.mjs`（单实例互斥认领/自愿释放、重复启动 duplicate-startup fail-closed 永久锁存置 contended、实例退役不可逆无 unretire、本地写请求仅 (path,kind) 对且 API 无内容参数、仅 kind='encrypted-record' 且路径精确匹配既有加密记录白名单才接受、明文/未知路径/新文件一律拒绝、退役与锁存后写拒绝 verdict 可区分）。专项 7/7 通过（含一次测试预期计数漏算修正）；模型不覆盖真实文件锁、崩溃恢复与磁盘加密实现，生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
 
-当前下一步（SC-20261115-020）：单实例与数据安全离线模型已完成；后续按差距清单推进仍须 T0/T1 与 G1～G6 门槛满足并经真机验收，权限一律走用户正常授权流程，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
+SC-20261115-021 接线准备链路组合检查点：按 SC-20261115-010 差距清单，新增 test/dictation-wiring-chain.test.mjs 与[链路验证记录](docs/verification/2026-11-15-wiring-chain.md)，把既有默认关闭组件组合为一条完整离线链路（presentation-controller/worker 主控+子进程 → renderer-ack-protocol 回执 → executor-recheck 边界复查 → timing-fork-constraint 期限门控），共享单一逻辑时钟并经期限门控驱动每个业务入口；验证跨组件身份/回执/截止传递一致（ack id 即控制器 prepare id 且协议展示与控制器快照一致、复查证据 observedAt 与门控同刻）、任一环失效即整链 fail-closed（期限到期关门控、复查拒绝定 not-written、迟到回执锁死协议、mid-flight 失效锁 unknown）、旧帧/旧回执不能穿越新一代（suspend→resume 不复活、rebuild 新一代旧 token 死亡、旧 epoch envelope 不能同步新一代）。复用现有模型不改其行为；专项 4/4 通过（4 次开发期失败均为测试自身排序/断言错误，模型零改动）。生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
+
+当前下一步（SC-20261115-021）：接线准备链路组合测试已完成；后续按差距清单推进仍须 T0/T1 与 G1～G6 门槛满足并经真机验收，权限一律走用户正常授权流程，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
 
 ## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 

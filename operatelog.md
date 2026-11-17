@@ -1278,3 +1278,13 @@
 - 验证结果：新增专项 7/7 通过、0 fail；完整回归 RUSTUP_TOOLCHAIN=1.100.0 npm test 917/917、0 fail/cancelled/skipped 通过；文档专项 test/project-docs.test.mjs 34/34 通过（一次守护断言措辞与文档不一致已修正）；git diff --check 通过。本批仅离线模型与文档验证，不是生产接线、构建或真机验收。
 - 遗留问题：真实单实例机制（flock/lockfile 原子性、崩溃后陈旧锁回收、多用户）、真实加密记录路径对接与磁盘验证、崩溃恢复与锁存重置策略均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-020] add single-instance and data-safety offline model`；前批 af890cd（SC-20261115-019）已推送。
+
+## SC-20261115-021 接线准备链路组合离线测试
+
+- 北京时间：2026-11-17 16:28:40 +08:00。
+- 修改或新增：按 SC-20261115-010 差距清单，新增 test/dictation-wiring-chain.test.mjs：把既有默认关闭组件组合为一条完整离线接线准备链路（presentation-controller/worker 主控+子进程（测试内 FakeChild）→ renderer-ack-protocol 回执 → executor-recheck 边界复查 → timing-fork-constraint 期限门控），共享单一逻辑时钟 h.now 并以期限门控（observeAt live）驱动每个业务入口；验证跨组件身份/回执/截止传递一致（ack id 即控制器 prepare 的 UUID、协议 display 与控制器快照 presentation 一致、executor 复查证据 observedAt 与门控同刻）、任一环失效即整链 fail-closed（run/source 期限到期关门控且 executor dispatch 被拒、复查拒绝定 not-written 且 written 报告被拒、迟到回执 supersede 后锁死协议且后续 sendPrepare 拒绝、mid-flight expire 锁 unknown 且 written 不可升级）、旧帧/旧回执不能穿越新一代（suspend→resume 不复活须显式 rebuild、新代 token 与旧代不同、旧 epoch envelope 不能同步新代控制器）。复用现有模型不改其行为，不接真实 UI/剪贴板/服务/OS 查询。PLAN 新增 SC-20261115-021 检查点并更新当前下一步；desktop/README 新增条目；operatelog 本条；project-docs 守护断言新增本批专项并扩白名单至 021。
+- 遇到的难题：开发期专项实际出现 4 次失败，全部为测试自身问题、模型零改动：① 期限门控过期后误经 gate 断言路径调用业务（改直呼 dispatch 观察拒绝）；② 误断言 rebuildAt 返回 null（实际 {accepted:true}）；③ expireAt 用于已 refused 的 job 被模型正确拒绝（refused 已终态 not-written；uncertainty 用例拆到独立链路）；④ 合成非 UUID id 被 validJobId 正确拒绝（改用 newIdentity）。
+- 处理方式：均按模型既有语义修正测试，不放宽任何断言、不改模型。
+- 验证结果：新增专项 node --test test/dictation-wiring-chain.test.mjs 4/4 通过、0 fail；完整回归 RUSTUP_TOOLCHAIN=1.100.0 npm test 922/922、0 fail/cancelled/skipped 通过；文档与链路守护 39/39 通过；git diff --check 通过。本批仅离线组合测试与文档，不是生产接线、构建或真机验收。
+- 遗留问题：链路组合仍是离线模型，真实 IPC 通道、真实子进程启动时机、真实回执传输与生产 fail-closed 均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-021] add offline wiring-chain composition test`；前批 dcfbfd7（SC-20261115-020）已推送。
