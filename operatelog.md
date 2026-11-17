@@ -1288,3 +1288,13 @@
 - 验证结果：新增专项 node --test test/dictation-wiring-chain.test.mjs 4/4 通过、0 fail；完整回归 RUSTUP_TOOLCHAIN=1.100.0 npm test 922/922、0 fail/cancelled/skipped 通过；文档与链路守护 39/39 通过；git diff --check 通过。本批仅离线组合测试与文档，不是生产接线、构建或真机验收。
 - 遗留问题：链路组合仍是离线模型，真实 IPC 通道、真实子进程启动时机、真实回执传输与生产 fail-closed 均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-021] add offline wiring-chain composition test`；前批 dcfbfd7（SC-20261115-020）已推送。
+
+## SC-20261115-022 文档汇总同步
+
+- 北京时间：2026-11-17 15:58:20 +08:00。
+- 修改或新增：新增 docs/verification/2026-11-15-single-instance-wiring-chain.md，汇总 SC-20261115-020/021 已验证边界（单实例互斥/重复启动 fail-closed/退役不可逆/数据白名单、跨组件身份/回执/截止一致、任一环失效整链 fail-closed、旧帧/旧回执不穿越新一代）、生产差距（真实文件锁、真实 IPC/回执传输、真实期限源、真实执行边界复查等均未实现、未验收）与不可推断事实及反例 7 条；扩充 test/project-docs.test.mjs 守护断言：新增汇总文档专项（相对链接指向 020/021/019 三份证据、隐私禁凭据样式、未验收措辞含「SC021 整批、T0、T1、G1～G6 仍未验收」「未实现、未验收」、禁止预填通过结论、当前下一步白名单扩至 022）；PLAN 新增 SC-20261115-022 检查点并更新当前下一步；desktop/README 新增条目。纯文档批次，不改任何模型、测试或生产源码。
+- 遇到的难题：核对发现 SC-20261115-021 operatelog 条目「北京时间：2026-11-17 16:28:40 +08:00」为超前虚记（该提交 003d6bd 实际 author date 为 15:55:08 +08:00，且撰写时系统时钟尚未到达 16:28）。
+- 处理方式：按提交 author date 更正为 2026-11-17 15:55:08 +08:00 并在原条目内注明更正来源；本条时间以撰写时实际系统时钟为准。
+- 验证结果：文档与守护专项 test/project-docs.test.mjs 通过（实测 40/40）；完整回归 RUSTUP_TOOLCHAIN=1.100.0 npm test 922/922、0 fail/cancelled/skipped 通过（纯文档批次，回归用于确认守护与全量未破坏）；git diff --check 通过。本批不含真机或生产验收。
+- 遗留问题：汇总文档所述生产差距均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261115-022] summarize single-instance and wiring-chain evidence`；前批 003d6bd（SC-20261115-021）已推送。

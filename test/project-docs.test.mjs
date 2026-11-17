@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）|当前下一步（SC-20261115-022）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -440,4 +440,16 @@ test('wiring chain composition test stays offline and reuses models unchanged',(
  assert.match(read('PLAN.md'),/SC-20261115-021 接线准备链路组合检查点/);
  for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-wiring-chain.md'));
  assert.ok(read('docs/verification/2026-11-15-wiring-chain.md').includes('](2026-11-15-wiring-recheck-timing-models.md)'),'relative link to prior evidence');
+});
+
+test('single-instance and wiring-chain summary doc links, privacy and unaccepted wording',()=>{
+ const evidence=read('docs/verification/2026-11-15-single-instance-wiring-chain.md');
+ for(const rule of [/SC-20261115-020/,/SC-20261115-021/,/已验证边界/,/生产差距/,/不可推断事实/,/单实例互斥认领/,/fail-closed/,/退役不可逆|不存在 unretire/,/白名单/,/fail-closed 整链|整链 fail-closed/,/不穿越新一代/,/默认关闭/,/不接真实 UI、剪贴板、输入注入、系统监听、文件系统、进程、timer 或生产接线/,/未实现、未验收/,/SC021 整批、T0、T1、G1～G6 仍未验收/,/macOS 用户正常授权流程/,/不能从 claim 通过推断系统级单实例成立/,/不能从专项\/回归全绿推断验收完成/])assert.match(evidence,rule);
+ assert.match(read('PLAN.md'),/SC-20261115-022 文档汇总同步检查点/);
+ for(const path of ['PLAN.md','desktop/README.md'])assert.ok(read(path).includes('2026-11-15-single-instance-wiring-chain.md'));
+ assert.ok(evidence.includes('](2026-11-15-single-instance-model.md)'),'relative link to SC-020 evidence');
+ assert.ok(evidence.includes('](2026-11-15-wiring-chain.md)'),'relative link to SC-021 evidence');
+ assert.ok(evidence.includes('](2026-11-15-wiring-recheck-timing-models.md)'),'relative link to SC-019 evidence');
+ for(const forbidden of [/api[_-]?key/i,/token\s*[:=]/i,/password/i,/secret/i,/Bearer /,/sk-/])assert.doesNotMatch(evidence,forbidden);
+ assert.doesNotMatch(evidence,/真机验收通过|生产接线.*验收通过|已验收完成/);
 });

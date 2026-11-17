@@ -318,3 +318,5 @@ SC-20261115-019：[执行器边界 TOCTOU 复查与 timer/锁屏/fork 时机约�
 SC-20261115-020：[单实例与数据安全离线接线准备模型](../docs/verification/2026-11-15-single-instance-model.md)。新增默认关闭的离线模型：单实例互斥认领/自愿释放、重复启动 duplicate-startup fail-closed 永久锁存、实例退役不可逆、写请求仅 (path,kind) 且 API 无内容参数、仅加密记录白名单精确路径可写、明文与新文件一律拒绝。专项 7/7 通过；不覆盖真实文件锁与磁盘加密实现，生产接线未实现、未验收，SC021整批、T0/T1、G1～G6仍未验收。
 
 SC-20261115-021：[接线准备链路组合离线测试](../docs/verification/2026-11-15-wiring-chain.md)。把既有默认关闭组件组合为一条完整离线链路：presentation-controller/worker（主控+子进程）→ renderer-ack-protocol 回执 → executor-recheck 复查 → timing-fork-constraint 期限门控，共享单一逻辑时钟；验证跨组件身份/回执/截止一致、任一环失效整链 fail-closed、旧帧/旧回执不能穿越新一代。专项 4/4 通过；复用现有模型不改行为，生产接线未实现、未验收，SC021整批、T0/T1、G1～G6仍未验收。
+
+SC-20261115-022：[单实例数据安全与接线链路组合汇总](../docs/verification/2026-11-15-single-instance-wiring-chain.md)。汇总 SC-20261115-020/021 已验证边界、生产差距与不可推断事实及反例；纯文档同步批次，不改模型、测试或生产源码；SC021整批、T0/T1、G1～G6仍未验收。
