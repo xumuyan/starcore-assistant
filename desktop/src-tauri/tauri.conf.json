@@ -11,12 +11,21 @@
   "app": {
     "windows": [],
     "security": {
-      "capabilities": ["probe"],
+      "capabilities": [
+        "probe"
+      ],
       "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; base-uri 'none'; form-action 'none'; frame-src 'none'"
     }
   },
   "bundle": {
-    "active": false,
-    "icon": ["icons/icon.icns", "icons/icon.png"]
+    "active": true,
+    "icon": [
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "targets": [
+      "app"
+    ],
+    "category": "public.app-category.utilities"
   }
 }

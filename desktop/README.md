@@ -320,3 +320,5 @@ SC-20261115-020：[单实例与数据安全离线接线准备模型](../docs/ver
 SC-20261115-021：[接线准备链路组合离线测试](../docs/verification/2026-11-15-wiring-chain.md)。把既有默认关闭组件组合为一条完整离线链路：presentation-controller/worker（主控+子进程）→ renderer-ack-protocol 回执 → executor-recheck 复查 → timing-fork-constraint 期限门控，共享单一逻辑时钟；验证跨组件身份/回执/截止一致、任一环失效整链 fail-closed、旧帧/旧回执不能穿越新一代。专项 4/4 通过；复用现有模型不改行为，生产接线未实现、未验收，SC021整批、T0/T1、G1～G6仍未验收。
 
 SC-20261115-022：[单实例数据安全与接线链路组合汇总](../docs/verification/2026-11-15-single-instance-wiring-chain.md)。汇总 SC-20261115-020/021 已验证边界、生产差距与不可推断事实及反例；纯文档同步批次，不改模型、测试或生产源码；SC021整批、T0/T1、G1～G6仍未验收。
+
+SC-20261117-001：T0 探针已启用受控 .app 打包（targets 仅 app）并本机安装为 /Applications/MOSS T0 Probe.app；ad-hoc 签名、无公证，仅供本机手测。守卫测试改为断言该打包形态；隔离身份、隐藏窗口、受限 ACL、无服务插件不变。与旧沐宿并存，未删除旧应用或 launchd 项。

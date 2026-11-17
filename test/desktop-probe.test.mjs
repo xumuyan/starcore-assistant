@@ -11,7 +11,9 @@ test('T0 has isolated identity, hidden windows, bounded ACL and no service plugi
   const config = JSON.parse(read('desktop/src-tauri/tauri.conf.json'));
   assert.equal(config.identifier, 'dev.starcore.moss.t0-probe');
   assert.deepEqual(config.app.windows, []);
-  assert.equal(config.bundle.active, false);
+  assert.equal(config.bundle.active, true);
+  assert.deepEqual(config.bundle.targets, ['app']);
+  assert.equal(config.bundle.category, 'public.app-category.utilities');
   assert.deepEqual(config.bundle.icon, ['icons/icon.icns', 'icons/icon.png']);
   assert.match(config.app.security.csp, /connect-src ipc: http:\/\/ipc.localhost;/);
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval|https:|\*/);
