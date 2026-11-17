@@ -1268,3 +1268,13 @@
 - 验证结果：新增专项 node --test 两文件 15/15 通过、0 fail；文档专项 test/project-docs.test.mjs 修复基线损坏行后 33/33 通过（修复前基线 32/33、本批中间态 31/33，均如实记录）；git diff --check 通过。完整 npm test（RUSTUP_TOOLCHAIN=1.100.0）909/909、0 fail/cancelled/skipped 通过；本批仅离线模型与文档验证，不是生产接线、构建或真机验收。
 - 遗留问题：真实剪贴板写入、输入注入、执行器边界真实 TOCTOU 二次复查、真实单调时钟与锁屏/休眠监听、生产 fork 时机与 close/watchdog 真实标定均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-019] add executor recheck and timing fork constraint models`；前批 9889381（SC-20261115-018）已推送。
+
+## SC-20261115-020 单实例与数据安全离线接线准备模型
+
+- 北京时间：2026-11-17 15:48:12 +08:00。
+- 修改或新增：按 PLAN T1 差距（单实例/单消费者/数据安全）新增默认关闭的离线模型 test-helpers/dictation-single-instance-model.mjs：单实例互斥认领与自愿释放、重复启动 duplicate-startup fail-closed 永久锁存（onFail 回调、状态置 contended、锁存后全部入口拒绝且不可重置）、实例退役不可逆（retired 后任何实例含原 ID 永不能再认领、无 unretire、非持有者 retire 被拒不改状态）、数据安全（写请求仅为 (path,kind) 对且 API 无内容参数，明文无法经由模型进入；仅 kind='encrypted-record' 且路径精确匹配构造时给定白名单才接受；前缀/后缀/未知路径与 plaintext kind 一律拒绝，不建新文件；retired/latched/unknown-path/plaintext-or-invalid/disabled verdict 可区分）；配套专项 test/dictation-single-instance-model.test.mjs（含默认关闭与离线源码断言：模型源码零 NSPasteboard/pbcopy/CGEvent/child_process/spawn/exec/setTimeout/setInterval/Date.now/fs/launchctl/osascript）；验证文档 docs/verification/2026-11-15-single-instance-model.md；PLAN 新增 SC-20261115-020 检查点并更新当前下一步；desktop/README 新增条目；project-docs 守护断言新增本批专项并扩当前下一步白名单至 020。不接真实文件系统/剪贴板/输入注入/系统监听/进程/timer，不改生产源码与已有模型，默认关闭行为不变。
+- 遇到的难题：开发期专项实际出现一次失败：writesRefused 预期计数漏算前缀路径拒绝一条（模型行为正确，测试预期 4→5 修正）。执行环境 PATH 无 node，改用 nvm v24.15.0（与 CI node-version 24 一致）运行测试。
+- 处理方式：测试预期按模型精确匹配语义修正；不改模型、不放宽断言。
+- 验证结果：新增专项 7/7 通过、0 fail；完整回归 RUSTUP_TOOLCHAIN=1.100.0 npm test 917/917、0 fail/cancelled/skipped 通过；文档专项 test/project-docs.test.mjs 34/34 通过（一次守护断言措辞与文档不一致已修正）；git diff --check 通过。本批仅离线模型与文档验证，不是生产接线、构建或真机验收。
+- 遗留问题：真实单实例机制（flock/lockfile 原子性、崩溃后陈旧锁回收、多用户）、真实加密记录路径对接与磁盘验证、崩溃恢复与锁存重置策略均未实现、未验收；SC021 整批、T0、T1、G1～G6 仍未验收；权限须由用户通过 macOS 正常授权流程授予。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261115-020] add single-instance and data-safety offline model`；前批 af890cd（SC-20261115-019）已推送。

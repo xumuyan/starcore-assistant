@@ -24,7 +24,9 @@ SC-20261115-013 接线准备评估检查点：任务指定的 Change-ID SC-20261
 
 SC-20261115-019 接线准备模型检查点：任务指定的 Change-ID SC-20261115-014 已被汇总核对批次占用，本批改用 SC-20261115-019。按消费者边界审查差距第 2/4/5 条，新增两个默认关闭的离线接线准备模型：[执行器边界 TOCTOU 复查与 timer/锁屏/fork 时机约束模型](docs/verification/2026-11-15-wiring-recheck-timing-models.md)，含 `test-helpers/dictation-executor-recheck-model.mjs`（handoff 后执行器边界同刻显式证据复查、拒绝即确定 not-written、mid-flight 失败保持 unknown 不可升级、一槽等待不排队）与 `test-helpers/dictation-timing-fork-constraint-model.mjs`（单调逻辑时钟回退永久锁存、期限先于工作的入口检查、显式挂起/恢复不自动复活、fork 默认关闭单槽不排队、watchdog term→grace→kill→显式 close 升级序列与配置边界校验）。专项 15/15 通过（含三类开发期失败与修复记录）；不接真实 UI/输入/剪贴板/监听/权限，不改生产源码与默认关闭行为；生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
 
-当前下一步（SC-20261115-019）：执行器边界复查与 timer/fork 时机约束的离线模型已完成；后续按差距清单推进仍须 T0/T1 与 G1～G6 门槛满足并经真机验收，权限一律走用户正常授权流程，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
+SC-20261115-020 单实例与数据安全离线检查点：按 T1 差距新增默认关闭的离线模型 [docs/verification/2026-11-15-single-instance-model.md](docs/verification/2026-11-15-single-instance-model.md)，含 `test-helpers/dictation-single-instance-model.mjs`（单实例互斥认领/自愿释放、重复启动 duplicate-startup fail-closed 永久锁存置 contended、实例退役不可逆无 unretire、本地写请求仅 (path,kind) 对且 API 无内容参数、仅 kind='encrypted-record' 且路径精确匹配既有加密记录白名单才接受、明文/未知路径/新文件一律拒绝、退役与锁存后写拒绝 verdict 可区分）。专项 7/7 通过（含一次测试预期计数漏算修正）；模型不覆盖真实文件锁、崩溃恢复与磁盘加密实现，生产接线未实现、未验收，SC021 整批、T0、T1、G1～G6 仍未验收。
+
+当前下一步（SC-20261115-020）：单实例与数据安全离线模型已完成；后续按差距清单推进仍须 T0/T1 与 G1～G6 门槛满足并经真机验收，权限一律走用户正常授权流程，不得用离线模型替代验收。SC021整批、T0、T1、G1～G6仍未验收。
 
 ## Tauri 2 + Rust 迁移（隔离 T0 壳已建立，关键行为待验收）
 
