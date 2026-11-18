@@ -1318,3 +1318,13 @@
 - 验证结果：RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 924/924，0 fail/cancelled/skipped；git diff --check 通过。纯文档更正，无原生修改。
 - 遗留问题：T0 手测仍待用户执行；删除沐言仍须手测通过并经用户确认。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261117-002] correct installed product name records`；前批fa7b39d84a95aa5d52cc8bf2a265f47ba218751d已推送。
+
+## SC-20261117-003 修复托盘点击后入口条被失焦竞态立即隐藏
+
+- 北京时间：2026-11-17 17:12:00 +08:00。
+- 修改或新增：真机手测发现托盘点击"无反应"。加临时诊断日志定位：点击事件正常、rect=(813,-2,34,34) scale=1、窗口正确定位到 (745,38) 并显示且拿到焦点，但紧接着 Focused(false) 立即触发 blur-hide，窗口被瞬间隐藏。根因：Accessory 激活策略下点击状态栏图标会让新显示的窗口先拿焦点再收到一次伪失焦。修复：新增 ChooserBlurGuard 与纯函数 should_hide_on_blur，托盘唤出后 350ms 宽限窗内忽略 chooser 的失焦隐藏（history/settings 与宽限期外的真实失焦行为不变）；托盘 show 前记录 Instant。重打包并重装 /Applications/MOSS T0 Probe.app。
+- 遇到的难题：现象被误报为"点击无事件/置顶失败"；诊断日志证明事件链路完全正常，问题在 blur 处理竞态；启动 --show-chooser 走居中回退另有"no monitor contains tray center"一次性日志，点击路径的显示器匹配正常，该路径待后续观察。
+- 处理方式：宽限窗仅作用于 chooser 且只在托盘唤出后生效；隐藏逻辑未放宽（宽限期外真实失焦仍隐藏）；临时诊断日志已移除；新增 Rust 单测覆盖宽限判定（宽限内不隐藏/超时隐藏/无记录隐藏）。
+- 验证结果：cargo test 10/10 通过；RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 924/924，0 fail/cancelled/skipped；git diff --check 通过；release 重新打包 16.13 MiB 并重装。真机复测（托盘弹出、点击外部收起、Esc、页面打开）待用户执行。
+- 遗留问题：--show-chooser 启动路径的一次性"no monitor contains tray center"日志原因未查明（点击路径无此问题）；T0 手测其余项（双屏锚定、页面、透明渲染、焦点分离）待用户验收；SC021整批、T0、T1、G1～G6 未验收。
+- 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261117-003] suppress bogus blur race after tray-anchored chooser show`；前批f9a79f1aa8204951bd483f1488c3d976e6306029已推送。

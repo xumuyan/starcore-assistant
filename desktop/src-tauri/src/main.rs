@@ -3,6 +3,7 @@ mod check;
 mod model;
 use model::{ControlMode, Demo, Page, Snapshot};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
@@ -13,6 +14,23 @@ type Result<T> = std::result::Result<T, String>;
 /// TrayIcon is reference-counted and its icon disappears when the last handle
 /// drops; keep one handle alive for the whole app lifetime.
 struct TrayKeepAlive(tauri::tray::TrayIcon<tauri::Wry>);
+
+/// Clicking the status item briefly steals and returns key status under the
+/// Accessory activation policy, so a freshly shown chooser receives a bogus
+/// Focused(false) right after show. Record the show instant and suppress the
+/// blur-hide only inside this grace window; real outside clicks later stay
+/// hidden by the normal blur handler.
+const CHOOSER_BLUR_GRACE: Duration = Duration::from_millis(350);
+struct ChooserBlurGuard(Mutex<Option<Instant>>);
+
+/// Pure decision for the blur-hide race: hide only when the chooser was
+/// shown earlier than the grace window ago (or never tracked).
+fn should_hide_on_blur(shown_at: Option<Instant>, now: Instant, grace: Duration) -> bool {
+    match shown_at {
+        Some(shown) => now.duration_since(shown) >= grace,
+        None => true,
+    }
+}
 
 fn snapshot(app: &tauri::AppHandle) -> Result<Snapshot> {
     app.state::<Probe>()
@@ -166,6 +184,11 @@ fn toggle_chooser_from_tray(
         return;
     };
     position_under_tray(app, chooser, tray_rect);
+    app.state::<ChooserBlurGuard>()
+        .0
+        .lock()
+        .map(|mut guard| *guard = Some(Instant::now()))
+        .ok();
     let _ = chooser.show();
     let _ = chooser.set_focus();
 }
@@ -375,6 +398,7 @@ fn main() {
             }
             // Keep the status item alive after setup returns.
             app.manage(TrayKeepAlive(tray));
+            app.manage(ChooserBlurGuard(Mutex::new(None)));
             if let Some(page) = controls.show_page {
                 open_page(app.handle(), page)?;
             }
@@ -421,7 +445,17 @@ fn main() {
             // Menu-style popovers close themselves when the user clicks elsewhere.
             tauri::WindowEvent::Focused(false) => {
                 if matches!(window.label(), "chooser" | "history" | "settings") {
-                    let _ = window.hide();
+                    let in_grace = window.label() == "chooser"
+                        && !window
+                            .app_handle()
+                            .state::<ChooserBlurGuard>()
+                            .0
+                            .lock()
+                            .map(|guard| should_hide_on_blur(*guard, Instant::now(), CHOOSER_BLUR_GRACE))
+                            .unwrap_or(true);
+                    if !in_grace {
+                        let _ = window.hide();
+                    }
                 }
             }
             _ => {}
@@ -432,7 +466,24 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{anchored_window_origin, physical_tray_rect};
+    use super::{anchored_window_origin, physical_tray_rect, should_hide_on_blur, CHOOSER_BLUR_GRACE};
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn blur_grace_suppresses_only_the_immediate_status_item_race() {
+        let now = Instant::now();
+        // Bogus Focused(false) right after show: inside the grace window.
+        assert!(!should_hide_on_blur(Some(now), now, CHOOSER_BLUR_GRACE));
+        // Real outside click after the grace window: hide normally.
+        assert!(should_hide_on_blur(
+            Some(now - CHOOSER_BLUR_GRACE),
+            now,
+            CHOOSER_BLUR_GRACE
+        ));
+        // No tracked show instant (e.g. legacy path): keep hiding on blur.
+        assert!(should_hide_on_blur(None, now, CHOOSER_BLUR_GRACE));
+        assert_eq!(CHOOSER_BLUR_GRACE, Duration::from_millis(350));
+    }
 
     #[test]
     fn chooser_anchors_below_tray_and_stays_inside_the_work_area() {
