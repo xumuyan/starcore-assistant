@@ -6,7 +6,7 @@ import {resolve,dirname} from 'node:path';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=name=>readFileSync(resolve(root,name),'utf8');
-const files=['docs/verification/2026-11-14-voice-coordinator-model.md','docs/verification/2026-11-14-voice-adapter-contract.md','docs/verification/2026-11-12-tauri-t0-manual.md','README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
+const files=['docs/verification/2026-11-22-tauri-t0-retest.md','docs/verification/2026-11-14-voice-coordinator-model.md','docs/verification/2026-11-14-voice-adapter-contract.md','docs/verification/2026-11-12-tauri-t0-manual.md','README.md','AGENTS.md','operatelog.md','PLAN.md','docs/superpowers/specs/2026-11-01-global-dictation-design.md','docs/verification/2026-11-01-dictation-integration.md','docs/superpowers/specs/2026-11-02-moss-design.md','docs/verification/2026-11-02-moss.md','docs/troubleshooting/macos-permissions.md','design-qa.md','docs/verification/2026-11-09-reminder.md','docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md','docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md'];
 
 test('root project rules keep all five traceability requirements and existing behavior',()=>{
   const rules=read('AGENTS.md');
@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）|当前下一步（SC-20261115-022）|当前下一步（SC-20261117-001）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）|当前下一步（SC-20261115-022）|当前下一步（SC-20261117-001）|当前下一步（SC-20261122-001）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -459,4 +459,33 @@ test('installed T0 probe bundle stays isolated and coexists with the installed p
  assert.match(read('desktop/README.md'),/SC-20261117-001/);
  const probe=read('test/desktop-probe.test.mjs');
  for(const rule of [/bundle\.active, true/,/'app'\]/,/'dev\.starcore\.moss\.t0-probe'/,/app\.windows, \[\]/])assert.match(probe,rule);
+});
+
+
+test('T0 manual entry points separate a verified app bundle from CLI dev', () => {
+  const sheet = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  assert.match(sheet, /^open -a "\/Applications\/MOSS T0 Probe\.app" --args --diagnostic-controls$/m);
+  assert.match(sheet, /^open -a "\/Applications\/MOSS T0 Probe\.app"$/m);
+  for (const rule of [/SC-20261117-003/, /dev\.starcore\.moss\.t0-probe/, /codesign --verify --deep --strict/,
+    /shasum -a 256/, /构建来源/, /只有开发版.*Ctrl\+C/, /不要并行运行/, /350 ms/, /参考动效：未测/]) {
+    assert.match(sheet, rule);
+  }
+});
+
+test('post-fix T0 checkpoint preserves the per-mode evidence and does not mark acceptance', () => {
+  const path = 'docs/verification/2026-11-22-tauri-t0-retest.md';
+  const evidence = read(path);
+  const rows = [...evidence.matchAll(/^\| ((?:D|P)0\d|参考动效) \| (诊断|默认) \| [^|]+ \| [^|]+ \| (未测|通过|失败) \|$/gm)];
+  const ids = ['D01', 'D02', 'P01', 'P02', 'P03', 'P04', 'P05', 'P06', 'P07', 'P08', '参考动效'];
+  assert.deepEqual(rows.map(([, id, mode, verdict]) => [id, mode, verdict]),
+    ids.map(id => [id, id.startsWith('D') ? '诊断' : '默认', '未测']));
+  for (const rule of [/3cab5c4dfbd31bfa2e7b287f0680d924847b6ece/, /Operation not permitted/, /AXIsProcessTrusted/, /没有发送点击或按键/,
+    /既有证据/, /本轮工程检查/, /未复现/, /解除条件/, /不使用诊断信号/, /T0 仍未验收，T1 未启动/]) assert.match(evidence, rule);
+  assert.doesNotMatch(evidence, /真机验收通过|T0 已验收/);
+  for (const filename of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md',
+    'docs/verification/2026-11-12-tauri-t0-manual.md', 'operatelog.md']) {
+    assert.ok(read(filename).includes('2026-11-22-tauri-t0-retest.md'), `${filename} must point to the retest evidence`);
+  }
+  assert.match(read('PLAN.md'), /^- \[ \] T0 /m);
+  assert.match(read('PLAN.md'), /^- \[ \] T1 /m);
 });

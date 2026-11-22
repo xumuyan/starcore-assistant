@@ -1328,3 +1328,13 @@
 - 验证结果：cargo test 10/10 通过；RUSTUP_TOOLCHAIN=1.100.0 完整 npm test 924/924，0 fail/cancelled/skipped；git diff --check 通过；release 重新打包 16.13 MiB 并重装。真机复测（托盘弹出、点击外部收起、Esc、页面打开）待用户执行。
 - 遗留问题：--show-chooser 启动路径的一次性"no monitor contains tray center"日志原因未查明（点击路径无此问题）；T0 手测其余项（双屏锚定、页面、透明渲染、焦点分离）待用户验收；SC021整批、T0、T1、G1～G6 未验收。
 - 对应 Git 提交：本条所在提交，主题 `fix: [SC-20261117-003] suppress bogus blur race after tray-anchored chooser show`；前批f9a79f1aa8204951bd483f1488c3d976e6306029已推送。
+
+## SC-20261122-001 T0 修复后复测受阻与手测指引对齐
+
+- 北京时间：2026-11-22 11:57:03 +08:00（登记时间；预检时间见复测记录）。
+- 修改或新增：新增 [macOS T0 复测记录](docs/verification/2026-11-22-tauri-t0-retest.md)（独立制品和签名、诊断 D01～D02、默认 P01～P08、原生参考动效、解除条件）；对齐安装版与 CLI dev 手测和退出指引，更新 PLAN、desktop README、历史验证入口及文档守护测试。无原生、前端生产代码或生产接线改动。
+- 遇到的难题：安装 bundle 的 plist、哈希或签名不可核实，本地 release 签名只通过裸二进制核验；无可确认窗口和焦点的受保护输入接口，当前只读 AX 查询未受信任。线上差异预检时 Git HTTPS 读取 SSL 配置被拒，本地跟踪引用与待测 HEAD 差异为 0/0，不等于已核实远端。
+- 处理方式：不启动未核实副本、改权限或换用其他注入；不拿本地 release、诊断信号、自检和历史观察冒充真实交互。两项新增守护在文档补齐前均按预期失败（缺打包版命令及证据文档）；补齐文档及登记时间后通过。完整回归使用仓库忽略目录内的独立临时目录（系统 /tmp 不可写），跑完清理本批文件。
+- 验证结果：探针及文档专项 44/44、git diff --check 通过。以 RUSTUP_TOOLCHAIN=1.100.0 执行 npm test：926 项，863 通过、11 失败、52 跳过、0 取消，完整回归未通过。实查 xcrun 加载 Xcode 库被沙箱拒绝、cargo --version 读取 SSL 配置被拒，部分本机回环监听报 EPERM；真实 fork 用例全量失败但随后缩小重跑通过，未确认原因，也不改变全量结论。D01～D02、P01～P08 及参考动效均未测，未复现新的产品缺陷。无新原生构建、签名或 WKWebView 自检。
+- 遗留问题：在能验证可信制品并确认安全空闲桌面目标/焦点后，先验托盘和宽限期后失焦，再补热键/穿透/退出/多环境及精确视觉；T0 仍未验收，T1 未启动。不删除或替换沐言，SC021 整批、G1～G6、Windows 和公证均不推断完成。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261122-001] record blocked macOS T0 retest and align manual checks`。
