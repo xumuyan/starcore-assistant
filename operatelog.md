@@ -1368,3 +1368,13 @@
 - 验证结果：`node --version`、`npm --version`、`rustc --version`、`cargo --version` 均退出 0（Node v22.22.0、npm 10.9.4、固定 Rust/Cargo 1.100.0）；临时目录写入、Xcode 27.0（27A266a）/SDK 27.0 查询、Swift 编译和执行夹具、沙箱内 127.0.0.1/::1 回环均退出 0；宿主 `cargo build --locked --offline` 退出 0。交付复查隔离包 `codesign --verify --deep --strict --verbose=2` 退出 0，安装副本严格校验退出 1（`code has no resources but signature indicates they must be present`）。未改原生代码，未新跑 Mac/Tauri 构建或 Rust 原生单测；预检 Tauri 包仅是制品证据。文档、探针及控制专项 62/62（退出 0），完整 `npm test` 929/929（退出 0，0 失败/取消/跳过），`git diff --check` 通过。
 - 遗留问题：真机未通过（在启动前受阻，不是复现产品行为失败）。T0 仍未验收，T1 未启动；SC021 整批、G1～G6、Windows、公证状态不变。解除条件为安全空闲专用会话和受保护工具、独立可追溯开发版；择一启动后确认 PID/实际路径，再优先 P01/D01。未替换或删除沐言。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261123-003] deliver T0 regression and desktop gap evidence`；前批测试隔离提交为 dde3bd85fe6c2e131af17da56a5f73c02d662658。
+
+## SC-20261123-004 第 4 轮 T0 开发制品与验收差距交付
+
+- 北京时间：2026-11-23 16:24:50 +08:00（整理本条交付记录；门槛实查时段见手测单）。
+- 修改或新增：在 [T0 手测单](docs/verification/2026-11-12-tauri-t0-manual.md#第-4-轮开发制品与真机差距sc-20261123-004)增量登记同源 arm64 dev 编译制品、使用边界和剩余条件；保留历史矩阵，同步 PLAN 和文档守护。不改产品、350 ms 修复或锁文件。
+- 遇到的难题：安装副本签名资源仍缺失；隔离 dev 编译成功不能证明 CLI 实际启动身份；当前接口没有逐次保护目标及焦点的操作事务，且无法确认专用会话安全空闲。
+- 处理方式：只读重核既有制品和去敏门槛记录，不重新构建隔离包或启动探针。测试放在 Git 归档临时副本中，独立 HOME/TMPDIR/状态/构建产物，使用核对锁文件后的既有依赖及 HUD 缓存副本；沙箱阻止真实 launchctl 和非本机 IP 出站。
+- 验证结果：制品来源检查、隔离包严格验签、dev 配置编译及裸文件严格验签退出 0；安装副本严格验签退出 1。文档守护在记录补齐前按预期失败（1 项，退出 1）；补齐后首次单项仍因时区格式缺冒号失败（退出 1），已按原时刻改为 `+08:00`。隔离文档/探针专项 65/65、改后完整 `npm test` 930/930，均退出 0、0 失败/取消/跳过；`git diff --check` 退出 0。未改原生代码，不另跑 `npm run build:mac:check`；未执行真机操作。
+- 遗留问题：CLI dev 运行身份及真机 34 格仍未测；先满足安全空闲专用会话与受保护操作两项门槛，再优先 P01/D01，补齐其他交互与原生视觉。未替换旧应用或服务；T0 仍未验收，T1 未启动，其他阶段、Windows、公证不变。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261123-004] record isolated T0 dev build and acceptance gap`。

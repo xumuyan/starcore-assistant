@@ -533,3 +533,27 @@ test('round 3 desktop gap ledger has separate source and mode verdicts without a
   assert.match(read('PLAN.md'), /SC-20261123-003.*34 个适用单元格均未测/);
   for (const id of [0, 1]) assert.match(read('PLAN.md'), new RegExp(`^- \\[ \\] T${id} `, 'm'));
 });
+
+test('round 4 T0 dev compilation does not grant runtime or desktop acceptance', () => {
+  const manual = 'docs/verification/2026-11-12-tauri-t0-manual.md';
+  const id = 'SC-20261123-004';
+  const text = read(manual);
+  const delta = text.split(`## 第 4 轮开发制品与真机差距（${id}）`)[1]?.split('\n## ')[0];
+  assert.ok(delta, 'record the new dev artifact separately from the historical matrix');
+  for (const rule of [
+    /3cab5c4dfbd31bfa2e7b287f0680d924847b6ece/, /Cargo\.lock/, /package-lock\.json/,
+    /cargo build .*--target aarch64-apple-darwin --no-default-features --locked --offline/,
+    /dev-profile\.exit.*退出 0/, /8fc7b043d86ff72279ca75dc36a57f88c3749e63b1d0bacd151ee5c31bfb83f0/,
+    /custom-protocol.*不能代填/, /未启动 CLI dev/, /实际 PID.*可执行路径.*哈希/,
+    /安装副本.*退出 1/, /安全空闲.*专用会话/, /状态项.*窗口.*外部专用测试目标.*焦点.*取消/,
+    /17 行、34 个适用单元格均未测/, /P01\/D01/, /超过 350 ms/, /原生 WKWebView.*未测/,
+    /voice-glow@0\.3\.0.*Pro/, /本地文字入场/, /T0 仍未验收，T1 未启动/,
+  ]) assert.match(delta, rule);
+  assert.doesNotMatch(delta, /T0 已验收|真机验收通过|CLI dev 已启动/);
+  assert.match(text, /\]\(#第-4-轮开发制品与真机差距sc-20261123-004\)/);
+  assert.match(read('PLAN.md'), new RegExp(`${id}.*${manual}#.*34 个适用单元格均未测`));
+  for (const stage of [0, 1]) assert.match(read('PLAN.md'), new RegExp(`^- \\[ \\] T${stage} `, 'm'));
+  const log = read('operatelog.md').split(`## ${id} `)[1]?.split('\n## ')[0];
+  assert.match(log, /北京时间：2026-11-23 \d{2}:\d{2}:\d{2} \+08:00/);
+  assert.match(log, /本条所在提交.*docs: \[SC-20261123-004\] record isolated T0 dev build and acceptance gap/);
+});

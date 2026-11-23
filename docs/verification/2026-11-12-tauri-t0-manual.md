@@ -2,6 +2,8 @@
 
 **当前结论：T0 仍未验收，T1 未启动。** 下方保留操作标准与第 3 轮实际门槛记录；没有真实操作的项目不填通过。SC-20261117-003 修复后的实际预检、逐项状态及解除条件见 [SC-20261122-001 复测记录](2026-11-22-tauri-t0-retest.md)，不从原生合成 IPC 自检 PASS 推导结果。
 
+最新增量见[第 4 轮开发制品与真机差距](#第-4-轮开发制品与真机差距sc-20261123-004)：已补齐开发配置编译制品，未启动 CLI dev；第 3 轮矩阵原样保留。
+
 ## 开始前：先核对制品，再择一启动
 
 - **打包版**：目标为 `/Applications/MOSS T0 Probe.app`。在安全空闲会话先核对独立 bundle ID、可执行文件名、签名和 SHA-256，并与 SC-20261117-003 或待测提交的可信构建来源对照。`0.1.0` 版本号、签名或文件时间均不足以证明含本次修复；读取受限、来源不明或签名校验失败时，停止该副本的验收并单列原因，不拿旧包替代。预检命令只读：
@@ -105,6 +107,16 @@ npm run desktop:probe
 | 原生 WKWebView 参考：时序/帧节奏/性能 | — | — | 未测 | 未测 | 需原生合成场景的实际时序和帧节奏/性能观察，单列测量方式；不以离线浏览器或截图代替。 |
 
 **恢复顺序：**先确认安全空闲的专用 Aqua 会话及受保护输入工具（含外部空白目标）；每次只运行一个来源/模式，输入前核对 bundle ID、PID 和实际可执行路径。从 P01/D01 开始，分别观察真实托盘重开、两按钮及超过 350 ms 后外点收起。遇到焦点不明、热键冲突或不安全场景即停，未测保留。不用诊断信号、自动展示、原生自检、插件注册、截图或离线浏览器替代真实操作。参考动效的已知实现差异继续按[探针说明](../../desktop/README.md)记录，不是本轮新视觉观察。
+
+## 第 4 轮开发制品与真机差距（SC-20261123-004）
+
+**真机未通过：停在启动前，不是观察到产品行为失败。** 第 3 轮矩阵 17 行、34 个适用单元格均未测；隔离打包/实际 CLI dev、诊断/默认不互填。
+
+- **新增：独立 dev 配置编译制品。** 固定提交 `3cab5c4dfbd31bfa2e7b287f0680d924847b6ece`（包含 350 ms 修复）；隔离源码归档与 `git archive` 字节相同。以该提交的 `Cargo.lock`、`package-lock.json` 和已校验的本地缓存离线构建（不是重新 `npm ci`），使用 Rust/Cargo 1.100.0、Node 22.22.0、Tauri CLI 2.12.4。在隔离源码的 `desktop/src-tauri` 执行 `cargo build --bin moss-desktop-probe --target aarch64-apple-darwin --no-default-features --locked --offline --message-format=json-render-diagnostics`。本机临时根 `/private/tmp/moss-t0-round4.gJQNo85I` 的 `logs/dev-profile.exit` 记载退出 0；`logs/dev-profile-artifacts.jsonl` 关联 `target/aarch64-apple-darwin/debug/moss-desktop-probe`，arm64 裸 Mach-O 严格验签退出 0（ad-hoc，非已签 `.app`），SHA-256 `8fc7b043d86ff72279ca75dc36a57f88c3749e63b1d0bacd151ee5c31bfb83f0`。另存的 `tauri build --debug --no-bundle` 制品带 `custom-protocol`，不能代填此对照或 CLI 运行结果。
+- **尚无 dev 运行身份。** 未启动 CLI dev。`tauri dev --no-dev-server` 在相同目标三元组和隔离 Cargo 目标目录下指向此 dev profile 的输出路径，但 CLI 可能重编译；无该选项时还可能启动内置前端服务。静态配置、裸二进制及诊断自动展示不作运行凭据；须现场核对实际 PID、可执行路径、哈希及已配置的探针身份。
+- **打包结果不变。** 复用[第 3 轮隔离 arm64 包](2026-11-23-tauri-t0-round3-preflight.md)，复查来源和三项哈希相符、整包严格验签退出 0，未启动。安装副本缺 `CodeResources`，严格验签退出 1，继续排除；不覆盖、不重签。
+- **安全门槛（2026-11-23 16:16:10～16:17:09 +08:00）。** macOS 27.0.1（26A434）、Aqua、控制台 UID 一致；CoreGraphics 只读查询退出 0，控制台标志为真、锁屏与登录键缺失；AppKit 读到 1×/2×，不算 P08。当前工具接口无受保护操作事务，不能在每次操作前确认探针状态项、窗口、外部专用测试目标和焦点并在变化时取消；未确认安全空闲的专用会话。未启动、截图、发送输入或修改权限。按 bundle ID 查询实例数 0，probe、`cargo-tauri` 和窄 `tauri dev` 匹配各退出 1，非 P07 证据。去敏逐格及检查记录在本机临时目录 `/private/tmp/moss-t0-round4-desktop.mfbiPHVv/`（`matrix.tsv`、`DESKTOP-ACCEPTANCE.md`，不入库）。临时制品若被清理，按固定提交重新隔离构建并验签、核验，不用安装副本替换。
+- **解除条件与顺序。** 同时确认安全空闲的专用会话及上述受保护操作工具，一次只启动一个来源/模式并核验实际运行身份。优先 P01/D01：真实托盘点击、图标下方不瞬隐、分别点两按钮验证先隐藏再开正确页面，另做等待超过 350 ms 后的真实外点收起。随后补 D02、P02～P07 与 P08 双屏/缩放、全屏、专用 Spaces、自然唤醒各格。原生 WKWebView 的配色/形状、逐状态入场/切换/隐藏、透明/裁切、实际时序/帧节奏/性能仍未测；`voice-glow@0.3.0` 不含 Pro processing 扫动，本地文字入场不等于原参考时序。**T0 仍未验收，T1 未启动。**
 
 ## 一次回复模板
 
