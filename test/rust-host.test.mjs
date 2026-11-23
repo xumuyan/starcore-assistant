@@ -54,11 +54,26 @@ test('rust host status matches the node control byte for byte', { skip: !existsS
   execFileSync(cargo, ['build', '--quiet'], { cwd: join(root, 'rust-host'), timeout: 300000 });
   assert.ok(existsSync(mossHost), '构建产物存在');
   const home = sandbox();
+  const logNode = join(home, 'log-node');
+  const logRust = join(home, 'log-rust');
+  const nodeLauncher = fakeLaunchctl(logNode);
+  const rustLauncher = fakeLaunchctl(logRust);
   try {
-    const nodeOut = run(home, process.execPath, [join(root, 'src/client-control.mjs'), 'status']);
-    const rustOut = run(home, mossHost, ['status']);
+    const nodeOut = runWithLaunchctl(home, nodeLauncher, process.execPath, [join(root, 'src/client-control.mjs'), 'status']);
+    const rustOut = runWithLaunchctl(home, rustLauncher, mossHost, ['status']);
     assert.equal(rustOut, nodeOut, '两版 status 输出完全一致');
+    const domain = `gui/${process.getuid()}`;
+    const expected = [
+      `print ${domain}/local.codex-weixin-notifier`,
+      `print ${domain}/local.codex-weixin-desktop-watch`,
+      '',
+    ].join('\n');
+    assert.equal(readFileSync(logNode, 'utf8'), expected);
+    assert.equal(readFileSync(logRust, 'utf8'), expected);
     const snapshot = JSON.parse(rustOut);
+    assert.equal(snapshot.serviceRunning, false);
+    assert.equal(snapshot.watching, false);
+    assert.equal(snapshot.ready, false);
     assert.equal(snapshot.delivery, false);
     assert.equal(snapshot.bound, true);
     assert.equal(snapshot.sent, 1);
@@ -68,7 +83,11 @@ test('rust host status matches the node control byte for byte', { skip: !existsS
     assert.equal(snapshot.remoteProject, 'wzqCmsNew');
     assert.equal(snapshot.latest.project, 'wzqCmsNew');
     assert.equal(snapshot.latest.status, 'sending', 'latest 取排序后最后一条（cancelled 已排除）');
-  } finally { rmSync(home, { recursive: true, force: true }); }
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(join(nodeLauncher, '..'), { recursive: true, force: true });
+    rmSync(join(rustLauncher, '..'), { recursive: true, force: true });
+  }
 });
 
 test('moss-host reports version and rejects unknown commands', { skip: !existsSync(cargo) ? 'cargo 未安装，跳过 Rust 宿主测试' : false }, () => {

@@ -29,3 +29,13 @@ test('stop parity test injects launchers into both engines and checks all comman
   for (const engine of ['Node', 'Rust']) assert.ok(stop.includes(`assert.equal(readFileSync(log${engine}, 'utf8'), expected)`));
   assert.match(source, /timeout: 30000/);
 });
+
+test('status parity explicitly injects and checks launchctl for both engines', () => {
+  const source = read('test/rust-host.test.mjs');
+  const status = source.split("test('rust host status matches")[1]?.split("test('moss-host reports version")[0];
+  assert.ok(status);
+  assert.match(status, /runWithLaunchctl\(home, nodeLauncher, process\.execPath/);
+  assert.match(status, /runWithLaunchctl\(home, rustLauncher, mossHost/);
+  assert.doesNotMatch(status, /\brun\(home,/);
+  for (const engine of ['Node', 'Rust']) assert.ok(status.includes(`assert.equal(readFileSync(log${engine}, 'utf8'), expected)`));
+});

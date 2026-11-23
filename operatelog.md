@@ -1348,3 +1348,13 @@
 - 验证结果：安装副本 `codesign --verify --deep --strict` 退出 1；隔离 Tauri 构建退出 0，签名后的隔离 bundle 严格校验退出 0。首次隔离 npm test 922/927（四项缺少新检出未生成的 HUD 文件，一项为当时日志字段未齐）；仅在测试副本生成三个 HUD 资源并补齐日志字段后，文档/探针专项 51/51、完整 `npm test` 927/927（0 失败/取消/跳过）、`git diff --check` 通过。Tauri 构建为本批制品预检，未改原生代码，未另行构建或安装旧 Mac 应用。
 - 遗留问题：D01～D02、P01～P08、参考动效未测。需在安全空闲、能保护状态项/窗口/焦点的会话复核临时包和 PID/路径再手测；T0 仍未验收，T1 未启动，公证和其他阶段不变。
 - 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261123-001] verify isolated T0 probe and desktop prerequisites`。
+
+## SC-20261123-002 隔离 Node/Rust 状态对照的 launchctl 查询
+
+- 北京时间：2026-11-23 15:37:25 +08:00（第 3 轮回归交付期间；本条记录的是测试隔离，不是手测）。
+- 修改或新增：只改测试。Node/Rust CLI 的 status 对照复用两份独立 launchctl 替身，逐个校验两次 `print` 调用及次序，并检查合成未运行状态；保留原字节级与数据断言。新增静态守护，防止 status 对照退回只换 HOME 的入口。不改生产命令或超时。
+- 遇到的难题：原 status 对照进程只替换 HOME、数据目录和 PATH，未注入 `MOSS_LAUNCHCTL`；临时 HOME 不能隔离当前用户的 `gui/UID`。即使对照输出相同，也不证明两侧没尝试真实查询。历史影响未核实。
+- 处理方式：运行前用隔离 HOME/数据/目标目录及 `sandbox-exec` 禁止执行 `/bin/launchctl` 和非本机 IP 出站连接，仅跑合成夹具。先运行新守护复现缺口，再接入已有替身；本轮不执行真实 `launchctl`，不触碰已安装应用、服务、模型或真实数据。
+- 验证结果：同一隔离环境基线 `npm test` 927/927，0 失败/取消/跳过；`node --test test/control-isolation.test.mjs` 新守护先失败（退出 1，2 通过、1 失败），修正后控制隔离、宿主及 Node 控制专项 16/16（退出 0，无跳过）。修正后的隔离 `npm test` 928/928（退出 0，无失败、取消或跳过），`git diff --check` 通过；本批未改原生代码或做新原生构建。
+- 遗留问题：只补测试隔离，不替代 T0 真机交互或改变 T1、SC021、G1～G6、Windows、公证状态；Rust 宿主原生单测不包含在 `npm test` 中，不在本测试改动中单独运行。
+- 对应 Git 提交：本条所在提交，主题 `test: [SC-20261123-002] isolate control status parity from launchd`。
