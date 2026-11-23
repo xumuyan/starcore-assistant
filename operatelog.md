@@ -1358,3 +1358,13 @@
 - 验证结果：同一隔离环境基线 `npm test` 927/927，0 失败/取消/跳过；`node --test test/control-isolation.test.mjs` 新守护先失败（退出 1，2 通过、1 失败），修正后控制隔离、宿主及 Node 控制专项 16/16（退出 0，无跳过）。修正后的隔离 `npm test` 928/928（退出 0，无失败、取消或跳过），`git diff --check` 通过；本批未改原生代码或做新原生构建。
 - 遗留问题：只补测试隔离，不替代 T0 真机交互或改变 T1、SC021、G1～G6、Windows、公证状态；Rust 宿主原生单测不包含在 `npm test` 中，不在本测试改动中单独运行。
 - 对应 Git 提交：本条所在提交，主题 `test: [SC-20261123-002] isolate control status parity from launchd`。
+
+## SC-20261123-003 第 3 轮回归交付与真机缺口
+
+- 北京时间：2026-11-23 15:40:45 +08:00（完成本轮交付记录字段核对；门槛观察时间见手测单）。
+- 修改或新增：将 desktop_gaps 的实际门槛及逐项矩阵纳入 [T0 手测单](docs/verification/2026-11-12-tauri-t0-manual.md)，同步 PLAN 与文档守护；隔离打包/开发版、诊断/默认分列，17 行共 34 个适用单元格均未测。未改产品、350 ms 修复、原生或配置代码。
+- 遇到的难题：上轮全量 926 项只有 863 通过、11 失败、52 跳过；此次没有复现该组失败，不能把所有历史失败归为同一原因。真实桌面仍无已确认安全空闲专用会话和可保护目标及焦点的输入工具；安装副本严格签名失败，可信开发版未准备。 初次交付专项 61/62（退出 1）仅因新日志时间字段拼接有误，按实际核对时间补齐。
+- 处理方式：以干净基线 579ec9b 的 Git 归档建立 0700 临时工作目录，使用独立 HOME、TMPDIR、测试状态与本地缓存（不声称重新安装锁定 npm 归档）；仅生成三个被忽略的 HUD 资源，再同步交付改动。回归以 `sandbox-exec -f "$profile" /bin/bash "$runner" npm test` 执行，阻止真实 launchctl 及非本机 IP 出站；没有接入真实服务、模型或数据。桌面门槛不满足即停在探针启动前。
+- 验证结果：`node --version`、`npm --version`、`rustc --version`、`cargo --version` 均退出 0（Node v22.22.0、npm 10.9.4、固定 Rust/Cargo 1.100.0）；临时目录写入、Xcode 27.0（27A266a）/SDK 27.0 查询、Swift 编译和执行夹具、沙箱内 127.0.0.1/::1 回环均退出 0；宿主 `cargo build --locked --offline` 退出 0。交付复查隔离包 `codesign --verify --deep --strict --verbose=2` 退出 0，安装副本严格校验退出 1（`code has no resources but signature indicates they must be present`）。未改原生代码，未新跑 Mac/Tauri 构建或 Rust 原生单测；预检 Tauri 包仅是制品证据。文档、探针及控制专项 62/62（退出 0），完整 `npm test` 929/929（退出 0，0 失败/取消/跳过），`git diff --check` 通过。
+- 遗留问题：真机未通过（在启动前受阻，不是复现产品行为失败）。T0 仍未验收，T1 未启动；SC021 整批、G1～G6、Windows、公证状态不变。解除条件为安全空闲专用会话和受保护工具、独立可追溯开发版；择一启动后确认 PID/实际路径，再优先 P01/D01。未替换或删除沐言。
+- 对应 Git 提交：本条所在提交，主题 `docs: [SC-20261123-003] deliver T0 regression and desktop gap evidence`；前批测试隔离提交为 dde3bd85fe6c2e131af17da56a5f73c02d662658。

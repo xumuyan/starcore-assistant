@@ -511,3 +511,25 @@ test('round 3 T0 preflight keeps installation, isolated bundle and desktop verdi
   assert.match(read('PLAN.md'), /当前下一步（SC-20261123-001）/);
   for (const file of ['PLAN.md', 'operatelog.md']) assert.ok(read(file).includes(path));
 });
+
+test('round 3 desktop gap ledger has separate source and mode verdicts without accepting T0', () => {
+  const path = 'docs/verification/2026-11-12-tauri-t0-manual.md';
+  const ledger = read(path).split('## 第 3 轮实际门槛与逐项未测记录（SC-20261123-003）')[1]?.split('\n## ')[0];
+  assert.ok(ledger);
+  assert.match(ledger, /\| 隔离打包·诊断 \| 开发版·诊断 \| 隔离打包·默认 \| 开发版·默认 \|/);
+  const labels = ['D01 托盘、按钮、失焦｜优先', 'P01 默认托盘与页面｜优先', 'D02 输入、四效果与逐次 Esc',
+    'P02 四效果与逐次 Esc', 'P03 临时热键及实际冲突', 'P04 外部焦点', 'P05 鼠标穿透', 'P06 Esc 与关闭热键释放',
+    'P07 正常退出、同源默认重开', 'P08 双屏/不同缩放', 'P08 全屏', 'P08 Spaces', 'P08 自然睡眠恢复',
+    '原生 WKWebView 参考：配色/形状', '原生 WKWebView 参考：逐状态入场/切换/隐藏',
+    '原生 WKWebView 参考：透明/裁切', '原生 WKWebView 参考：时序/帧节奏/性能'];
+  const rows = [...ledger.matchAll(/^\| ((?:D0|P0|原生 WKWebView)[^|]+) \| ([^|]+) \| ([^|]+) \| ([^|]+) \| ([^|]+) \| [^|]+ \|$/gm)];
+  assert.deepEqual(rows.map(([, label, ...verdicts]) => [label, ...verdicts.map(value => value.trim())]),
+    labels.map(label => [label, ...(label.startsWith('D') ? ['未测', '未测', '—', '—'] : ['—', '—', '未测', '未测'])]));
+  for (const requirement of [/真机判定：未通过/, /隔离打包制品.*退出 0/, /安装副本.*退出 1/, /开发版.*没有启动 CLI/,
+    /受保护工具/, /无 PID 或实际可执行路径/, /未发送输入、未截图/, /P01\/D01/, /超过 350 ms/, /不是 P07/]) {
+    assert.match(ledger, requirement);
+  }
+  assert.doesNotMatch(ledger, /T0 已验收|真机验收通过/);
+  assert.match(read('PLAN.md'), /SC-20261123-003.*34 个适用单元格均未测/);
+  for (const id of [0, 1]) assert.match(read('PLAN.md'), new RegExp(`^- \\[ \\] T${id} `, 'm'));
+});
