@@ -604,3 +604,12 @@ test('physical keyboard evidence distinguishes the tested bundle and modes from 
   for (const requirement of [/提交8e48475/, /诊断模式/, /默认模式/, /用户实际按键/, /原生回调仍为0/, /历史与外点/, /四种效果/, /逐帧视觉与性能未测/, /实际CLI dev仍分别待测/, /T0未验收，T1未启动/]) assert.match(delta, requirement);
   assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
 });
+
+test('CI keeps both full native jobs on the supported pinned macOS runner', () => {
+  const workflow = read('.github/workflows/check.yml');
+  const runners = [...workflow.matchAll(/^\s+runs-on:\s*(\S+)/gm)].map(match => match[1]);
+  assert.deepEqual(runners, ['macos-15', 'macos-15']);
+  assert.equal((workflow.match(/- run: npm test\b/g) || []).length, 2);
+  assert.match(workflow, /RUSTUP_TOOLCHAIN: '1\.100\.0'/);
+  assert.match(workflow, /- run: npm run build:mac:check/);
+});
