@@ -36,6 +36,7 @@ test('T0 native declarations preserve focus separation and transient Escape regi
   assert.match(source, /always_on_top\(true\)/);
   assert.match(source, /set_ignore_cursor_events\(true\)/);
   assert.match(source, /unregister\("Escape"\)/);
+  assert.match(source, /if app\.state::<ControlMode>\(\)\.diagnostic \{\s*eprintln!\("T0_SHORTCUT \{:\?\} \{:\?\}", shortcut\.key, event\.state\);\s*\}/);
   assert.match(source, /--show-chooser/);
   assert.match(source, /--show-page/);
   assert.match(source, /fn open_page\(app: &tauri::AppHandle, page: Page\) -> Result<\(\)> \{/);

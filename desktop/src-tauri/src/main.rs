@@ -329,6 +329,9 @@ fn main() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
+                    if app.state::<ControlMode>().diagnostic {
+                        eprintln!("T0_SHORTCUT {:?} {:?}", shortcut.key, event.state);
+                    }
                     if event.state != ShortcutState::Pressed {
                         return;
                     }
