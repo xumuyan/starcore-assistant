@@ -557,3 +557,32 @@ test('round 4 T0 dev compilation does not grant runtime or desktop acceptance', 
   assert.match(log, /北京时间：2026-11-23 \d{2}:\d{2}:\d{2} \+08:00/);
   assert.match(log, /本条所在提交.*docs: \[SC-20261123-004\] record isolated T0 dev build and acceptance gap/);
 });
+
+test('round 6 T0 delivery records the recovered push while all desktop cells stay untested', () => {
+  const manual = 'docs/verification/2026-11-12-tauri-t0-manual.md';
+  const id = 'SC-20261124-001';
+  const heading = `第 6 轮补推与真机门槛复查（${id}）`;
+  const anchor = '#第-6-轮补推与真机门槛复查sc-20261124-001';
+  const sheet = read(manual);
+  const delta = sheet.split(`## ${heading}`)[1]?.split('\n## ')[0];
+  assert.ok(delta, 'record the round 6 delta after the historical matrix');
+  assert.ok(sheet.includes(`](${anchor})`));
+  for (const requirement of [
+    /SC-20261123-004.*git push.*退出 0/,
+    /git ls-remote.*退出 0.*ec4e06fe67b76f6bca93950370fe5db3fefdc65b/,
+    /17 项、34 个适用格.*通过 0.*产品行为失败 0.*未测 34/,
+    /隔离打包.*实际 CLI dev.*诊断.*默认/,
+    /专用 Aqua 会话.*安全空闲/,
+    /状态项.*窗口.*外部专用测试目标.*焦点.*取消/,
+    /实际 PID.*路径.*签名.*哈希/, /界面退出未测.*CLI 终止不适用.*清理动作 0/,
+    /P01\/D01.*4 个首测格.*超过 350 ms/, /T0 仍未验收，T1 未启动/,
+  ]) assert.match(delta, requirement);
+  assert.doesNotMatch(delta, /T0 已验收|真机验收通过|CLI dev 已启动/);
+  const plan = read('PLAN.md');
+  assert.ok(plan.includes(`](${manual}${anchor})`));
+  for (const stage of [0, 1]) assert.match(plan, new RegExp(`^- \\[ \\] T${stage} `, 'm'));
+  const log = read('operatelog.md').split(`## ${id} `)[1]?.split('\n## ')[0];
+  assert.ok(log?.includes(`](${manual}${anchor})`));
+  assert.match(log, /北京时间：2026-11-24 \d{2}:\d{2}:\d{2} \+08:00/);
+  assert.match(log, /本条所在提交.*docs: \[SC-20261124-001\] record T0 round 6 delivery and desktop gate evidence/);
+});
