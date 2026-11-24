@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod check;
 mod model;
+mod placement;
+use placement::{centered_overlay_origin, OVERLAY_HEIGHT, OVERLAY_WIDTH};
 use model::{ControlMode, Demo, Page, Snapshot};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -73,6 +75,10 @@ fn hide_overlay(app: &tauri::AppHandle) -> Result<()> {
     emit(app)
 }
 fn demo(app: &tauri::AppHandle, value: Demo) -> Result<()> {
+    let window = app
+        .get_webview_window("overlay")
+        .ok_or("overlay unavailable")?;
+    position_overlay(app, &window)?;
     if !app.global_shortcut().is_registered("Escape") {
         app.global_shortcut()
             .register("Escape")
@@ -84,9 +90,6 @@ fn demo(app: &tauri::AppHandle, value: Demo) -> Result<()> {
         .map_err(|_| "probe state unavailable")?
         .demo = Some(value);
     emit(app)?;
-    let window = app
-        .get_webview_window("overlay")
-        .ok_or("overlay unavailable")?;
     if let Err(error) = window.show() {
         let _ = hide_overlay(app);
         return Err(error.to_string());
@@ -94,6 +97,49 @@ fn demo(app: &tauri::AppHandle, value: Demo) -> Result<()> {
     // Deliberately no set_focus here: the overlay must not steal the user's input.
     Ok(())
 }
+// Re-select the pointer display on every show. Do not activate the overlay.
+fn position_overlay(app: &tauri::AppHandle, window: &tauri::WebviewWindow) -> Result<()> {
+    let cursor = app.cursor_position().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    let point = {
+        // tao's macOS cursor API scales by the PRIMARY display, while its
+        // monitor lookup uses CoreGraphics desktop points. Normalize once.
+        let primary = app.primary_monitor().map_err(|e| e.to_string())?
+            .ok_or("primary display unavailable")?;
+        placement::logical_point((cursor.x, cursor.y), primary.scale_factor())
+    };
+    #[cfg(not(target_os = "macos"))]
+    let point = (cursor.x, cursor.y);
+    let monitor = app.monitor_from_point(point.0, point.1)
+        .map_err(|e| e.to_string())?.ok_or("pointer display unavailable")?;
+    let scale = monitor.scale_factor();
+    let work = monitor.work_area();
+    let (x, y) = centered_overlay_origin((
+        work.position.x as f64, work.position.y as f64,
+        work.size.width as f64, work.size.height as f64,
+    ), scale);
+    #[cfg(target_os = "macos")]
+    {
+        // Physical positions are otherwise converted using the window's OLD
+        // screen scale in tao. Logical desktop points avoid that mixed-DPI race.
+        let (x, y) = placement::logical_point((x, y), scale);
+        window.set_position(tauri::LogicalPosition::new(x, y))
+            .map_err(|e| e.to_string())?;
+        window.set_size(tauri::LogicalSize::new(OVERLAY_WIDTH, OVERLAY_HEIGHT))
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        window.set_position(tauri::PhysicalPosition::new(x, y))
+            .map_err(|e| e.to_string())?;
+        window.set_size(tauri::PhysicalSize::new(
+            (OVERLAY_WIDTH * scale).round() as u32,
+            (OVERLAY_HEIGHT * scale).round() as u32,
+        )).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn probe_snapshot(app: tauri::AppHandle) -> Result<Snapshot> {
     snapshot(&app)
@@ -375,7 +421,7 @@ fn main() {
             window(app.handle(), "chooser", 170.0, 54.0, false)?;
             window(app.handle(), "history", 540.0, 260.0, false)?;
             window(app.handle(), "settings", 600.0, 420.0, false)?;
-            window(app.handle(), "overlay", 620.0, 440.0, true)?;
+            window(app.handle(), "overlay", OVERLAY_WIDTH, OVERLAY_HEIGHT, true)?;
             // Monochrome template glyph (three waveform bars), pre-rendered offline to raw
             // RGBA bytes; 36px pixels render at 18pt on the status item (2x retina sharp).
             // No external image or resource access at runtime.

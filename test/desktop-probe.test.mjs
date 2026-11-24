@@ -51,6 +51,17 @@ test('T0 native declarations preserve focus separation and transient Escape regi
   assert.ok(readBinary('desktop/src-tauri/icons/icon.icns').length > 1000, 'icns present');
   const demo = source.split('fn demo(')[1].split('#[tauri::command]')[0];
   assert.doesNotMatch(demo.replace(/\/\/[^\n]*/g, ''), /set_focus\(/);
+  assert.match(demo, /position_overlay\(app, &window\)\?/);
+  assert.ok(demo.indexOf('position_overlay(app, &window)?') < demo.indexOf('window.show()'));
+  assert.match(source, /monitor_from_point\(/);
+  assert.match(source, /cursor_position\(/);
+  const placement = source.split('fn position_overlay(')[1].split('#[tauri::command]')[0];
+  assert.doesNotMatch(placement.replace(/\/\/[^\n]*/g, ''), /set_focus\(/);
+  assert.match(placement, /primary\.scale_factor\(\)/);
+  assert.match(placement, /monitor\.work_area\(\)/);
+  assert.match(placement, /LogicalPosition::new\(x, y\)/);
+
+
   const model = read('desktop/src-tauri/src/model.rs');
   assert.match(model, /pub enum Page/);
   assert.match(model, /pub enum Demo/);
