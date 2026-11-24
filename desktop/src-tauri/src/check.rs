@@ -166,6 +166,15 @@ pub fn probe_check(app: tauri::AppHandle, caller: WebviewWindow, step: Step) -> 
     Ok(true)
 }
 #[tauri::command]
+pub fn probe_check_close(app: tauri::AppHandle, caller: WebviewWindow) -> Result<()> {
+    app.state::<Check>().authorize(&caller, "chooser")?;
+    app.get_webview_window("overlay")
+        .ok_or("overlay unavailable")?
+        .close()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn probe_check_finish(
     app: tauri::AppHandle,
     caller: WebviewWindow,

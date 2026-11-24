@@ -362,6 +362,7 @@ fn main() {
             check::probe_check_ready,
             check::probe_check_rendered,
             check::probe_check,
+            check::probe_check_close,
             check::probe_check_finish
         ])
         .setup(move |app| {
@@ -466,7 +467,13 @@ fn main() {
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
-                let _ = window.hide();
+                if window.label() == "overlay" {
+                    if hide_overlay(window.app_handle()).is_err() {
+                        eprintln!("T0 overlay close cleanup failed");
+                    }
+                } else {
+                    let _ = window.hide();
+                }
             }
             // Menu-style popovers close themselves when the user clicks elsewhere.
             tauri::WindowEvent::Focused(false) => {

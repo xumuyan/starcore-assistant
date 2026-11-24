@@ -9,6 +9,7 @@ fn main() {
         "probe_check_ready",
         "probe_check_rendered",
         "probe_check",
+        "probe_check_close",
         "probe_check_finish",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))

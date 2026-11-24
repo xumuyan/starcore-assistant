@@ -26,7 +26,9 @@ export async function runSelfCheck(invoke, pause = ms => new Promise(resolve => 
     await invoke('probe_demo', { value });
     await checkpoint(value);
   }
-  await invoke('probe_hide');
+  // Exercise the native CloseRequested path. An explicit hide here would mask
+  // stale demo state or a leaked Escape registration after a system close.
+  await invoke('probe_check_close');
   await checkpoint('hidden');
   await invoke('probe_check_finish', { passed: true });
 }

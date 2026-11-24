@@ -22,6 +22,20 @@ test('self-check drives only bounded synthetic commands with ordered checkpoints
     ['boot', 'bounded', 'history', 'settings', 'listening', 'processing', 'speaking', 'dictation', 'hidden']);
   assert.deepEqual(calls.at(-1), ['probe_check_finish', { passed: true }]);
   assert.ok(!calls.some(([name]) => name === 'probe_hotkey'), 'never auto-enables the test hotkey');
+  assert.ok(calls.some(([name]) => name === 'probe_check_close'));
+  assert.ok(!calls.some(([name]) => name === 'probe_hide'), 'explicit hiding must not mask native close cleanup');
+});
+
+test('self-check rejects a native close that leaves the overlay resources active', async () => {
+  const normal = host();
+  let closed = false;
+  await assert.rejects(runSelfCheck(async (name, args) => {
+    if (name === 'probe_check_close') closed = true;
+    if (name === 'probe_check' && args.step === 'hidden' && closed) return false;
+    return normal.invoke(name, args);
+  }, async () => {}), /native checkpoint timeout/);
+  assert.equal(closed, true);
+  assert.ok(!normal.calls.some(([name]) => name === 'probe_check_finish'));
 });
 test('checkpoint polling is bounded and invalid acceptance or command failure cannot pass', async () => {
   for (const options of [{ stuck: true }, { acceptInvalid: true }, { fail: true }]) {
@@ -55,7 +69,7 @@ test('native self-check is explicit, caller-bound, ordered and excludes external
   assert.match(check, /authorize\(&caller, "overlay"\)/);
   assert.match(check, /progress\.rendered == Some\(expected\)/);
   assert.match(check, /!state\.hotkey_enabled\s*&& !hotkey/);
-  for (const command of ['probe_check_ready', 'probe_check_rendered', 'probe_check', 'probe_check_finish']) {
+  for (const command of ['probe_check_ready', 'probe_check_rendered', 'probe_check', 'probe_check_close', 'probe_check_finish']) {
     assert.ok(read('desktop/src-tauri/build.rs').includes(`"${command}"`));
     assert.ok(read('desktop/src-tauri/permissions/probe.toml').includes(`"${command}"`));
   }
