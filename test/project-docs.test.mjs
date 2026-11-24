@@ -634,4 +634,10 @@ test('external input sampling does not substitute for physical hotkeys and full-
   for (const requirement of [/P04保持未完成/, /不将P05整项勾选通过/, /物理全局Esc/, /overlay仍在/, /这是清理，不是P07退出验收/, /自然睡眠恢复仍未测/, /T0未验收，T1未启动/]) assert.match(delta, requirement);
   assert.doesNotMatch(delta, /T0已验收|全屏验收通过|鼠标穿透验收通过/);
   assert.match(read('PLAN.md'), /P04\/P05\/P06\/P08仍未完成/);
+  const physical = manual.split('## 全屏物理按键与焦点对照（SC-20261124-013）')[1]?.split('\n## ')[0];
+  assert.ok(physical);
+  for (const requirement of [/鼠标点击文稿空白处/, /不点击鼠标继续输入/, /真实截图/, /物理Esc仅关闭浮层/, /根因未证实/, /不据本次通过修改焦点代码/, /不是鼠标穿透完整验收/, /T0未验收，T1未启动/]) assert.match(physical, requirement);
+  assert.doesNotMatch(physical, /T0已验收|全平台验收通过|已确认根因是未聚焦/);
+  assert.match(read('PLAN.md'), /SC-20261124-013 全屏物理按键与焦点对照/);
+
 });
