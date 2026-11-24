@@ -586,3 +586,13 @@ test('round 6 T0 delivery records the recovered push while all desktop cells sta
   assert.match(log, /北京时间：2026-11-24 \d{2}:\d{2}:\d{2} \+08:00/);
   assert.match(log, /本条所在提交.*docs: \[SC-20261124-001\] record T0 round 6 delivery and desktop gate evidence/);
 });
+
+test('diagnostic desktop evidence keeps keyboard failures separate from observed input and exit', () => {
+  const manual = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  const delta = manual.split('## 诊断模式桌面操作增量（SC-20261124-004）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const requirement of [/仅适用于临时bundle诊断模式/, /T0-input-123/, /退出验证壳/, /精确进程查询无匹配/, /Escape.*仍有在屏浮层/, /Cmd\+Shift\+F8.*未出现浮层/, /原因尚未定位|尚不能确定/, /T0仍未验收，T1未启动/]) {
+    assert.match(delta, requirement);
+  }
+  assert.doesNotMatch(delta, /全局按键验收通过|T0已验收|默认模式验收通过/);
+});
