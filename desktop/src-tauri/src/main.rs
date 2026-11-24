@@ -23,6 +23,18 @@ struct TrayKeepAlive(tauri::tray::TrayIcon<tauri::Wry>);
 const CHOOSER_BLUR_GRACE: Duration = Duration::from_millis(350);
 struct ChooserBlurGuard(Mutex<Option<Instant>>);
 
+fn chooser_click_rect(event: tauri::tray::TrayIconEvent) -> Option<tauri::Rect> {
+    match event {
+        tauri::tray::TrayIconEvent::Click {
+            rect,
+            button: tauri::tray::MouseButton::Left,
+            button_state: tauri::tray::MouseButtonState::Up,
+            ..
+        } => Some(rect),
+        _ => None,
+    }
+}
+
 /// Pure decision for the blur-hide race: hide only when the chooser was
 /// shown earlier than the grace window ago (or never tracked).
 fn should_hide_on_blur(shown_at: Option<Instant>, now: Instant, grace: Duration) -> bool {
@@ -374,7 +386,7 @@ fn main() {
                 .tooltip("MOSS T0 验证壳（未录音）")
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click { rect, .. } = event {
+                    if let Some(rect) = chooser_click_rect(event) {
                         let app = tray.app_handle();
                         if let Some(chooser) = app.get_webview_window("chooser") {
                             toggle_chooser_from_tray(app, &chooser, rect);
@@ -477,8 +489,44 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{anchored_window_origin, physical_tray_rect, should_hide_on_blur, CHOOSER_BLUR_GRACE};
+    use super::{anchored_window_origin, chooser_click_rect, physical_tray_rect, should_hide_on_blur, CHOOSER_BLUR_GRACE};
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn one_physical_left_click_toggles_once_and_other_buttons_do_not_toggle() {
+        use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+        let rect = tauri::Rect {
+            position: tauri::PhysicalPosition::new(100, 0).into(),
+            size: tauri::PhysicalSize::new(36, 36).into(),
+        };
+        let mut visible = false;
+        for expected in [true, false] {
+            for state in [MouseButtonState::Down, MouseButtonState::Up] {
+                let event = TrayIconEvent::Click {
+                    id: "test-tray".into(),
+                    position: tauri::PhysicalPosition::new(110.0, 10.0),
+                    rect,
+                    button: MouseButton::Left,
+                    button_state: state,
+                };
+                if chooser_click_rect(event).is_some() {
+                    visible = !visible;
+                }
+            }
+            assert_eq!(visible, expected);
+        }
+        for button in [MouseButton::Right, MouseButton::Middle] {
+            for state in [MouseButtonState::Down, MouseButtonState::Up] {
+                assert!(chooser_click_rect(TrayIconEvent::Click {
+                    id: "test-tray".into(),
+                    position: tauri::PhysicalPosition::new(110.0, 10.0),
+                    rect,
+                    button,
+                    button_state: state,
+                }).is_none());
+            }
+        }
+    }
 
     #[test]
     fn blur_grace_suppresses_only_the_immediate_status_item_race() {
