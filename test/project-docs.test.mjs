@@ -625,3 +625,13 @@ test('default-mode retest records separate user confirmations without completing
   assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
   assert.match(read('PLAN.md'), /SC-20261124-011 默认模式快捷键与退出复测/);
 });
+
+
+test('external input sampling does not substitute for physical hotkeys and full-screen acceptance', () => {
+  const manual = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  const delta = manual.split('## 外部输入与全屏采样（SC-20261124-012）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const requirement of [/P04保持未完成/, /不将P05整项勾选通过/, /物理全局Esc/, /overlay仍在/, /这是清理，不是P07退出验收/, /自然睡眠恢复仍未测/, /T0未验收，T1未启动/]) assert.match(delta, requirement);
+  assert.doesNotMatch(delta, /T0已验收|全屏验收通过|鼠标穿透验收通过/);
+  assert.match(read('PLAN.md'), /P04\/P05\/P06\/P08仍未完成/);
+});
