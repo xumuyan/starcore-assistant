@@ -14,8 +14,9 @@ env:
 
 jobs:
   test:
+    name: Native tests (Intel macOS 15)
     # 产品为 macOS 助理，npm test 含 launchctl/系统域等 macOS 专用用例，ubuntu 从未能通过
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,7 +41,8 @@ jobs:
       - run: npm run build:scene
 
   mac-build:
-    runs-on: macos-15
+    name: Native build (Intel macOS 15)
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

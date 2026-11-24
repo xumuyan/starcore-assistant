@@ -1468,3 +1468,13 @@
 - 验证结果：新增资源模式与文档专项47/47通过；隔离git归档在生成前16检查12通过/4失败，运行HUD模式后16/16通过。实际Cargo代理退出0并报告1.100.0；实际HUD打包退出0，隔离模式测试确认仅三次esbuild调用且没有dist目录，git diff --check通过。本批新远端完整测试与Mac构建推送后独立核对，尚未预填成功。
 - 遗留问题：等待新CI确认Rust实际执行且无跳过，以及最终Mac构建；本机既有Swift超时保持历史记录，T0剩余现场及完整重开/退出未验收，T1未启动。资源模式与测试前置不代表新增语音或跨平台客户端已接线。
 - 对应 Git 提交：本条所在提交，主题 `ci: [SC-20261124-009] prepare HUD assets and pinned Cargo before native tests`；SC008已推送177cd30。
+
+## SC-20261124-010 ARM容量不足时切换明确的Intel验证环境
+
+- 北京时间：2026-11-24 15:50:56 +08:00（ARM排队结果复查时刻）。
+- 修改或新增：两个CI任务改为固定macos-15-intel，并在作业名称注明Intel，更新配置检查及计划。
+- 遇到的难题：任务45348885035约18分钟未分配运行器后失败，两项作业均取消且没有执行步骤。GitHub注释同时说明macOS arm64容量受限，以及任务多次未被hosted运行器领取，不能当作代码测试失败或成功。
+- 处理方式：依照[官方运行环境列表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)，选用同版本macOS的Intel标准环境完成独立验证；保留全部测试、原始超时、固定工具链和资源生成步骤，未降低为Linux检查或关闭原生用例。当前选择用于远端验证，本机构建仍为原Apple Silicon，未改变用户设备或安装。
+- 验证结果：此前SC009的HUD隔离/干净归档与Cargo代理验证仍有效；本批配置/资源模式专项47/47与git diff --check通过。新Intel全量与构建结果待推送后取得，未预填通过；ARM队列失败的原注释已核对。
+- 遗留问题：Intel远端结果不替代ARM远端或真实语音/窗口验收；ARM远端等待资源恢复，本机完整回归仍有既有Swift超时历史，T0未验收、T1未启动。
+- 对应 Git 提交：本条所在提交，主题 `ci: [SC-20261124-010] use explicit Intel macOS runners during ARM capacity shortage`；SC009已推送97d5050。
