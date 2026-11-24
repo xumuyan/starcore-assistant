@@ -11,6 +11,7 @@
     "start": "node src/cli.mjs start",
     "status": "node src/cli.mjs status",
     "test": "node --test",
+    "build:hud": "python3 client/build.py --hud-only",
     "build:mac": "python3 client/build.py",
     "build:mac:check": "python3 client/build.py --ui-only --no-install",
     "build:scene": "python3 client/scene/prototype/build.py",

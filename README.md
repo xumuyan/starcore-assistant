@@ -46,6 +46,7 @@ A personal AI assistant for macOS with local speech recognition, Codex integrati
 git clone https://github.com/xumuyan/starcore-assistant.git
 cd starcore-assistant
 npm ci
+npm run build:hud
 npm test
 ```
 

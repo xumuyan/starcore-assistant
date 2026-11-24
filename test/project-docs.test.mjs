@@ -612,4 +612,6 @@ test('CI keeps both full native jobs on the supported pinned macOS runner', () =
   assert.equal((workflow.match(/- run: npm test\b/g) || []).length, 2);
   assert.match(workflow, /RUSTUP_TOOLCHAIN: '1\.100\.0'/);
   assert.match(workflow, /- run: npm run build:mac:check/);
+  assert.equal((workflow.match(/- run: npm run build:hud\s+- run: npm test/g) || []).length, 2);
+  assert.equal((workflow.match(/"\$HOME\/\.cargo\/bin\/cargo" --version/g) || []).length, 2);
 });

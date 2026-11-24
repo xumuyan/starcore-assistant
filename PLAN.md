@@ -103,7 +103,15 @@ Node.js 可作为受管 sidecar 过渡，Rust 能力补齐并验收后才移除�
 
 既有Actions任务在启动步骤前取消，注释macos-14-arm64-us-default配置不受支持；根据[GitHub运行环境文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)和[镜像公告](https://github.com/actions/runner-images/blob/main/README.md)，将test与mac-build两个任务固定为受支持的macos-15（arm64）。两处完整npm test、固定Rust工具链与Mac构建步骤保留，新增配置检查；本地专项52/52通过。
 
-- [ ] 推送后核对真实远端任务启动、全量测试与构建结果，记录实际证据。当前只验证配置，尚未取得新运行结果；本机既有夹具超时与T0未完成状态不由配置更新消除，T1未启动。
+- [ ] 新任务已实际启动，但全量测试因4项资源失败及52项Rust跳过尚未通过，构建步骤未到达；后续修正见SC009。本机既有夹具超时与T0未完成状态不由运行环境更新消除，T1未启动。
+
+### SC-20261124-009 补齐全新检出的测试前置资源
+
+SC008的[新CI任务](https://github.com/xumuyan/starcore-assistant/actions/runs/45347372829)已真正启动，两项任务均执行936项检查：880通过、4项缺少生成脚本失败、52项因测试期望的Cargo入口缺失而跳过。运行环境阻碍已解除，完整验证尚未通过。
+
+新增build:hud命令，复用build.py原三份界面脚本打包，在原生包装和安装之前退出；两项CI先生成资源再测试，并为测试提供固定工具链的Cargo兼容入口及PATH。资源模式47项专项通过，干净源码归档16项资源检查从12通过/4失败变为16通过，Cargo代理实际返回1.100.0。
+
+- [ ] 推送后验证完整测试执行且没有Rust跳过，核对Mac构建结果；当前未预填远端成功。本机原有超时记录保留，T0未验收、T1未启动。
 
 依赖顺序：阶段 0 → 阶段 1 → 阶段 2～6 → 阶段 7 → 阶段 8。阶段 2～6 内部按下列前置关系推进。
 
