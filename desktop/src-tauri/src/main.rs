@@ -493,8 +493,33 @@ fn main() {
             }
             _ => {}
         })
-        .run(tauri::generate_context!())
-        .expect("isolated T0 probe failed to start");
+        .build(tauri::generate_context!())
+        .expect("isolated T0 probe failed to start")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            } = event {
+                // Reopening an already running, hidden app should restore its
+                // entry bar. Keep explicit self-check windows under test control.
+                if app.state::<check::Check>().enabled {
+                    return;
+                }
+                let Some(chooser) = app.get_webview_window("chooser") else {
+                    return;
+                };
+                if chooser.is_visible().unwrap_or(true) {
+                    return;
+                }
+                let Ok(Some(rect)) = app.state::<TrayKeepAlive>().0.rect() else {
+                    return;
+                };
+                toggle_chooser_from_tray(app, &chooser, rect);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }
 
 #[cfg(test)]

@@ -97,6 +97,17 @@ test('diagnostic mode is explicit and never relaxes the frameless popover window
   assert.doesNotMatch(read('desktop/src-tauri/tauri.macos.conf.json'), /macOSPrivateApi.*false/);
 });
 
+test('macOS reopening restores a hidden entry without toggling visible windows or self-checks', () => {
+  const native = read('desktop/src-tauri/src/main.rs');
+  const reopen = native.split('.run(|app, event| {')[1]?.split('\n        });')[0];
+  assert.ok(reopen);
+  assert.match(reopen, /#\[cfg\(target_os = "macos"\)\]/);
+  assert.match(reopen, /RunEvent::Reopen\s*\{\s*has_visible_windows: false,\s*\.\.\s*\}/);
+  assert.match(reopen, /state::<check::Check>\(\)\.enabled/);
+  assert.match(reopen, /chooser\.is_visible\(\)\.unwrap_or\(true\)/);
+  assert.match(reopen, /toggle_chooser_from_tray\(app, &chooser, rect\)/);
+});
+
 test('menu popover anchors under the tray icon, frameless, closing on blur or page open', () => {
   const native = read('desktop/src-tauri/src/main.rs');
   for (const pattern of [/TrayIconEvent::Click/, /fn anchored_window_origin/, /available_monitors\(\)/,

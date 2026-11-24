@@ -596,3 +596,11 @@ test('diagnostic desktop evidence keeps keyboard failures separate from observed
   }
   assert.doesNotMatch(delta, /全局按键验收通过|T0已验收|默认模式验收通过/);
 });
+
+test('physical keyboard evidence distinguishes the tested bundle and modes from outstanding T0 coverage', () => {
+  const manual = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  const delta = manual.split('## 物理按键与默认模式核心交互（SC-20261124-007）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const requirement of [/提交8e48475/, /诊断模式/, /默认模式/, /用户实际按键/, /原生回调仍为0/, /历史与外点/, /四种效果/, /逐帧视觉与性能未测/, /实际CLI dev仍分别待测/, /T0未验收，T1未启动/]) assert.match(delta, requirement);
+  assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
+});
