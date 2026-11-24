@@ -615,3 +615,13 @@ test('CI keeps both full native jobs on the supported pinned macOS runner', () =
   assert.equal((workflow.match(/- run: npm run build:hud\s+- run: npm test/g) || []).length, 2);
   assert.equal((workflow.match(/"\$HOME\/\.cargo\/bin\/cargo" --version/g) || []).length, 2);
 });
+
+
+test('default-mode retest records separate user confirmations without completing T0', () => {
+  const manual = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  const delta = manual.split('## 默认模式分项复测（SC-20261124-011）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const requirement of [/SC007同一临时制品/, /Cmd\+Shift\+F8显示\/收起正常/, /Esc关闭正常/, /设置页退出按钮正常/, /精确进程查询无匹配/, /用户实际按键/, /完整重开生命周期未测/, /T0未验收，T1未启动/]) assert.match(delta, requirement);
+  assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
+  assert.match(read('PLAN.md'), /SC-20261124-011 默认模式快捷键与退出复测/);
+});
