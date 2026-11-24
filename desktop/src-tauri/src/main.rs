@@ -132,7 +132,8 @@ fn probe_quit(app: tauri::AppHandle) {
 
 /// Pure menu-popover math, physical pixels everywhere: center the window
 /// horizontally under the tray icon, clamp it into the monitor work area, and
-/// place it just below the icon with a small gap scaled by the display.
+/// Prefer below the icon, flip above when needed, and clamp both axes into
+/// the work area. Gaps are scaled by the display.
 fn anchored_window_origin(
     tray: (f64, f64, f64, f64),
     window: (f64, f64),
@@ -143,7 +144,17 @@ fn anchored_window_origin(
     let x = (tray.0 + (tray.2 - window.0) / 2.0)
         .max(work.0)
         .min((work.0 + work.2 - window.0).max(work.0));
-    (x, tray.1 + tray.3 + gap_logical * scale)
+    let gap = gap_logical * scale;
+    let below = tray.1 + tray.3 + gap;
+    let preferred_y = if below + window.1 <= work.1 + work.3 {
+        below
+    } else {
+        tray.1 - gap - window.1
+    };
+    let y = preferred_y
+        .max(work.1)
+        .min((work.1 + work.3 - window.1).max(work.1));
+    (x, y)
 }
 
 /// Resolve a tray rect into physical pixels; Tauri normalizes rects into
@@ -506,6 +517,26 @@ mod tests {
             6.0,
         );
         assert_eq!((x, y), (0.0, 36.0));
+    }
+
+    #[test]
+    fn chooser_flips_above_bottom_tray_and_clamps_vertical_work_area() {
+        // Bottom taskbar on a secondary display with negative coordinates, at 2x.
+        let work = (-1920.0, -1080.0, 1920.0, 1000.0);
+        assert_eq!(
+            anchored_window_origin((-100.0, -80.0, 40.0, 40.0), (170.0, 108.0), work, 2.0, 6.0),
+            (-170.0, -200.0)
+        );
+        // A top tray can overlap the work area; anchor below the reserved area.
+        assert_eq!(
+            anchored_window_origin((200.0, 0.0, 20.0, 24.0), (170.0, 54.0), (0.0, 48.0, 800.0, 552.0), 1.0, 6.0),
+            (125.0, 48.0)
+        );
+        // Tiny work areas cannot fit the window. Pin its origin to the work area.
+        assert_eq!(
+            anchored_window_origin((0.0, 40.0, 20.0, 20.0), (170.0, 108.0), (0.0, 10.0, 100.0, 50.0), 1.0, 6.0),
+            (0.0, 10.0)
+        );
     }
 
     #[test]
