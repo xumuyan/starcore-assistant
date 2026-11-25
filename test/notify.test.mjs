@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { enqueue, events, deliver, formatEvent, toEvent } from '../src/store.mjs';
+import { enqueue, enqueueMusuPaymentHandoff, events, deliver, formatEvent, musuPaymentEvents, nextMusuPaymentEvent, toEvent } from '../src/store.mjs';
+import { latestTarget } from '../src/remote-store.mjs';
 import { installSendGuard } from '../src/weixin-runtime.mjs';
 
 const input = { type: 'agent-turn-complete', 'thread-id': 'chat-1', 'turn-id': 'turn-1', cwd: '/private/project', 'last-assistant-message': '已修改代码；测试未运行。' };
@@ -70,4 +72,39 @@ test('nonzero errcode is rejected even with missing or zero ret', async () => {
       await assert.rejects(fetch('https://ilinkai.weixin.qq.com/ilink/bot/sendmessage'), /未确认/);
     } finally { undo(); globalThis.fetch = original; }
   }
+});
+
+test('Musu payment notices use fixed copy and leave the last delivered Codex target in place', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'musu-payment-test-'));
+  try {
+    const now = new Date();
+    const thread = '12e45b77-080c-4000-aa6f-bf6b0de011e2';
+    const completion = enqueue({ ...input, 'thread-id': thread }, dir);
+    await deliver(completion, () => {}, dir);
+    const id = '28c041b4-66ce-4758-9e60-7fa7063fa4d1';
+    const event = enqueueMusuPaymentHandoff(id, dir, now);
+    assert.equal(enqueueMusuPaymentHandoff(id.toUpperCase(), dir, now), null);
+    assert.throws(() => enqueueMusuPaymentHandoff('unexpected payment text', dir, now), /交接编号/);
+    assert.equal(nextMusuPaymentEvent(dir, now)?.id, event.id);
+    const sent = [];
+    await deliver(event, text => sent.push(text), dir);
+    assert.deepEqual(sent, ['沐宿 · 付款待验证\n请回到 Mac 上的官方付款页面完成验证。订单及付款状态将在验证后核对。']);
+    assert.equal(latestTarget(dir)?.threadId, thread);
+    assert.ok(!JSON.stringify(musuPaymentEvents(dir)).includes(id));
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('Musu CLI queues only a short-lived handoff and does not send it after expiration', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'musu-payment-cli-'));
+  try {
+    const args = ['src/cli.mjs', 'enqueue-musu-payment', '28c041b4-66ce-4758-9e60-7fa7063fa4d1'];
+    const options = { env: { ...process.env, CODEX_WEIXIN_STATE_DIR: dir }, encoding: 'utf8' };
+    assert.match(execFileSync(process.execPath, args, options), /MUSU_PAYMENT_QUEUED/);
+    assert.match(execFileSync(process.execPath, args, options), /MUSU_PAYMENT_DUPLICATE/);
+    assert.equal(events(dir).length, 0);
+    const [event] = musuPaymentEvents(dir);
+    assert.equal(Date.parse(event.expiresAt) - Date.parse(event.time), 120_000);
+    assert.equal(nextMusuPaymentEvent(dir, new Date(event.expiresAt)), null);
+    assert.equal(musuPaymentEvents(dir)[0].status, 'expired');
+  } finally { rmSync(dir, { recursive: true }); }
 });

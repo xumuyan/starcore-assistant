@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
-import { stateDir, prepare, events, saveEvent, formatEvent, deliver } from './store.mjs';
+import { stateDir, prepare, events, saveEvent, formatEvent, deliver, enqueueMusuPaymentHandoff, musuPaymentEvents, nextMusuPaymentEvent } from './store.mjs';
 import { installSendGuard } from './weixin-runtime.mjs';
 import { createLoginPage } from './login-page.mjs';
 import { acceptRemote, latestTarget, requests, saveRequest, remoteEnabled, setRemoteEnabled, inboundFilter } from './remote-store.mjs';
@@ -17,16 +17,22 @@ process.env.OPENCLAW_LOG_LEVEL = 'FATAL';
 process.umask(0o077);
 installSendGuard({ filterInbound: inboundFilter() });
 const command = process.argv[2];
-const statusFile = join(stateDir, 'status.json');
+const paymentStatusFile = join(stateDir, 'musu-payment-status.json');
+const statusFile = join(stateDir, command === 'start-musu-payments' ? 'musu-payment-status.json' : 'status.json');
 if (command === 'status') {
   const list = events();
   console.log(JSON.stringify({
     service: existsSync(statusFile) ? JSON.parse(readFileSync(statusFile, 'utf8')) : { running: false },
+    musuPayments: existsSync(paymentStatusFile) ? JSON.parse(readFileSync(paymentStatusFile, 'utf8')) : { running: false },
     desktop: existsSync(join(stateDir, 'desktop-status.json')) ? JSON.parse(readFileSync(join(stateDir, 'desktop-status.json'), 'utf8')) : { running: false },
     pending: list.filter(e => e.status === 'pending').length,
     uncertain: list.filter(e => ['sending', 'uncertain'].includes(e.status)).length,
     sent: list.filter(e => e.status === 'sent').length
   }, null, 2));
+} else if (command === 'enqueue-musu-payment') {
+  if (process.argv.length !== 4) throw new Error('需要一个付款交接编号');
+  const event = enqueueMusuPaymentHandoff(process.argv[3]);
+  console.log(event ? 'MUSU_PAYMENT_QUEUED' : 'MUSU_PAYMENT_DUPLICATE');
 } else if (command === 'login') {
   const page = await createLoginPage();
   console.log(`LOGIN_PAGE ${page.url}`);
@@ -71,7 +77,8 @@ if (command === 'status') {
   }
   // Keep the success page visible briefly; the notification service is separate.
   setTimeout(() => { page.close(); }, 30000).unref();
-} else if (command === 'start') {
+} else if (command === 'start' || command === 'start-musu-payments') {
+  const paymentOnly = command === 'start-musu-payments';
   const lock = join(stateDir, 'service.lock');
   if (existsSync(lock)) {
     const pid = Number(readFileSync(lock, 'utf8'));
@@ -98,10 +105,10 @@ if (command === 'status') {
     const account = JSON.parse(readFileSync(join(process.env.OPENCLAW_STATE_DIR, 'openclaw-weixin', 'accounts', `${accountId}.json`), 'utf8'));
     const owner = account.userId;
     if (!owner) throw new Error('缺少绑定用户，请重新扫码');
-    for (const event of events()) {
+    for (const event of paymentOnly ? musuPaymentEvents() : events()) {
       if (event.status === 'sending') { event.status = 'uncertain'; saveEvent(event); }
     }
-    for (const request of requests()) {
+    for (const request of paymentOnly ? [] : requests()) {
       if (request.status === 'submitting') {
         request.status = 'uncertain';
         request.detail = '服务中断后执行结果未确认，不会自动重发';
@@ -114,6 +121,15 @@ if (command === 'status') {
       if (/^(开启提醒|恢复)$/.test(text)) paused = false;
       ready = !paused;
       mark(true);
+      if (paymentOnly) {
+        if (/^(暂停|关闭提醒)$/.test(text)) {
+          paused = true;
+          ready = false;
+          mark(true);
+          return { text: '沐宿付款提醒已暂停。' };
+        }
+        return { text: ready ? '沐宿付款提醒已连接。请在 Mac 官方付款页处理验证。' : '沐宿付款提醒已暂停。发送“开启提醒”恢复。' };
+      }
       if (/^(最新|最近|结果)$/.test(text)) {
         const event = events().at(-1);
         return { text: event ? formatEvent(event) : '还没有收到 Codex 结束事件。' };
@@ -149,7 +165,7 @@ if (command === 'status') {
     const worker = (async () => {
       while (!abort.signal.aborted) {
         if (ready) {
-          const event = events().find(e => e.status === 'pending');
+          const event = paymentOnly ? nextMusuPaymentEvent() : events().find(e => e.status === 'pending');
           if (event) {
             const status = await deliver(event, text => bot.sendMessage(text));
             if (status === 'uncertain') { ready = false; mark(true); }
@@ -160,7 +176,7 @@ if (command === 'status') {
     })();
     const remoteWorker = (async () => {
       while (!abort.signal.aborted) {
-        if (remoteEnabled()) {
+        if (!paymentOnly && remoteEnabled()) {
           const request = requests().find(r => r.status === 'pending');
           if (request) {
             let info;
@@ -204,6 +220,6 @@ if (command === 'status') {
     unlinkSync(lock);
   }
 } else {
-  console.log('使用：npm run login | npm start | npm run status');
+  console.log('使用：npm run login | npm start | npm run status | node src/cli.mjs start-musu-payments | node src/cli.mjs enqueue-musu-payment <UUID>');
   process.exitCode = 1;
 }
