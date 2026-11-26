@@ -651,3 +651,11 @@ test('current manual input and Escape feedback stays bounded by screenshot and r
   assert.doesNotMatch(delta, /T0已验收|混合DPI通过|运行身份已核实/);
   assert.match(read('PLAN.md'), /SC-20261126-002 手工反馈检查点/);
 });
+
+test('pointer-display feedback does not certify DPI, mouse passthrough or runtime identity', () => {
+  const delta = read('docs/verification/2026-11-12-tauri-t0-manual.md').split('## 按鼠标所在屏显示与输入反馈（SC-20261126-003）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const rule of [/用户手工确认的目标屏选择及输入保持分项通过/, /没有新增截图或工具观测/, /运行PID\/路径未独立核实/, /显示大小未明确确认/, /混合DPI\/620×440逻辑尺寸未验收/, /输入成功不等于鼠标穿透通过/, /插入点确实改变/, /圆环与字幕覆盖区域分别检查/, /不使用提交、删除、付款按钮/, /T0未验收，T1未启动/]) assert.match(delta, rule);
+  assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
+  assert.match(read('PLAN.md'), /SC-20261126-003 当前手测下一步/);
+});
