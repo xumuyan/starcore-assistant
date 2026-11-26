@@ -659,3 +659,11 @@ test('pointer-display feedback does not certify DPI, mouse passthrough or runtim
   assert.doesNotMatch(delta, /T0已验收|全平台验收通过/);
   assert.match(read('PLAN.md'), /SC-20261126-003 当前手测下一步/);
 });
+
+test('click-through feedback keeps region coverage and restart acceptance pending', () => {
+  const delta = read('docs/verification/2026-11-12-tauri-t0-manual.md').split('## 点击穿透手工反馈（SC-20261126-004）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const rule of [/点击穿透用户反馈通过/, /没有新增截图或工具观测/, /不推断两个区域均逐一完成/, /运行PID\/路径未独立核实/, /显示大小及混合DPI仍未明确确认/, /临时测试热键默认关闭/, /不要启动旧安装副本或退出旧沐言/, /仅图标消失不能证明/, /退出重开尚未执行/, /T0未验收，T1未启动/]) assert.match(delta, rule);
+  assert.doesNotMatch(delta, /T0已验收|重开验收通过/);
+  assert.match(read('PLAN.md'), /SC-20261126-004 当前手测进展/);
+});
