@@ -642,3 +642,12 @@ test('external input sampling does not substitute for physical hotkeys and full-
   assert.match(read('PLAN.md'), /SC-20261124-013 全屏物理按键与焦点对照/);
 
 });
+
+test('current manual input and Escape feedback stays bounded by screenshot and runtime identity', () => {
+  const manual = read('docs/verification/2026-11-12-tauri-t0-manual.md');
+  const delta = manual.split('## 本轮输入与 Esc 手工反馈（SC-20261126-002）')[1]?.split('\n## ')[0];
+  assert.ok(delta);
+  for (const rule of [/dirty=false/, /输入保持和 Esc 关闭反馈通过/, /需重新附加/, /运行PID\/路径未独立核实/, /不等于实际运行进程身份已核实/, /截图原文件、聊天原文不提交/, /按鼠标所在屏定位/, /T0未验收，T1未启动/]) assert.match(delta, rule);
+  assert.doesNotMatch(delta, /T0已验收|混合DPI通过|运行身份已核实/);
+  assert.match(read('PLAN.md'), /SC-20261126-002 手工反馈检查点/);
+});

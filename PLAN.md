@@ -8,6 +8,8 @@
 
 当前下一步（SC-20261126-001）：补齐可追溯隔离打包工具 `desktop/package-probe.mjs`，新目录复制、签名前构建摘要核对、ad-hoc 整包签名与严格校验、源码变化拒绝及离线清单复核。工具不会安装或启动。下一步重新校验本批临时包，在安全空闲会话核实 PID/路径后验证鼠标所在副屏位置、逻辑尺寸、跨屏往返及焦点，再补 Spaces/睡眠/穿透等缺口。T0 未验收、T1 未启动；付款手机实收另行验收，旧沐言不删除。详见 [隔离打包验证](docs/verification/2026-11-26-probe-packaging.md)。
 
+SC-20261126-002 手工反馈检查点：用户确认浮层期间输入成功、Esc关闭后继续输入，当前附图可见连续合成数字。仅记录本次场景反馈，运行PID/路径未独立核实，不证明副屏归属或混合DPI通过；下一步按鼠标所在屏重新唤出并做双屏往返。T0未验收，T1未启动。证据见 [本轮输入与Esc反馈](docs/verification/2026-11-12-tauri-t0-manual.md#本轮输入与-esc-手工反馈sc-20261126-002)。
+
 ## 当前目标与边界
 
 当前最新决策：采用 **Tauri 2 + Rust**，macOS 先迁移，未来适配 Windows；新界面在跨平台壳上实现，不再新增整套 Mac 专用 Swift 界面。原有听写/语音等保持回归要求，页面与 Codex 界面范围按下方最新用户确认执行。详见 [架构迁移决策](docs/superpowers/specs/2026-11-12-tauri2-rust-migration.md) 与 [界面重制设计](docs/superpowers/specs/2026-11-12-voice-first-ui-redesign.md)。
