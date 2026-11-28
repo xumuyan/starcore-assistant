@@ -57,9 +57,11 @@ test('Beam surface bounds content while preserving halo space and unchanged nati
 test('probe buttons are borderless without removing keyboard focus or changing Beam and input surfaces', () => {
   const css = read('desktop/frontend/probe.css');
   assert.match(css, /\.probe-surface \.beui-btn, \.probe-surface \.beui-switch-track\s*\{[^}]*appearance: none;[^}]*border: 0;[^}]*outline: none;[^}]*box-shadow: none;/);
-  assert.match(css, /\.probe-surface \.beui-btn:focus-visible\s*\{[^}]*background: #454552;[^}]*text-decoration: underline;/);
+  assert.match(css, /\.probe-surface \.beui-btn:focus-visible\s*\{[^}]*background: #454552;[^}]*text-decoration: none;/);
   assert.match(css, /\.beui-switch-track:focus-visible \+ \.beui-switch-label/);
   assert.match(css, /forced-colors: active/);
+  assert.doesNotMatch(css, /text-decoration: underline|text-underline-offset/);
+  assert.match(css, /\.beui-switch-track:focus-visible \.beui-switch-thumb\s*\{[^}]*background: #b9cdff/);
   assert.doesNotMatch(css, /border-top:|outline: 2px solid #aabfff/);
   assert.match(css, /border: 1px solid rgba\(255, 255, 255, 0.12\)/);
   const controls = read('desktop/frontend/beui.jsx');

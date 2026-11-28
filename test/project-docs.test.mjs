@@ -223,7 +223,7 @@ test('manual T0 handoff stays pending, mode-separated and safe with a next actio
   for (const path of ['PLAN.md', 'desktop/README.md', 'docs/verification/2026-11-12-tauri-t0.md']) {
     assert.ok(read(path).includes('2026-11-12-tauri-t0-manual.md'));
   }
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）|当前下一步（SC-20261115-022）|当前下一步（SC-20261117-001）|当前下一步（SC-20261122-001）|当前下一步（SC-20261123-001）|当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261113-001）|当前下一步（SC-20261113-005）|当前下一步（SC-20261113-007）|当前下一步（SC-20261113-008）|当前下一步（SC-20261113-010）|当前下一步（SC-20261113-011）|当前下一步（SC-20261113-012）|当前下一步（SC-20261113-013）|当前下一步（SC-20261113-014）|当前下一步（SC-20261113-015）|当前下一步（SC-20261113-016）|当前下一步（SC-20261113-017）|当前下一步（SC-20261113-018）|当前下一步（SC-20261113-019）|当前下一步（SC-20261113-020）|当前下一步（SC-20261114-001）|当前下一步（SC-20261114-002）|当前下一步（SC-20261114-003）|当前下一步（SC-20261114-004）|当前下一步（SC-20261114-005）|当前下一步（SC-20261114-006）|当前下一步（SC-20261114-007）|当前下一步（SC-20261114-008）|当前下一步（SC-20261114-009）|当前下一步（SC-20261114-010）|当前下一步（SC-20261114-011）|当前下一步（SC-20261114-012）|当前下一步（SC-20261114-013）|当前下一步（SC-20261114-014）|当前下一步（SC-20261114-015）|当前下一步（SC-20261114-016）|当前下一步（SC-20261114-017）|当前下一步（SC-20261114-018）|当前下一步（SC-20261114-019）|当前下一步（SC-20261114-020）|当前下一步（SC-20261114-021）|当前下一步（SC-20261115-001）|当前下一步（SC-20261115-002）|当前下一步（SC-20261115-003）|当前下一步（SC-20261115-004）|当前下一步（SC-20261115-005）|当前下一步（SC-20261115-006）|当前下一步（SC-20261115-007）|当前下一步（SC-20261115-008）|当前下一步（SC-20261115-009）|当前下一步（SC-20261115-010）|当前下一步（SC-20261115-012）|当前下一步（SC-20261115-013）|当前下一步（SC-20261115-019）|当前下一步（SC-20261115-020）|当前下一步（SC-20261115-021）|当前下一步（SC-20261115-022）|当前下一步（SC-20261117-001）|当前下一步（SC-20261122-001）|当前下一步（SC-20261123-001）|当前下一步（SC-20261128-004）/);
   assert.match(read('desktop/README.md'), /beui\.dev/);
   assert.match(read('docs/verification/2026-11-12-tauri-t0.md'), /SC-20261113-001/);
   assert.match(read('licenses/beui-motion-MIT.txt'), /Saurabh Chauhan/);
@@ -509,7 +509,7 @@ test('round 3 T0 preflight keeps installation, isolated bundle and desktop verdi
   }
   assert.doesNotMatch(evidence, /T0 已验收|真机验收通过/);
   assert.match(read('PLAN.md'), /历史预检（SC-20261123-001）/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
   for (const file of ['PLAN.md', 'operatelog.md']) assert.ok(read(file).includes(path));
 });
 
@@ -673,7 +673,7 @@ test('reopen feedback preserves the still-running process and lifecycle uncertai
   assert.ok(delta);
   for (const rule of [/--verify 成功/, /精确app路径打开/, /用户报告的打开\/退出行为正常/, /热键默认关闭、隐藏启动和应用级退出方式未明确确认/, /仍读到PID 61072/, /不能记录进程已退出/, /不能据此判断退出按钮失效/, /未终止或重启/, /不强制睡眠/, /T0未验收，T1未启动/]) assert.match(delta, rule);
   assert.doesNotMatch(delta, /T0已验收|生命周期验收通过/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 test('Spaces display feedback does not certify independent Spaces settings or DPI', () => {
@@ -681,7 +681,7 @@ test('Spaces display feedback does not certify independent Spaces settings or DP
   assert.ok(delta);
   for (const rule of [/桌面切换显示及无残留的用户反馈通过/, /没有新增截图或工具观测/, /未逐项重述输入、Esc或桌面编号/, /未核实“显示器具有单独的空间”/, /不新增进程查询结论/, /不以“正常显示”推断精确620×440/, /不强制睡眠/, /T0未验收，T1未启动/]) assert.match(delta, rule);
   assert.doesNotMatch(delta, /T0已验收|全部环境验收通过/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 test('settings exit and fresh PID evidence does not certify default-off UI or all resource cleanup', () => {
@@ -689,7 +689,7 @@ test('settings exit and fresh PID evidence does not certify default-off UI or al
   assert.ok(delta);
   for (const rule of [/用户明确确认点击设置页退出/, /NO_EXACT_PROBE_PATH_MATCH/, /没有通过kill代替退出/, /--verify 复核成功/, /PID 42673/, /此前PID 61072不同/, /不证明全部WebKit子进程/, /默认关闭和重启后交互尚未实际确认/, /T0未验收，T1未启动/]) assert.match(delta, rule);
   assert.doesNotMatch(delta, /T0已验收|全部资源已释放/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 test('restart default-state feedback does not certify OS registration or re-enabled interaction', () => {
@@ -697,7 +697,7 @@ test('restart default-state feedback does not certify OS registration or re-enab
   assert.ok(delta);
   for (const rule of [/隐藏浮层启动与热键默认关闭的用户反馈通过/, /没有新增截图或工具观测/, /不证明系统层未注册任何快捷键/, /不推断所有窗口均隐藏/, /不新增当前PID/, /重启后显式启用交互尚未确认/, /T0未验收，T1未启动/]) assert.match(delta, rule);
   assert.doesNotMatch(delta, /T0已验收|完整生命周期已通过/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 test('re-enabled shortcut feedback closes one cycle only and leaves tray edges pending', () => {
@@ -705,18 +705,18 @@ test('re-enabled shortcut feedback closes one cycle only and leaves tray edges p
   assert.ok(delta);
   for (const rule of [/唤出\/收起交互的用户反馈通过/, /没有新增截图或工具观测/, /不新增当前PID核验结论/, /一次设置退出→同包重开→默认关闭→显式启用交互/, /不代表反复启动、崩溃恢复、全部资源释放/, /等待一秒/, /不覆盖350毫秒保护期/, /T0未验收，T1未启动/]) assert.match(delta, rule);
   assert.doesNotMatch(delta, /T0已验收|完整生命周期已通过/);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 test('whole Beam panels track user scope and keep browser and physical acceptance distinct', () => {
   const doc = read('docs/verification/2026-11-28-beam-panels.md');
   for (const rule of [/SC-20261128-001/, /https:\/\/libraries.dev\/beam/, /border-beam@1.4.1/, /每个窗口仅一个Beam/, /220×160/, /当前执行多次超时/, /未安装或切换用户当前探针/, /T0未验收，T1未启动/]) assert.match(doc, rule);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });
 
 
 test('Beam installation records exact scope, provenance and pending UI acceptance', () => {
   const doc = read('docs/verification/2026-11-28-beam-install.md');
   for (const rule of [/SC-20261128-002/, /60b9280b4dd9ba6324ac9fdefc8252321405a3ae/, /93672/, /SIGTERM/, /备份/, /未确认修复/, /T0未验收，T1未启动/]) assert.match(doc, rule);
-  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-003）/);
+  assert.match(read('PLAN.md'), /当前下一步（SC-20261128-004）/);
 });

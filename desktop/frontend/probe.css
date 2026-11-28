@@ -44,17 +44,16 @@ html, body, #root { background: transparent; }
   border: 0;
   outline: none;
   box-shadow: none;
+  text-decoration: none;
 }
 .probe-surface .beui-btn:focus-visible {
   background: #454552;
   color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 .probe-surface .beui-switch-track:focus-visible + .beui-switch-label {
   color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 .probe-surface .beui-switch-track:focus-visible .beui-switch-thumb {
   background: #b9cdff;
