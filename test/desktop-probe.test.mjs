@@ -124,19 +124,20 @@ test('menu popover anchors under the tray icon, frameless, closing on blur or pa
   for (const pattern of [/TrayIconEvent::Click/, /fn anchored_window_origin/, /available_monitors\(\)/,
     /fn physical_tray_rect/, /tray\.rect\(\)/, /TrayKeepAlive/, /fn toggle_chooser_from_tray/, /SIGUSR1/,
     /set_position/, /Focused\(false\)/, /fn hide_pages/, /shadow\(false\)/, /decorations\(false\)/,
-    /170\.0, 54\.0/, /"chooser" \| "history" \| "settings"/]) {
+    /220\.0, 160\.0/, /"chooser" \| "history" \| "settings"/]) {
     assert.match(native, pattern);
   }
   const page = read('desktop/frontend/probe.jsx');
   const chooser = page.split('className="probe-chooser"')[1].split("if (view !== 'history'")[0];
   assert.match(chooser, /历史记录/);
   assert.match(chooser, /设置/);
-  assert.doesNotMatch(chooser, /BeamCard/);
+  assert.match(chooser, /<BeamPanel className="probe-menu"/);
+  assert.equal((chooser.match(/<BeamPanel/g) || []).length, 1);
   const pages = page.split("if (view !== 'history'")[1];
   assert.match(pages, /<Switch/);
   assert.match(pages, /<Input/);
   assert.match(pages, /<Button/);
-  assert.doesNotMatch(pages, /BeamCard/);
+  assert.match(pages, /<BeamPanel className="probe-panel"/);
   const beui = read('desktop/frontend/beui.jsx');
   for (const pattern of [/beui\.dev/, /MIT/, /useReducedMotion/, /SPRING_PRESS/, /role="switch"/, /stiffness: 800/]) {
     assert.match(beui, pattern);

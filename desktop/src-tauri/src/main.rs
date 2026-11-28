@@ -418,7 +418,7 @@ fn main() {
             } else {
                 tauri::ActivationPolicy::Accessory
             });
-            window(app.handle(), "chooser", 170.0, 54.0, false)?;
+            window(app.handle(), "chooser", 220.0, 160.0, false)?;
             window(app.handle(), "history", 540.0, 260.0, false)?;
             window(app.handle(), "settings", 600.0, 420.0, false)?;
             window(app.handle(), "overlay", OVERLAY_WIDTH, OVERLAY_HEIGHT, true)?;

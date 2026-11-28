@@ -96,8 +96,8 @@ npm run desktop:probe -- -- --diagnostic-controls
 
 ## 菜单栏入口与页面（SC-20261113-001）
 
-- 左键点击托盘图标：在**托盘图标正下方**弹出无边框入口条，仅两个小按钮“历史记录 / 设置”。位置由 `TrayIconEvent::Click` 事件矩形的物理像素加显示器工作区计算（`anchored_window_origin` 纯函数：居中、工作区钳制、按缩放乘间隙），不做逐平台单位换算。
-- 点击任一按钮：先隐藏入口条，再打开对应无边框玻璃页（设置页为 beUI Switch/Button/Input 控件）；入口条与页面在失去焦点时自动收起（macOS 真机行为待验收）。Esc 只关浮层；CloseRequested 仅隐藏；退出仅经设置页“退出验证壳”。诊断/`--show-chooser` 自动显示也优先锚定托盘图标正下方（`TrayIcon::rect()` 可用时），否则保持居中回退。
+- 左键点击托盘图标：在**托盘图标正下方**弹出220×160逻辑点无边框整体Beam菜单，纵向两行“历史记录 / 设置”。位置由 `TrayIconEvent::Click` 事件矩形的物理像素加显示器工作区计算（`anchored_window_origin` 纯函数：居中、工作区钳制、按缩放乘间隙），不做逐平台单位换算。
+- 点击任一按钮：先隐藏入口条，再打开对应无边框Beam玻璃页（入口、历史、设置共用 border-beam@1.4.1，设置页保留 beUI Switch/Button/Input 控件）；入口条与页面在失去焦点时自动收起（macOS 真机行为待验收）。Esc 只关浮层；CloseRequested 仅隐藏；退出仅经设置页“退出验证壳”。诊断/`--show-chooser` 自动显示也优先锚定托盘图标正下方（`TrayIcon::rect()` 可用时），否则保持居中回退。
 - beUI motion 组件为本地适配（MIT，© 2026 Saurabh Chauhan；来源 https://beui.dev/components/motion ，仓库 starc007/ui-components）：Tailwind 类替换为本地 CSS（`desktop/frontend/beui.jsx`/`beui.css`），未逐像素复制，许可文本见 `licenses/beui-motion-MIT.txt` 与 `THIRD_PARTY_NOTICES.md`；运行时不访问 beui.dev，`motion@14.12.0` 精确锁定。BorderBeam 外框仅保留在浮层内部动效中，chooser 与页面不再使用。
 
 只读 CoreGraphics 检查发现默认 chooser 确实在屏、共享可见、浮动层 layer 5，但工具列表不识别；普通诊断模式能列出窗口、单窗截图和观察 Tab 焦点。后续受控输入仍因焦点变化中止，未验收 IPC、页面切换/输入或热键。不能断言 layer 5 是工具故障的唯一原因。停止重复输入；手工步骤见 [T0 验证记录](../docs/verification/2026-11-12-tauri-t0.md#sc-20261112-007-诊断控制窗口与手工验收)。普通诊断页不是目标透明置顶页的视觉/行为验收，T0 仍未完成。
@@ -342,3 +342,9 @@ node desktop/package-probe.mjs --verify /path/to/moss-t0-artifact-directory
 ```
 
 该清单仅提供本地构建追溯和意外修改检测，不是经过认证的供应链证明；清单与包同时被篡改不能由本机制识别。源码摘要不包括被忽略的依赖/构建缓存，不声明可复现构建。严格 ad-hoc 校验**不是公证、发行签名或真机验收**。重新校验后仍需确认安全空闲桌面及精确 PID/路径，再做双屏/焦点/托盘手测；T0 未验收、T1 未启动。
+
+### SC-20261128-001 整体 Beam 面板
+
+按用户指定的 https://libraries.dev/beam 统一入口、历史与设置外框；复用锁定MIT组件，不声称像素级一致。入口为连续表面而非独立胶囊；页面可滚动，四周留16逻辑点给光晕。旧安装与真实数据不变。
+
+可选检查：`MOSS_CHROMIUM_PATH=<已有Chromium可执行路径> node desktop/check-probe-browser.mjs`。临时profile、固定尺寸iframe及合成IPC，不验证macOS焦点；当前启动超时，尚未通过。实际动效/裁切/托盘外点需新包手测。

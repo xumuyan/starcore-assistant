@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { ConversationEffect, DictationEffect } from './effects.jsx';
 import { Button, Input, Switch } from './beui.jsx';
+import { BeamPanel } from './beam-panel.jsx';
 import { runSelfCheck, renderedDemo } from './self-check.mjs';
 import './style.css';
 import './probe.css';
@@ -47,14 +48,14 @@ function Probe() {
     const Effect = state.demo === 'dictation' ? DictationEffect : ConversationEffect;
     return <main className="probe-overlay"><Effect phase={phase} level={0.55} text="T0 合成效果 · 未录音 · Esc 隐藏" /></main>;
   }
-  // Frameless menu-bar entry: two small pills; opening a page hides this entry.
-  if (view === 'chooser') return <main className="probe-chooser">
-    <Button size="sm" onClick={() => command('probe_open', { page: 'history' })}>历史记录</Button>
-    <Button size="sm" onClick={() => command('probe_open', { page: 'settings' })}>设置</Button>
+  // One shared Beam surface; opening a page still hides this entry.
+  if (view === 'chooser') return <main className="probe-chooser"><BeamPanel className="probe-menu" label="MOSS 入口">
+    <Button variant="ghost" pressScale={1} size="sm" onClick={() => command('probe_open', { page: 'history' })}>历史记录</Button>
+    <Button variant="ghost" pressScale={1} size="sm" onClick={() => command('probe_open', { page: 'settings' })}>设置</Button>
     {error && <p role="alert">{error}</p>}
-  </main>;
+  </BeamPanel></main>;
   if (view !== 'history' && view !== 'settings') return null;
-  return <main className="probe-page"><section className="probe-panel">
+  return <main className="probe-page"><BeamPanel className="probe-panel" label={view === 'history' ? '历史记录' : '设置'}>
     <h1>{view === 'history' ? '历史记录' : '设置'} · T0 验证</h1>
     <p>隔离壳：无麦克风、聊天、真实历史或配置读写。</p>
     {view === 'history' ? <p>尚未接入加密历史；这里不是清空后的历史。</p> : <>
@@ -68,6 +69,6 @@ function Probe() {
     </>}
     {error && <p role="alert">{error}</p>}
     <Button variant="outline" size="sm" onClick={() => command('probe_quit')}>退出验证壳</Button>
-  </section></main>;
+  </BeamPanel></main>;
 }
 createRoot(document.getElementById('root')).render(<Probe />);
