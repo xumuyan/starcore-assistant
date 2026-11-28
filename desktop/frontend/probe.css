@@ -18,9 +18,7 @@ html, body, #root { background: transparent; }
   justify-content: flex-start; padding: 0 14px;
   border-radius: 10px; border: 0; background: transparent; color: #eee;
 }
-.probe-menu .beui-btn + .beui-btn { border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .probe-menu .beui-btn:hover { background: rgba(255, 255, 255, 0.09); }
-.probe-menu .beui-btn:focus-visible { outline: 2px solid #aabfff; outline-offset: -3px; }
 .probe-menu p[role='alert'] { max-height: 24px; overflow-y: auto; margin: 0; font-size: 11px; color: #ff9f0a; }
 .probe-panel {
   padding: 22px;
@@ -37,3 +35,34 @@ html, body, #root { background: transparent; }
 .probe-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .probe-panel p[role='alert'] { margin: 0; font-size: 12px; color: #ff9f0a; }
 .probe-input { align-self: stretch; }
+
+/* Probe-only flat controls: suppress native WebKit rings and variant borders,
+   but keep focus and native keyboard activation (never blur/remove tab stops). */
+.probe-surface .beui-btn, .probe-surface .beui-switch-track {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+}
+.probe-surface .beui-btn:focus-visible {
+  background: #454552;
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.probe-surface .beui-switch-track:focus-visible + .beui-switch-label {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.probe-surface .beui-switch-track:focus-visible .beui-switch-thumb {
+  background: #b9cdff;
+}
+@media (forced-colors: active) {
+  .probe-surface .beui-btn:focus-visible,
+  .probe-surface .beui-switch-track:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
